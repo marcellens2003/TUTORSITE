@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tutor Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { box-sizing: border-box; }
+        html, body { max-width: 100%; overflow-x: hidden; }
+        img { max-width: 100%; }
+        body {
+            margin: 0; min-height: 100vh; font-family: Arial, sans-serif;
+            background: #0a1f5c;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px; position: relative;
+        }
+        body::before {
+            content: ''; position: fixed; inset: 0; z-index: -2;
+            background-image: url("books-bg-blur.jpg");
+            background-size: cover; background-position: center;
+            transform: scale(1.04);
+        }
+        body::after {
+            content: ''; position: fixed; inset: 0; z-index: -1;
+            background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(10,31,92,0.22));
+        }
+        .login-container {
+            width: 100%; max-width: 440px;
+            background: rgba(255,255,255,0.98);
+            padding: 30px; border-radius: 14px;
+            box-shadow: 0 18px 50px rgba(5,16,48,0.45);
+            border: 1px solid rgba(255,255,255,0.6);
+            position: relative; z-index: 1;
+        }
+        @media (min-width: 769px) and (hover: hover) {
+            .login-container { background: rgba(255,255,255,0.97); backdrop-filter: blur(2px); }
+        }
+        .header {
+            position: relative; overflow: hidden;
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 12px; margin: -30px -30px 24px; padding: 18px 22px;
+            background:
+                radial-gradient(80% 120% at 90% -20%, rgba(255,211,77,0.20), rgba(255,211,77,0) 55%),
+                linear-gradient(135deg, #08183f 0%, #102a72 45%, #1d3a8f 82%, #244aa6 100%);
+            border-radius: 14px 14px 0 0;
+            box-shadow: inset 0 0 0 1px rgba(255,211,77,0.22), inset 0 1px 0 rgba(255,255,255,0.18);
+        }
+        .header::before {
+            content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px;
+            background: linear-gradient(90deg, #e8b500 0%, #ffd34d 50%, #e8b500 100%);
+        }
+        .header::after {
+            content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px;
+            background: linear-gradient(90deg,
+                #d4362a 0%, #d4362a 18%, #e8b500 18%, #ffd34d 50%, #e8b500 82%, #d4362a 82%, #d4362a 100%);
+        }
+        .header h2 {
+            margin: 0; flex-grow: 1; text-align: center; font-size: 19px;
+            font-weight: 800; letter-spacing: 0.8px; color: #ffffff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.35);
+        }
+        .header h2::after {
+            content: ""; display:block; width:60px; height:3px; margin:7px auto 0;
+            background: linear-gradient(90deg, rgba(232,181,0,0), #ffd34d, rgba(232,181,0,0));
+            border-radius:3px;
+        }
+        .logo { flex-shrink: 0; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.45)); }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: bold; color: #444; }
+        .form-group input {
+            width: 100%; padding: 12px; font-size: 15px;
+            border: 1px solid #ccc; border-radius: 6px; outline: none; transition: border 0.3s;
+        }
+        .form-group input:focus { border-color: #1d3a8f; }
+        .hint { font-size: 12px; color: #666; margin-top: 4px; }
+        .primary-btn {
+            width: 100%; padding: 12px; border: none;
+            border-radius: 6px; font-size: 16px; font-weight: bold;
+            cursor: pointer; margin-top: 10px; transition: background 0.3s;
+            background: linear-gradient(135deg, #102a72, #1d3a8f); color: #fff;
+        }
+        .primary-btn:hover { background: linear-gradient(135deg, #0a1f5c, #14307f); }
+        .primary-btn:disabled { background: #9ec5e8; cursor: not-allowed; }
+        .error-message {
+            color: #721c24; font-size: 14px; margin-top: 5px; display: none;
+            text-align: center; padding: 8px; background-color: #f8d7da;
+            border-radius: 4px; border: 1px solid #f5c6cb;
+        }
+        .success-message {
+            color: #155724; font-size: 14px; margin-top: 5px; display: none;
+            text-align: center; padding: 8px; background-color: #d4edda;
+            border-radius: 4px; border: 1px solid #c3e6cb;
+        }
+        .loading { display: none; text-align: center; margin-top: 10px; }
+        .loading-spinner {
+            border: 3px solid #f3f3f3; border-top: 3px solid #1d3a8f;
+            border-radius: 50%; width: 20px; height: 20px;
+            animation: spin 1s linear infinite; display: inline-block; vertical-align: middle;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @media (max-width: 768px) {
+            .login-container { padding: 22px 18px; }
+            .header { margin: -22px -18px 22px; padding: 16px 16px; }
+            .header h2 { font-size: 17px; }
+            .logo { height: 48px; width: 48px; }
+            .form-group input { font-size: 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-container">
+    <div class="header">
+        <img src="CoDE LOGO PNG.png" height="60" width="60" class="logo"
+             onerror="this.src='https://via.placeholder.com/60/002147/FFFFFF?text=CoDE'">
+        <h2>Tutor Login</h2>
+        <img src="UCC LOGO PNG.png" height="60" width="60" class="logo"
+             onerror="this.src='https://via.placeholder.com/60/0056b3/FFFFFF?text=UCC'">
+    </div>
+
+    <div class="form-group">
+        <label for="staffId">Staff ID</label>
+        <input type="text" id="staffId" placeholder="e.g. PGT0420"
+               autocomplete="username" autocapitalize="characters" spellcheck="false">
+        <div class="hint">Enter your CoDE facilitator Staff ID.</div>
+    </div>
+
+    <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="Your password"
+               autocomplete="current-password">
+    </div>
+
+    <div id="loginError" class="error-message"></div>
+    <div id="loginSuccess" class="success-message">Signed in! Redirecting...</div>
+    <div id="loginLoading" class="loading">
+        <div class="loading-spinner"></div>
+        <span style="margin-left: 8px;">Signing in...</span>
+    </div>
+
+    <button type="button" class="primary-btn" id="loginBtn">Sign in</button>
+</div>
+
+<script type="module">
+    import { initializeApp }
+        from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+    import {
+        getAuth, signInWithEmailAndPassword,
+        onAuthStateChanged, setPersistence, browserSessionPersistence
+    } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCzgOGc51Qr6DXnJ-zkczBtGniYNLf0jOw",
+        authDomain: "monitoringucc.firebaseapp.com",
+        projectId: "monitoringucc",
+        storageBucket: "monitoringucc.firebasestorage.app",
+        messagingSenderId: "210063574932",
+        appId: "1:210063574932:web:8ccd563312321dcd2af181"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    setPersistence(auth, browserSessionPersistence);
+
+    // ====== TUTOR DIRECTORY (Staff ID -> Name), from Master Facilitators List ======
+    const TUTOR_NAMES = {"PGT0520": "Dr. Abigail Fiona Dzidzinyo", "PGT0420": "Dr. Alimatu Saadia Yussiff", "PGT0132": "Dr. Carl Korkpoe", "PGT0328": "Dr. Charles Haruna", "PGT0290": "Dr. Christopher Yarkwah", "PGT0300": "Dr. Daniel Ampem Darko Asumadu", "PGT0291": "Dr. Daniel Gbormittah", "PGT0271": "Dr. Deodat Charles Otami", "PGT0816": "Dr. Elizabeth Darko Agyei", "PGT0262": "Dr. Emmanuel Arthur Nyarko", "PGT0082": "Dr. Eric Amoo Bondzie", "PGT0493": "Dr. George K. Adom", "PGT0791": "Dr. Iddrissu Shaibu Adam", "PGT0275": "Dr. Isaac Benning", "PGT0098": "Dr. Isaac Dasmani", "PGT0349": "Dr. Isaac Mwinlaaru", "PGT0580": "Dr. Isaac Nunoo", "PGT0457": "Dr. Japhet Osiakwan", "PGT0199": "Dr. Joshua Sebu", "PGT0115": "Dr. Kenneth Adu-Gyamfi", "PGT0404": "Dr. Mohammed Nurudeen A.", "PGT0537": "Dr. Monica Ofosu-Koranteng", "PGT0545": "Dr. Regina Esi Turkson", "PGT0056": "Dr. Valentina Arkorful", "PGT0578": "Dr. Yaw Sarkodie Agyeman", "PGT0486": "Prof. Eric Koka", "PGT0037": "Prof. Francis Andoh", "PGT0046": "Prof. John Windie Ansah", "PGT0828": "Dr Ivy Kpodoe", "PGT0345": "Dr Lena Awoonor-Aziaku", "PGT0276": "Dr. Abdul-Jaleel Saani", "PGT0019": "Dr. Agbevanu Wisdom", "PGT0268": "Dr. Alex Adobaw Bansah", "PGT0468": "Dr. Alfred Kuranchie", "PGT0204": "Dr. Beatrice A. Somuah", "PGT0089": "Dr. Bernard Fentim Darkwa", "PGT0318": "Dr. Bernard Fentim Darkwa", "PGT0128": "Dr. Cecilia Alima Issaka", "PGT0301": "Dr. Christopher Adosi Mensah", "PGT0055": "Dr. Daniel A. Arkoh", "PGT0502": "Dr. Darlington Adanfo", "PGT0544": "Dr. Dorcas P. Slippe", "PGT0026": "Dr. Edward Akomaning", "PGT0274": "Dr. Ekua T. Amua-Sekyi", "PGT0308": "Dr. Eugene Kwarteng Nantwi", "PGT0202": "Dr. Eunice Torto-Seidu", "PGT0135": "Dr. Felix Kumedzro", "PGT0323": "Dr. Felix Senyametor", "PGT0045": "Dr. Francis Ansah", "PGT0296": "Dr. Francis Tabiri", "PGT0168": "Dr. Gloria Nyame", "PGT0277": "Dr. Godwin K. Aboagye", "PGT0287": "Dr. Isaac Atta Kwenin", "PGT0445": "Dr. Ivy K. Nkrumah", "PGT0131": "Dr. Janet A. Koomson", "PGT0460": "Dr. Kwame Nkrumah", "PGT0090": "Dr. Kyeremeh T. Dabone", "PGT0358": "Dr. Martha-Pearl Okine", "PGT0016": "Dr. Ophelia Affreh", "PGT0458": "Dr. Peter Brown", "PGT0160": "Dr. Priscilla Commey Mintah", "PGT0288": "Dr. Regina M. Nugba", "PGT0121": "Dr. Rita Holm Adzovie", "PGT0086": "Dr. Ruth Brew-Annan", "PGT0117": "Dr. Samuel Tieku Gyansah", "PGT0034": "Dr. Samuel Y. Ampofo", "PGT0093": "Dr. T. K. Odame Danso", "PGT0040": "Dr. Vera Ankomah-Sey", "PGT0305": "Dr. Vincent Minadzi", "PGT0485": "Mr. Andrews Lumorvi Degadu", "PGT0307": "Mr. Christopher Yaw Gadese", "PGT0830": "Mr. Emmanuel Asubonteng", "PGT0427": "Mr. Godwin Gaaku", "PGT0350": "Mr. Isaac Gyaase Yeboah", "PGT0461": "Mr. James Amonoo", "PGT0433": "Mr. John Bismark Tefe", "PGT0050": "Mr. Palmas Anyagre", "PGT0383": "Mrs. Angelina Adu", "PGT0822": "Mrs. Doreen Tetteh Coffie", "PGT0285": "Mrs. Dorothy Adentwi-Hayford", "PGT0509": "Mrs. Rebecca Kaedabi-Donkor", "PGT0839": "Prof Sarah Darkwa", "PGT0150": "Prof. Alfred Ampah-Mensah", "PGT0102": "Prof. Bakari Y. Dramanu", "PGT0330": "Prof. Cosmas Cobbold", "PGT0399": "Prof. Frederick Ocansey", "PGT0214": "Prof. Irene Vanderpuye", "PGT0289": "Prof. K. Asamoah-Gyimah", "PGT0076": "Prof. Kankam Boadu", "PGT0110": "Prof. Linda Forde", "PGT0072": "Prof. Marie A. Bakah", "PGT0035": "Prof. Mark O. Amponsah", "PGT0172": "Prof. Maxwell Nyatsikor", "PGT0024": "Prof. Paul Dela Ahiatrogah", "PGT0023": "Prof. Tuffour Kwarteng", "PGT0321": "Prof. Vera Arhin", "PGT0041": "Prof. Yaw Afari Ankomah", "PGT0562": "Dr. Albert Annang", "PGT0075": "Dr. Brandford Bervel", "PGT0576": "Dr. Charles Asante", "PGT0027": "Dr. Edgar T. Akonor", "PGT0029": "Dr. Edward Amarteifio", "PGT0570": "Dr. Emmanuel Dortey", "PGT0788": "Dr. George Anderson Jr.", "PGT0803": "Dr. Helena N. K. Ashong", "PGT0270": "Dr. Justice K. Armah", "PGT0332": "Dr. Kofi Acheaw Owusu", "PGT0471": "Dr. Razak Imoro Jaha", "PGT0798": "Dr. William G. Cantah", "PGT0476": "Ms. Mary Donkor", "PGT0489": "Prof. Alex Somuah Obeng", "PGT0359": "Prof. Douglas D. Agyei", "PGT0789": "Prof. Kojo Okyere", "PGT0057": "Prof. Mark Armah", "PGT0533": "Prof. Wilson Yayoh", "PGT0800": "Dr John Ekow Laryea", "PGT0835": "Dr Joy Olive Boye", "PGT0331": "Dr. Amina Jangu Alhassan", "PGT0356": "Dr. Anthony A. Owusu", "PGT0006": "Dr. Bernard Y. S. Acquah", "PGT0501": "Dr. Daniel Kweku Anhwere", "PGT0417": "Dr. Edmund Kwesi Agormedah", "PGT0836": "Dr. Josephine Anterkyi Bentil", "PGT0299": "Dr. Joyce K. Dankyi", "PGT0833": "Dr. Kofi Abrefa Busia", "PGT0084": "Dr. Leticia Bosu", "PGT0442": "Dr. Magdalene Brown", "PGT0428": "Dr. Peter Anti Partey", "PGT0329": "Dr. Prince Yeboah Asare", "PGT0212": "Dr. Rosemary Twum", "PGT0038": "Dr. Tahir Ahmed Andzie", "PGT0347": "Mr Calvis Wonder Azidor", "PGT0278": "Mr. Ibrahim Imoro", "PGT0846": "Ms. Cecilia Barachia Mark-Aba", "PGT0165": "Prof. Hope P. Nudzor", "PGT0070": "Prof. K Ayebi-Arthur", "PGT0594": "Prof. Lydia A. Dankyi", "PGT0223": "Prof. Michael Boakye-Yiadom", "PGT0167": "Prof. Paul Nyagorme", "PGT0136": "Prof. Samuel Kwaku Agyei", "PGT0099": "Prof. Stephen Doh Fia", "PGT0473": "Dr. (Mrs) Agnes Adom-Konadu", "PGT0790": "Dr. Abdulssalam Alhaji Adam", "PGT0343": "Dr. Albert Sackitey", "PGT0272": "Dr. Emmanuel Asante", "PGT0796": "Dr. Harrison K. Golo", "PGT0854": "Dr. Mohammed Abdul Moomin", "PGT0506": "Dr. Solomon Sika-Bright", "PGT0152": "Isaac Armah-Mensah", "PGT0600": "Mr. Mathew Alidza", "PGT0855": "Mr. William Osei", "PGT0174": "Prof. Camara Obeng", "PGT0436": "Prof. George Aggrey", "PGT0191": "Prof. James Attah Peprah", "PGT0043": "Prof. Martin Anokye", "PGT0584": "Rev. Sr. Dr. Alice Matilda Nsiah", "PGT0060": "Dr. Alale Amos Asamari", "PGT0552": "Dr. Christian Evadzi", "PGT0159": "Dr. Clara A. Mills", "PGT0508": "Dr. Gloria Owusu-Ambrose", "PGT0416": "Dr. Mrs. Leticia Sam", "PGT0446": "Dr. Sylvester Tenkorang", "PGT0507": "Madam Esenam Adjetey", "PGT0302": "Mr. Robert Appiah", "PGT0842": "Mrs. Eugenia Tawiah Adam", "PGT0443": "Ms. Grace Yeboah", "PGT0224": "Prof. Alhaji M. B. Yidana", "PGT0284": "Rev. Prof. Kwasi Otopa Antiri", "PGT0087": "Rev. Rexford Peter Brown"};
+
+    // Firebase needs an email-shaped login, so each Staff ID maps to a
+    // synthetic address. Keep this identical wherever accounts are created.
+    const DOMAIN = 'tutors.ucc.local';
+    function staffIdToEmail(s) {
+        const slug = s.trim().toLowerCase()
+                       .replace(/[^a-z0-9]+/g, '-')
+                       .replace(/^-+|-+$/g, '');
+        return slug + '@' + DOMAIN;
+    }
+
+    onAuthStateChanged(auth, (user) => {
+        if (user && sessionStorage.getItem('tutorStaffId')) {
+            window.location.href = 'tutor-report.html';
+        }
+    });
+
+    function showError(message) {
+        const el = document.getElementById('loginError');
+        el.textContent = message; el.style.display = 'block';
+    }
+    function clearMessages() {
+        document.getElementById('loginError').style.display = 'none';
+        document.getElementById('loginSuccess').style.display = 'none';
+    }
+    function setLoading(isLoading) {
+        document.getElementById('loginLoading').style.display = isLoading ? 'block' : 'none';
+        document.getElementById('loginBtn').disabled = isLoading;
+    }
+
+    async function doLogin() {
+        clearMessages();
+        const rawStaffId = document.getElementById('staffId').value.trim().toUpperCase();
+        const password = document.getElementById('password').value;
+        if (!rawStaffId) { showError('Please enter your Staff ID.'); return; }
+        if (!password)   { showError('Please enter your password.'); return; }
+
+        // Validate against the master list before hitting Firebase.
+        if (!TUTOR_NAMES[rawStaffId]) {
+            showError('Staff ID not found in the facilitators list. Contact the administrator.');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const email = staffIdToEmail(rawStaffId);
+            await signInWithEmailAndPassword(auth, email, password);
+
+            sessionStorage.setItem('tutorStaffId', rawStaffId);
+            sessionStorage.setItem('tutorName', TUTOR_NAMES[rawStaffId] || rawStaffId);
+
+            setLoading(false);
+            document.getElementById('loginSuccess').style.display = 'block';
+            setTimeout(() => { window.location.href = 'tutor-report.html'; }, 800);
+        } catch (e) {
+            console.error(e);
+            let msg = 'Could not sign in. Please try again.';
+            if (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' ||
+                e.code === 'auth/user-not-found' || e.code === 'auth/invalid-email') {
+                msg = 'Incorrect Staff ID or password. Please try again, or contact your administrator.';
+            } else if (e.code === 'auth/too-many-requests') {
+                msg = 'Too many attempts. Please wait a while and try again.';
+            } else if (e.code === 'auth/network-request-failed') {
+                msg = 'Could not reach the server. Check your connection and try again.';
+            } else if (e.code === 'auth/user-disabled') {
+                msg = 'This account has been disabled. Contact your administrator.';
+            }
+            showError(msg); setLoading(false);
+        }
+    }
+
+    document.getElementById('loginBtn').addEventListener('click', doLogin);
+    document.getElementById('staffId').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') document.getElementById('password').focus();
+    });
+    document.getElementById('password').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') doLogin();
+    });
+</script>
+
+</body>
+</html>

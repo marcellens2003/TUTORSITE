@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Postgraduate Monitoring</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        * { box-sizing: border-box; }
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden;   /* hard guard against sideways scrolling */
+        }
+        /* Long unbreakable words (e.g. long course/lecturer names, emails)
+           wrap instead of forcing the layout wider than the screen. */
+        h1, h2, p, .field-label, .option-item, .searchable-input,
+        .mode-text, .duration-display {
+            overflow-wrap: break-word;
+            word-break: break-word;
+        }
+        img { max-width: 100%; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #0a1f5c;
+            padding: 20px;
+            min-height: 100vh;
+            position: relative;
+        }
+        /* Blurred campus background on its own fixed layer so the blur
+           never touches the page content. */
+        /* Library books background image. Local file in same folder,
+           so it always loads (no external hotlink to break).
+           Base uses a PRE-BLURRED image so phones do zero runtime blur work. */
+        body::before {
+            content: ''; position: fixed; inset: 0; z-index: -2;
+            background-image: url("books-bg-blur.jpg");
+            background-size: cover; background-position: center;
+            transform: scale(1.04); /* hides any edge softness */
+        }
+        /* Light wash so the library photo shows through but text stays readable. */
+        body::after {
+            content: ''; position: fixed; inset: 0; z-index: -1;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.10), rgba(10,31,92,0.22));
+        }
+
+        /* ===== UCC-themed banner =====
+           Palette from UCC's official colours: Cosmic Cobalt (deep blue),
+           Aureolin (gold), Vermilion (red), on white. The gold rule and the
+           red seam echo the coat of arms (golden eagle, red Adinkra). */
+        .header {
+            position: relative; overflow: hidden;
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 30px; padding: 24px 34px;
+            background:
+                radial-gradient(80% 120% at 88% -10%, rgba(255,211,77,0.18), rgba(255,211,77,0) 55%),
+                radial-gradient(120% 140% at 0% 0%, rgba(255,255,255,0.14), rgba(255,255,255,0) 48%),
+                linear-gradient(135deg, #08183f 0%, #102a72 42%, #1d3a8f 78%, #244aa6 100%);
+            color: #ffffff; border-radius: 16px;
+            box-shadow:
+                0 14px 36px rgba(8,24,63,0.45),
+                inset 0 0 0 1px rgba(255,211,77,0.22),
+                inset 0 1px 0 rgba(255,255,255,0.18);
+            min-height: 150px;
+        }
+        /* diagonal glass sheen across the banner (animated on desktop only) */
+        .header::before {
+            content: ""; position: absolute; top:0; bottom:0; left:-60%; width:55%;
+            background: linear-gradient(105deg,
+                rgba(255,255,255,0) 0%, rgba(255,255,255,0.16) 50%, rgba(255,255,255,0) 100%);
+            transform: skewX(-18deg);
+        }
+        @keyframes sheen {
+            0%, 18% { left: -60%; }
+            55%, 100% { left: 130%; }
+        }
+        /* Only run the continuous animation on devices that can afford it. */
+        @media (min-width: 769px) and (hover: hover) and (prefers-reduced-motion: no-preference) {
+            .header::before { animation: sheen 6.5s ease-in-out infinite; }
+        }
+        /* gold + red decorative seam along the bottom */
+        .header::after {
+            content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 5px;
+            background: linear-gradient(90deg,
+                #d4362a 0%, #d4362a 18%, #e8b500 18%, #ffd34d 50%, #e8b500 82%, #d4362a 82%, #d4362a 100%);
+        }
+        /* top gold hairline */
+        .header > .top-rule {
+            position: absolute; left: 0; right: 0; top: 0; height: 4px;
+            background: linear-gradient(90deg, #e8b500 0%, #ffd34d 50%, #e8b500 100%);
+            z-index: 2;
+        }
+        .logo-container {
+            flex:0 0 auto; position: relative; z-index: 1;
+            display:flex; align-items:center; justify-content:center;
+            background: none; border: none; padding: 0; box-shadow: none;
+        }
+        .logo-left { margin-right:auto; }
+        .logo-right { margin-left:auto; }
+        .header-logo {
+            height:96px; width:96px; object-fit:contain; display:block;
+            filter: drop-shadow(0 3px 6px rgba(0,0,0,0.45));
+        }
+        .header-center { flex:1; text-align:center; padding:0 28px; min-width:300px; position: relative; z-index: 1; }
+        .header-center h1 {
+            margin:0; font-size:28px; font-weight:800; letter-spacing:1.6px;
+            line-height:1.2; text-shadow: 0 2px 4px rgba(0,0,0,0.35);
+        }
+        /* gold gradient text shine on the title */
+        .header-center h1 .shine {
+            background: linear-gradient(180deg, #ffffff 0%, #fff4cf 55%, #ffd86b 100%);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent; color: #ffd86b;
+        }
+        /* gold accent under the title, centred */
+        .header-center h1::after {
+            content: ""; display:block; width:88px; height:3px; margin:11px auto 0;
+            background: linear-gradient(90deg, rgba(232,181,0,0), #ffd34d, rgba(232,181,0,0));
+            border-radius:3px;
+        }
+        .header-center .subtitle {
+            margin:11px 0 0; font-size:16px; font-weight:600;
+            letter-spacing:1.2px; text-transform: uppercase; color:#ffe08a;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .container {
+            max-width: 700px; margin: auto;
+            background: rgba(255,255,255,0.98);
+            padding: 25px 30px; border-radius: 14px;
+            box-shadow: 0 18px 50px rgba(5,16,48,0.45);
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+
+        /* ===== Desktop-only visual enhancements =====
+           Phones skip these entirely, which is what keeps mobile smooth:
+           no live blur, no backdrop-filter, no animated sheen. */
+        @media (min-width: 769px) and (hover: hover) {
+            .container { background: rgba(255,255,255,0.97); backdrop-filter: blur(2px); }
+        }
+        h2 { text-align:center; margin-bottom:25px; color:#002147; border-bottom:2px solid #0056b3; padding-bottom:10px; }
+
+        .field-label { font-weight:bold; margin-top:18px; color:#333; }
+        input, select, textarea {
+            width:100%; padding:11px; margin-top:6px; border:1px solid #ccc;
+            border-radius:6px; font-size:15px; transition: border 0.3s;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: #0056b3; outline:none; box-shadow:0 0 0 2px rgba(0,123,255,0.25);
+        }
+        textarea { resize:vertical; min-height:100px; }
+
+        /* 📌 SEARCHABLE DROPDOWN STYLES (shared) */
+        .searchable-select-wrapper {
+            position: relative;
+            width: 100%;
+            margin-top: 6px;
+        }
+        .searchable-input {
+            width: 100%;
+            padding: 11px;
+            font-size: 15px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            outline: none;
+            background-color: white;
+            transition: border 0.3s;
+            cursor: text;
+        }
+        .searchable-input:focus {
+            border-color: #0056b3;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+        }
+        .dropdown-options {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            max-height: 280px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+            z-index: 999;
+            display: none;
+        }
+        .dropdown-options.show {
+            display: block;
+        }
+        .option-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.15s;
+            font-size: 15px;
+        }
+        .option-item:last-child {
+            border-bottom: none;
+        }
+        .option-item:hover {
+            background-color: #e6f2ff;
+        }
+        .option-item.selected {
+            background-color: #cce5ff;
+            font-weight: 500;
+        }
+        .no-result {
+            padding: 12px;
+            color: #666;
+            font-style: italic;
+            text-align: center;
+        }
+
+        .radio-container {
+            margin-top:8px; background:#f8f9fa; padding:15px; border-radius:6px; border:1px solid #e9ecef;
+        }
+        .radio-container label {
+            display:inline-flex; align-items:center; gap:8px; font-weight:normal;
+            cursor:pointer; margin-bottom:8px; padding:5px 10px; border-radius:4px; transition:background 0.2s;
+        }
+        .radio-container label:hover { background:#e9ecef; }
+        .radio-container input[type="radio"] { margin:0; transform:scale(1.1); }
+
+        /* Duration display */
+        .duration-display {
+            margin-top: 6px;
+            padding: 11px 16px;
+            background: #f0f7ff;
+            border: 1px solid #b8d4f5;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #0056b3;
+            letter-spacing: 0.3px;
+        }
+        .duration-display.invalid {
+            background: #fff5f5;
+            border-color: #f5c6cb;
+            color: #dc3545;
+        }
+        .mode-delivery-container {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+        }
+        .mode-option {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .mode-option:hover {
+            border-color: #0056b3;
+            background: #e8f0fe;
+        }
+        .mode-option input[type="radio"] {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            margin: 0;
+            flex-shrink: 0;
+            accent-color: #0056b3;
+        }
+        .mode-option:has(input[type="radio"]:checked) {
+            border-color: #0056b3;
+            background: #e8f0fe;
+            box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.15);
+        }
+        .mode-option:has(input[type="radio"]:checked) .mode-text {
+            color: #0056b3;
+            font-weight: 600;
+        }
+        .mode-text { font-size: 15px; color: #444; }
+
+        button {
+            width:100%; margin-top:30px; padding:13px;
+            background: linear-gradient(135deg, #0056b3, #003d82);
+            color:#fff; border:none; border-radius:6px; font-size:17px; font-weight:bold;
+            cursor:pointer; transition: all 0.3s; letter-spacing:0.5px;
+        }
+        button:hover {
+            background: linear-gradient(135deg, #004494, #002147);
+            transform: translateY(-2px); box-shadow:0 4px 12px rgba(0,86,179,0.3);
+        }
+
+        .loading, .error-message, .success-message {
+            display: none; text-align:center; padding:12px; border-radius:6px; margin:10px 0;
+        }
+        .loading { background:#e3f2fd; color:#0056b3; font-weight:bold; }
+        .error-message { background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; }
+        .success-message { background:#d4edda; color:#155724; border:1px solid #c3e6cb; }
+
+        @media (max-width: 768px) {
+            body { padding:10px; }
+            .header {
+                padding:16px 14px; min-height:auto; gap:8px;
+                border-radius:12px;
+            }
+            .header-logo { height:54px; width:54px; }
+            .header-center { padding:0 6px; min-width:0; }
+            .header-center h1 { font-size:17px; letter-spacing:0.5px; }
+            .header-center h1::after { width:60px; margin-top:7px; }
+            .header-center .subtitle { font-size:12px; letter-spacing:0.5px; }
+            .container { padding:18px 16px; border-radius:12px; }
+            /* iOS zooms in on focus when input font is <16px — set 16px to stop it. */
+            input, select, textarea, .searchable-input { font-size:16px; }
+            /* Let the two-button rows wrap rather than overflow on tight widths. */
+            .mode-delivery-container { flex-wrap:wrap; }
+            .mode-option { flex:1 1 140px; }
+        }
+        /* Very narrow phones: stack so the title never gets crushed. */
+        @media (max-width: 380px) {
+            .header { flex-direction:column; }
+            .header-logo { height:50px; width:50px; }
+            .header-center h1 { font-size:18px; }
+        }
+    </style>
+</head>
+<body>
+
+<script type="module">
+    // ====== AUTH GUARD — keep this BEFORE the rest of the page ======
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut }
+        from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+
+    // Use the SAME config object as index.html
+    const firebaseConfig = {
+        apiKey: "AIzaSyCzgOGc51Qr6DXnJ-zkczBtGniYNLf0jOw",
+        authDomain: "monitoringucc.firebaseapp.com",
+        projectId: "monitoringucc",
+        storageBucket: "monitoringucc.firebasestorage.app",
+        messagingSenderId: "210063574932",
+        appId: "1:210063574932:web:8ccd563312321dcd2af181"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // Hide the page until we know the user is authenticated.
+    document.documentElement.style.visibility = 'hidden';
+
+    onAuthStateChanged(auth, (user) => {
+        // With phone-number auth, the Firebase account has no displayName
+        // and no email — the monitor's identity (Staff ID + name) is set by
+        // index.html in sessionStorage AFTER the SMS code is verified. So
+        // require BOTH a signed-in Firebase user AND a Staff ID; missing
+        // either means the session is incomplete and we bounce to login.
+        const hasStaffId = !!sessionStorage.getItem('monitorStaffId');
+        if (user && hasStaffId) {
+            document.documentElement.style.visibility = 'visible';
+            if (typeof window.fillMonitorFromLogin === 'function') {
+                window.fillMonitorFromLogin();
+            }
+        } else {
+            sessionStorage.removeItem('monitorStaffId');
+            sessionStorage.removeItem('monitorName');
+            // If a phone session exists without a Staff ID (shouldn't
+            // happen, but be defensive), sign it out so the user starts
+            // clean at index.html.
+            if (user) {
+                signOut(auth).finally(() =>
+                    window.location.replace('index.html'));
+            } else {
+                window.location.replace('index.html');
+            }
+        }
+    });
+
+    // Expose logout for the button below.
+    window.logout = function () {
+        sessionStorage.removeItem('monitorStaffId');
+        sessionStorage.removeItem('monitorName');
+        signOut(auth).then(() => window.location.replace('index.html'));
+    };
+</script>
+
+<div style="max-width:700px;margin:0 auto 10px;text-align:right;">
+    <button type="button" onclick="logout()"
+        style="width:auto;margin:0;padding:8px 16px;font-size:14px;
+               background:#dc3545;border:none;border-radius:6px;
+               color:#fff;cursor:pointer;">
+        Log out
+    </button>
+</div>
+
+<div class="header">
+    <span class="top-rule"></span>
+    <div class="logo-container logo-left">
+        <img src="CoDE LOGO PNG.png" alt="CoDE Logo" class="header-logo"
+             onerror="this.src='https://via.placeholder.com/100/002147/FFFFFF?text=CoDE'">
+    </div>
+    <div class="header-center">
+        <h1>UNIVERSITY OF CAPE COAST <span class="shine">(UCC)</span></h1>
+        <div class="subtitle">College of Distance Education (CoDE)</div>
+    </div>
+    <div class="logo-container logo-right">
+        <img src="UCC LOGO PNG.png" alt="UCC Logo" class="header-logo"
+             onerror="this.src='https://via.placeholder.com/100/0056b3/FFFFFF?text=UCC'">
+    </div>
+</div>
+
+<div class="container">
+    <h2>Postgraduate Monitoring Form</h2>
+
+    <form id="monitoringForm">
+        <div class="field-label">STAFF ID *</div>
+        <div id="staffIdSearchContainer" class="searchable-select-wrapper">
+            <input type="text" id="staffIdSearchInput" class="searchable-input"
+                   placeholder="🔍 Type Staff ID to auto-fill lecturer name..." autocomplete="off">
+            <div id="staffIdDropdown" class="dropdown-options"></div>
+            <input type="hidden" id="staffIdHidden" name="staffId">
+        </div>
+
+        <div class="field-label">NAME OF LECTURER *</div>
+        <div id="lecturerSearchContainer" class="searchable-select-wrapper">
+            <input type="text" id="lecturerSearchInput" class="searchable-input" 
+                   placeholder="🔍 Type to search lecturer..." autocomplete="off" required>
+            <div id="lecturerDropdown" class="dropdown-options"></div>
+            <input type="hidden" id="lecturer" name="lecturer" required>
+        </div>
+
+        
+        <div class="field-label">COURSE CODE & TITLE *</div>
+        <div id="courseSearchContainer" class="searchable-select-wrapper">
+            <input type="text" id="courseSearchInput" class="searchable-input"
+                   placeholder="🔍 Type to search course..." autocomplete="off" required>
+            <div id="courseDropdown" class="dropdown-options"></div>
+            <input type="hidden" id="course" name="course" required>
+        </div>
+
+        <div class="field-label">PROGRAM *</div>
+        <select id="program" name="program" required>
+            <option value="" disabled selected>Select program</option>
+        </select>
+
+        <div class="field-label">MODE OF DELIVERY *</div>
+        <div class="mode-delivery-container">
+            <label class="mode-option">
+                <input type="radio" name="modeOfDelivery" value="Face-to-Face" required>
+                <span class="mode-text">Face-to-Face</span>
+            </label>
+            <label class="mode-option">
+                <input type="radio" name="modeOfDelivery" value="Online">
+                <span class="mode-text">Online</span>
+            </label>
+        </div>
+
+        <div class="field-label">SEMESTER *</div>
+        <div class="mode-delivery-container">
+            <label class="mode-option">
+                <input type="radio" name="semester" value="First Semester" required>
+                <span class="mode-text">First Semester</span>
+            </label>
+            <label class="mode-option">
+                <input type="radio" name="semester" value="Second Semester">
+                <span class="mode-text">Second Semester</span>
+            </label>
+        </div>
+
+        <div class="field-label">CLASS LEVEL *</div>
+        <div class="radio-container">
+            <label><input type="radio" name="classLevel" value="700" required> Level 700</label><br>
+            <label><input type="radio" name="classLevel" value="800"> Level 800</label><br>
+            <label><input type="radio" name="classLevel" value="850"> Level 850</label><br>
+            <label><input type="radio" name="classLevel" value="900"> Level 900</label>
+        </div>
+
+        <div class="field-label">DATE OF MONITORING *</div>
+        <input type="date" id="monitorDate" name="monitorDate" required>
+
+        <div class="field-label">TIME OF MONITORING *</div>
+        <div class="duration-display" id="monitorTimeDisplay">
+            <span id="monitorTimeText">—</span>
+        </div>
+        <input type="hidden" id="monitorTime" name="monitorTime">
+
+        <div class="field-label">CLASS START TIME *</div>
+        <input type="time" id="startTime" name="startTime" required>
+
+        <div class="field-label">CLASS END TIME *</div>
+        <input type="time" id="endTime" name="endTime" required>
+
+        <div class="field-label">DURATION OF CLASS</div>
+        <div class="duration-display" id="durationDisplay">
+            <span id="durationText">— hrs — mins</span>
+        </div>
+        <input type="hidden" id="duration" name="duration">
+
+        <div class="field-label">ATTENDANCE STATUS *</div>
+        <div class="radio-container">
+            <label><input type="radio" name="attendance" value="Present" required> Present</label><br>
+            <label><input type="radio" name="attendance" value="Absent"> Absent</label><br>
+            <label><input type="radio" name="attendance" value="Late"> Late</label>
+        </div>
+
+        <div class="field-label">NAME OF MONITOR *</div>
+        <input type="text" id="monitor" name="monitor"
+               placeholder="Set automatically from your login"
+               readonly required
+               style="background:#f0f7ff;cursor:not-allowed;">
+        <div class="hint" id="monitorHint" style="font-size:12px;color:#666;margin-top:4px;"></div>
+
+        <div class="field-label">MONITORS REMARKS</div>
+        <textarea id="remarks" name="remarks" rows="4" placeholder="Enter any additional remarks or observations..."></textarea>
+
+        <div id="loading" class="loading">⏳ Submitting form... Please wait.</div>
+        <div id="errorMessage" class="error-message"></div>
+        <div id="successMessage" class="success-message"></div>
+
+        <button type="submit" id="submitBtn">Submit Monitoring Form</button>
+    </form>
+</div>
+
+<script>
+// ========== 🪪 STAFF ID → LECTURER NAME MAP ==========
+// Source: Know Your Postgraduate Tutor ID — University of Cape Coast, College of Distance Education
+const STAFF_ID_MAP = {
+    "PGT0420": "Dr. Alimatu Saadia Yussiff",
+    "PGT0075": "Dr. Brandford Bervel",
+    "PGT0290": "Dr. Christopher Yarkwah",
+    "PGT0291": "Dr. Daniel Gbormittah",
+    "PGT0029": "Dr. Edward Amarteifio",
+    "PGT0519": "Dr. Elizabeth Darko Agyei",
+    "PGT0262": "Dr. Emmanuel Arthur Nyarko",
+    "PGT0570": "Dr. Emmanuel Dortey",
+    "PGT0275": "Dr. Isaac Benning",
+    "PGT0457": "Dr. Japhet Osiakwan",
+    "PGT0270": "Dr. Justice K. Armah",
+    "PGT0332": "Dr. Kofi Acheaw Owusu",
+    "PGT0545": "Dr. Regina Esi Turkson",
+    "PGT0056": "Dr. Valentina Arkorful",
+    "PGT0855": "Mr. William Osei",
+    "PGT0476": "Ms. Mary Donkor",
+    "PGT0043": "Prof. Martin Anokye",
+    "PGT0167": "Prof. Paul Nyagorme"
+};
+
+// Reverse map: name → ID (for auto-filling ID when name is selected)
+const NAME_TO_ID_MAP = {};
+Object.entries(STAFF_ID_MAP).forEach(([id, name]) => { NAME_TO_ID_MAP[name] = id; });
+
+const STAFF_IDS = Object.keys(STAFF_ID_MAP);
+
+// ========== 📋 TUTORS LIST — from Know Your Postgraduate Tutor ID (UCC CoDE) ==========
+const TUTORS_ARRAY = [
+    "Dr. Alimatu Saadia Yussiff", "Dr. Brandford Bervel", "Dr. Christopher Yarkwah", "Dr. Daniel Gbormittah",
+    "Dr. Edward Amarteifio", "Dr. Elizabeth Darko Agyei", "Dr. Emmanuel Arthur Nyarko", "Dr. Emmanuel Dortey",
+    "Dr. Isaac Benning", "Dr. Japhet Osiakwan", "Dr. Justice K. Armah", "Dr. Kofi Acheaw Owusu",
+    "Dr. Regina Esi Turkson", "Dr. Valentina Arkorful", "Mr. William Osei", "Ms. Mary Donkor",
+    "Prof. Martin Anokye", "Prof. Paul Nyagorme"
+];
+const UNIQUE_TUTORS = [...new Set(TUTORS_ARRAY)];
+
+// ========== 📚 COURSES LIST (hardcoded, 150+ courses) ==========
+const ALL_COURSES = [
+    "ESC805SD - Integrated Science", "ESC330SD - Pedagogical Content Knowledge in Biology II",
+    "ESC809S - Ecology and Environmental Science", "MAT806D - Ordinary Differential Equations II",
+    "INF804D - Web Applications and Development", "EIT814D - Educational Statistics",
+    "EMA803D - Curriculum Development in Mathematics Education", "EMA824D - Socio-Cultural & Ethnological Foundations in Mathematics",
+    "EMA843D - Teaching and Assessment in Mathematics Education", "EMA809D - Sampling Techniques and Survey in Mathematics Education",
+    "ESC853SD - Advanced Assessment in Science Education", "EMA838D - Time Series Analysis (Accra/Kumasi only)",
+    "EMA838D - Time Series Analysis (Online Centres Only)", "INF808D - Entrepreneurship",
+    "ESC812SD - Computer Applications in Science Education", "ESC334SD - Pedagogical Content Knowledge in Physics II",
+    "EIT810D - Design of Computer Networks for Education", "EIT816D - Programming Language for Education II",
+    "INF814D - Software Engineering", "INF812D - Management Information Systems",
+    "ESC803SD - Principles & Practice of Curriculum Development in Science Education", "ESC824S - Relativity and Modern Physics",
+    "EMA311D - Implementing Secondary School Mathematics", "INF810D - Internet of Things and Applications",
+    "EMA404D - Vectors and Mechanics", "EIT805D - Instructional Design and Technology",
+    "ESC803SD - Principles of Science Teacher Education and Supervision", "ESC332SD - Pedagogical Content Knowledge in Chemistry II",
+    "ESC822S - Solution Equilibria", "ESC806SD - Topics in Science Education",
+    "EIT811D - Information Technology Project Management", "INF802D - Artificial Intelligence",
+    "EIT804D - Modalities of Technology for Education and Training"
+];
+const UNIQUE_COURSES = [...new Set(ALL_COURSES)]; 
+
+// ========== POSTGRADUATE PROGRAMMES — from the Science Facilitators list ==========
+const PG_PROGRAMS = [
+    "M.Ed (Science Education)", "MEd (Information Technology)",
+    "MEd (Mathematics Education)", "MSc (Information Technology)"
+];
+
+// ========== SEARCHABLE DROPDOWN FACTORY ==========
+function createSearchableDropdown(config) {
+    const { inputId, dropdownId, hiddenId, dataArray, placeholder, onSelect } = config;
+
+    const input = document.getElementById(inputId);
+    const dropdown = document.getElementById(dropdownId);
+    const hidden = document.getElementById(hiddenId);
+
+    function render(filter = '') {
+        const lowerFilter = filter.toLowerCase().trim();
+        let matched = dataArray.filter(item => item.toLowerCase().includes(lowerFilter));
+        matched.sort((a,b) => a.localeCompare(b));
+
+        dropdown.innerHTML = '';
+
+        if (!filter) {
+            // preview first 30
+            const preview = dataArray.slice(0, 30);
+            preview.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'option-item';
+                div.textContent = item;
+                div.onclick = () => selectItem(item);
+                dropdown.appendChild(div);
+            });
+            if (dataArray.length > 30) {
+                const more = document.createElement('div');
+                more.className = 'no-result';
+                more.textContent = `... and ${dataArray.length - 30} more. Type to narrow.`;
+                dropdown.appendChild(more);
+            }
+            return;
+        }
+
+        if (matched.length === 0) {
+            dropdown.innerHTML = '<div class="no-result">No matching items</div>';
+            return;
+        }
+
+        matched.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'option-item';
+            div.textContent = item;
+            div.onclick = () => selectItem(item);
+            dropdown.appendChild(div);
+        });
+    }
+
+    function selectItem(value) {
+        input.value = value;
+        hidden.value = value;
+        dropdown.classList.remove('show');
+        input.setCustomValidity('');
+        if (typeof onSelect === 'function') onSelect(value);
+    }
+
+    // --- attach events ---
+    input.addEventListener('focus', () => {
+        render(input.value);
+        dropdown.classList.add('show');
+    });
+
+    input.addEventListener('input', function() {
+        render(this.value);
+        dropdown.classList.add('show');
+        hidden.value = '';   // force selection from list
+    });
+
+    // hide when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.remove('show');
+            if (!hidden.value && input.value.trim() !== '') {
+                input.setCustomValidity('Please select a valid item from the list');
+            } else {
+                input.setCustomValidity('');
+            }
+        }
+    });
+
+    input.addEventListener('blur', function() {
+        if (!hidden.value && this.value.trim() !== '') {
+            this.setCustomValidity('Please select a valid item from the list');
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+
+    hidden.required = true;
+    input.placeholder = placeholder || '🔍 Type to search...';
+}
+
+// ========== INITIALISE ALL DROPDOWNS ==========
+document.addEventListener('DOMContentLoaded', function() {
+    // Staff ID search (auto-fills lecturer name on selection)
+    createSearchableDropdown({
+        inputId: 'staffIdSearchInput',
+        dropdownId: 'staffIdDropdown',
+        hiddenId: 'staffIdHidden',
+        dataArray: STAFF_IDS,
+        placeholder: '🔍 Type Staff ID...',
+        onSelect: function(selectedId) {
+            const name = STAFF_ID_MAP[selectedId];
+            if (name) {
+                document.getElementById('lecturerSearchInput').value = name;
+                document.getElementById('lecturer').value = name;
+            }
+        }
+    });
+
+    // Lecturer search (also auto-fills Staff ID if found)
+    createSearchableDropdown({
+        inputId: 'lecturerSearchInput',
+        dropdownId: 'lecturerDropdown',
+        hiddenId: 'lecturer',
+        dataArray: UNIQUE_TUTORS,
+        placeholder: '🔍 Type to search lecturer...',
+        onSelect: function(selectedName) {
+            const id = NAME_TO_ID_MAP[selectedName];
+            if (id) {
+                document.getElementById('staffIdSearchInput').value = id;
+                document.getElementById('staffIdHidden').value = id;
+            }
+        }
+    });
+
+    // Course search
+    createSearchableDropdown({
+        inputId: 'courseSearchInput',
+        dropdownId: 'courseDropdown',
+        hiddenId: 'course',
+        dataArray: UNIQUE_COURSES,
+        placeholder: '🔍 Type to search course...'
+    });
+
+    // other initialisations
+    populateProgramDropdown();
+    setDefaultDate();
+    setupFormSubmission(document.getElementById('monitoringForm'));
+    fillMonitorFromLogin();
+
+    // Duration calculation
+    document.getElementById('startTime').addEventListener('change', calculateDuration);
+    document.getElementById('endTime').addEventListener('change', calculateDuration);
+});
+
+// ========== MONITOR IDENTITY ==========
+// With phone-number auth, the Firebase account holds no profile fields
+// (no email, no displayName). Each monitor's Staff ID + name is looked
+// up from the Firestore `monitors` collection by index.html during the
+// SMS flow, then handed to this page via sessionStorage:
+//   sessionStorage.monitorStaffId  -> raw Staff ID e.g. "NSC25/100"
+//   sessionStorage.monitorName     -> display name e.g. "Jane Doe"
+// The MONITOR_MAP below is only a last-ditch fallback for accounts that
+// somehow have no name in Firestore. You do NOT need to maintain it.
+// Keys = real Staff ID, case-insensitive lookup.
+const MONITOR_MAP = {
+    // "NSC25/100": "Jane Doe",   // fallback entries only if ever needed
+};
+
+function fillMonitorFromLogin() {
+    const field = document.getElementById('monitor');
+    const hint = document.getElementById('monitorHint');
+    if (!field) return;
+
+    const rawId = (sessionStorage.getItem('monitorStaffId') || '').trim();
+    const fbName = (sessionStorage.getItem('monitorName') || '').trim();
+
+    // 1. Preferred: name set by index.html from Firestore.
+    if (fbName) {
+        field.value = fbName;
+        hint.textContent = rawId ? ('Signed in as ' + rawId) : 'Signed in';
+        return;
+    }
+
+    // 2. Fallback: in-code map (case-insensitive).
+    if (rawId) {
+        let name = MONITOR_MAP[rawId];
+        if (!name) {
+            const upper = rawId.toUpperCase();
+            const key = Object.keys(MONITOR_MAP)
+                .find(k => k.toUpperCase() === upper);
+            if (key) name = MONITOR_MAP[key];
+        }
+        if (name) {
+            field.value = name;
+            hint.textContent = 'Signed in as ' + rawId;
+            return;
+        }
+        // 3. Last resort: record the ID itself so it's never blank.
+        field.value = rawId;
+        hint.textContent = 'No name set for ' + rawId +
+            ' — recording the Staff ID. Ask the administrator to ' +
+            'set your name on your account.';
+        return;
+    }
+
+    // No identity at all (shouldn't happen behind the auth guard).
+    field.value = '';
+    hint.textContent = 'Could not detect your login. Please sign in again.';
+}
+window.fillMonitorFromLogin = fillMonitorFromLogin;
+
+
+// ========== POPULATE PROGRAM DROPDOWN ==========
+function populateProgramDropdown() {
+    const prog = document.getElementById('program');
+    if (!prog) return;
+    prog.innerHTML = '<option value="" disabled selected>Select programme</option>';
+    PG_PROGRAMS.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p; opt.textContent = p; prog.appendChild(opt);
+    });
+}
+
+function setDefaultDate() {
+    const now = new Date();
+    const d = document.getElementById('monitorDate');
+    if (d) d.value = now.toISOString().split('T')[0];
+
+    // Time of monitoring = current system time, captured once on load.
+    // Stored in 24h HH:MM for the hidden submit field; shown in a friendly
+    // read-only display so the monitor can't edit it.
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const timeField = document.getElementById('monitorTime');
+    const timeText  = document.getElementById('monitorTimeText');
+    if (timeField) timeField.value = hh + ':' + mm;
+    if (timeText) {
+        // 12-hour display, e.g. "2:05 PM"
+        let h12 = now.getHours() % 12; if (h12 === 0) h12 = 12;
+        const ampm = now.getHours() < 12 ? 'AM' : 'PM';
+        timeText.textContent = h12 + ':' + mm + ' ' + ampm;
+    }
+}
+
+// ========== DURATION CALCULATION ==========
+function calculateDuration() {
+    const start = document.getElementById('startTime').value;
+    const end = document.getElementById('endTime').value;
+    const display = document.getElementById('durationDisplay');
+    const text = document.getElementById('durationText');
+    const hidden = document.getElementById('duration');
+
+    if (!start || !end) {
+        text.textContent = '— hrs — mins';
+        hidden.value = '';
+        display.classList.remove('invalid');
+        return;
+    }
+
+    const [sh, sm] = start.split(':').map(Number);
+    const [eh, em] = end.split(':').map(Number);
+    const startMins = sh * 60 + sm;
+    const endMins = eh * 60 + em;
+    const diff = endMins - startMins;
+
+    if (diff <= 0) {
+        text.textContent = 'End time must be after start time';
+        hidden.value = '';
+        display.classList.add('invalid');
+        return;
+    }
+
+    display.classList.remove('invalid');
+    const hrs = Math.floor(diff / 60);
+    const mins = diff % 60;
+    const label = hrs > 0
+        ? (mins > 0 ? `${hrs} hr${hrs > 1 ? 's' : ''} ${mins} min${mins > 1 ? 's' : ''}` : `${hrs} hr${hrs > 1 ? 's' : ''}`)
+        : `${mins} min${mins > 1 ? 's' : ''}`;
+    text.textContent = label;
+    hidden.value = label;
+}
+
+// ========== FORM SUBMISSION & VALIDATION ==========
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyJk2xPi1GjW858JJZEKh3J783facWjEKzyIFvQMapeOLZPf6cM0mgVlrv-R0qf0M6G/exec';
+
+// Must EXACTLY match the FORM_SECRET script property in Code.gs.
+// NOTE: this is visible in page source — it stops casual abuse, not a
+// determined attacker. Real auth is a separate step.
+const FORM_TOKEN = 'CHANGE_ME_to_match_FORM_SECRET';
+
+function setupFormSubmission(form) {
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        // ensure hidden fields have values (lecturer, course)
+        const lecturerHidden = document.getElementById('lecturer');
+        const courseHidden = document.getElementById('course');
+        if (!lecturerHidden.value) {
+            alert('Please select a valid lecturer from the dropdown.');
+            return;
+        }
+        if (!courseHidden.value) {
+            alert('Please select a valid course from the dropdown.');
+            return;
+        }
+
+        if (!validateForm()) return;
+
+        const data = prepareFormData();
+        await submitFormData(data);
+    });
+}
+
+function validateForm() {
+    let ok = true;
+    document.querySelectorAll('[required]').forEach(f => f.style.borderColor = '');
+    document.querySelectorAll('[required]').forEach(f => {
+        if (!f.value.trim()) {
+            f.style.borderColor = 'red'; ok = false;
+        }
+    });
+    if (!document.querySelector('input[name="classLevel"]:checked')) { alert('Select class level'); ok = false; }
+    if (!document.getElementById('monitorTime').value) { setDefaultDate(); }  // re-capture if somehow empty
+    if (!document.querySelector('input[name="modeOfDelivery"]:checked')) { alert('Select mode of delivery'); ok = false; }
+    if (!document.querySelector('input[name="semester"]:checked')) { alert('Select semester'); ok = false; }
+    if (!document.querySelector('input[name="attendance"]:checked')) { alert('Select attendance'); ok = false; }
+    return ok;
+}
+
+function prepareFormData() {
+    const data = {};
+    new FormData(document.getElementById('monitoringForm')).forEach((v,k) => data[k]=v);
+    data.formType = 'Postgraduate';
+    data.token = FORM_TOKEN;
+
+    // Radio buttons — must be captured explicitly as FormData misses unchecked ones
+    const cl = document.querySelector('input[name="classLevel"]:checked');
+    if (cl) data.classLevel = cl.value;
+
+    const att = document.querySelector('input[name="attendance"]:checked');
+    if (att) data.attendance = att.value;
+
+    const mod = document.querySelector('input[name="modeOfDelivery"]:checked');
+    if (mod) data.modeOfDelivery = mod.value;
+
+    const sem = document.querySelector('input[name="semester"]:checked');
+    if (sem) data.semester = sem.value;
+
+    // Staff ID (hidden field — ensure it's included)
+    data.staffId = document.getElementById('staffIdHidden').value;
+
+    // Duration (hidden field populated by calculateDuration())
+    data.duration = document.getElementById('duration').value;
+
+    return data;
+}
+
+async function submitFormData(data) {
+    const btn = document.getElementById('submitBtn');
+    const orig = btn.textContent;
+    btn.disabled = true; btn.textContent = '⏳ Sending...';
+    document.getElementById('loading').style.display = 'block';
+    hideMessages();
+
+    try {
+        const body = new URLSearchParams(data);
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body.toString()
+        });
+
+        if (!response.ok) {
+            throw new Error('Server returned HTTP ' + response.status);
+        }
+
+        let result;
+        try {
+            result = await response.json();
+        } catch (parseErr) {
+            throw new Error('Could not read server response. Check the script deployment.');
+        }
+
+        if (result && result.success) {
+            showSuccessMessage();
+            setTimeout(() => resetForm(), 2000);
+        } else {
+            const reason = (result && (result.error || result.message)) || 'Unknown error';
+            showErrorMessage(reason);
+        }
+    } catch (e) {
+        showErrorMessage(e.message);
+    } finally {
+        btn.disabled = false; btn.textContent = orig;
+        document.getElementById('loading').style.display = 'none';
+    }
+}
+
+function hideMessages() {
+    ['errorMessage','successMessage'].forEach(id => document.getElementById(id).style.display = 'none');
+}
+function showSuccessMessage() {
+    const msg = document.getElementById('successMessage');
+    msg.innerHTML = '✅ <strong>Success!</strong> Form submitted.'; msg.style.display = 'block';
+}
+function showErrorMessage(m) {
+    const msg = document.getElementById('errorMessage');
+    msg.innerHTML = `❌ <strong>Error:</strong> ${m}`; msg.style.display = 'block';
+}
+
+function resetForm() {
+    document.getElementById('monitoringForm').reset();
+    setDefaultDate();
+    populateProgramDropdown();
+
+    // Clear search inputs and hidden fields
+    document.getElementById('staffIdSearchInput').value = '';
+    document.getElementById('staffIdHidden').value = '';
+    document.getElementById('lecturerSearchInput').value = '';
+    document.getElementById('lecturer').value = '';
+    document.getElementById('courseSearchInput').value = '';
+    document.getElementById('course').value = '';
+
+    // form.reset() blanks the read-only monitor field — restore it so the
+    // same monitor's next entry stays correctly attributed.
+    fillMonitorFromLogin();
+
+    hideMessages();
+}
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tutor Class Report</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+        * { box-sizing: border-box; }
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden;   /* hard guard against sideways scrolling */
+        }
+        /* Long unbreakable words (e.g. long course/lecturer names, emails)
+           wrap instead of forcing the layout wider than the screen. */
+        h1, h2, p, .field-label, .option-item, .searchable-input,
+        .mode-text, .duration-display {
+            overflow-wrap: break-word;
+            word-break: break-word;
+        }
+        img { max-width: 100%; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #0a1f5c;
+            padding: 20px;
+            min-height: 100vh;
+            position: relative;
+        }
+        /* Blurred campus background on its own fixed layer so the blur
+           never touches the page content. */
+        /* Library books background image. Local file in same folder,
+           so it always loads (no external hotlink to break).
+           Base uses a PRE-BLURRED image so phones do zero runtime blur work. */
+        body::before {
+            content: ''; position: fixed; inset: 0; z-index: -2;
+            background-image: url("books-bg-blur.jpg");
+            background-size: cover; background-position: center;
+            transform: scale(1.04); /* hides any edge softness */
+        }
+        /* Light wash so the library photo shows through but text stays readable. */
+        body::after {
+            content: ''; position: fixed; inset: 0; z-index: -1;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.10), rgba(10,31,92,0.22));
+        }
+
+        /* ===== UCC-themed banner =====
+           Palette from UCC's official colours: Cosmic Cobalt (deep blue),
+           Aureolin (gold), Vermilion (red), on white. The gold rule and the
+           red seam echo the coat of arms (golden eagle, red Adinkra). */
+        .header {
+            position: relative; overflow: hidden;
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 30px; padding: 24px 34px;
+            background:
+                radial-gradient(80% 120% at 88% -10%, rgba(255,211,77,0.18), rgba(255,211,77,0) 55%),
+                radial-gradient(120% 140% at 0% 0%, rgba(255,255,255,0.14), rgba(255,255,255,0) 48%),
+                linear-gradient(135deg, #08183f 0%, #102a72 42%, #1d3a8f 78%, #244aa6 100%);
+            color: #ffffff; border-radius: 16px;
+            box-shadow:
+                0 14px 36px rgba(8,24,63,0.45),
+                inset 0 0 0 1px rgba(255,211,77,0.22),
+                inset 0 1px 0 rgba(255,255,255,0.18);
+            min-height: 150px;
+        }
+        /* diagonal glass sheen across the banner (animated on desktop only) */
+        .header::before {
+            content: ""; position: absolute; top:0; bottom:0; left:-60%; width:55%;
+            background: linear-gradient(105deg,
+                rgba(255,255,255,0) 0%, rgba(255,255,255,0.16) 50%, rgba(255,255,255,0) 100%);
+            transform: skewX(-18deg);
+        }
+        @keyframes sheen {
+            0%, 18% { left: -60%; }
+            55%, 100% { left: 130%; }
+        }
+        /* Only run the continuous animation on devices that can afford it. */
+        @media (min-width: 769px) and (hover: hover) and (prefers-reduced-motion: no-preference) {
+            .header::before { animation: sheen 6.5s ease-in-out infinite; }
+        }
+        /* gold + red decorative seam along the bottom */
+        .header::after {
+            content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 5px;
+            background: linear-gradient(90deg,
+                #d4362a 0%, #d4362a 18%, #e8b500 18%, #ffd34d 50%, #e8b500 82%, #d4362a 82%, #d4362a 100%);
+        }
+        /* top gold hairline */
+        .header > .top-rule {
+            position: absolute; left: 0; right: 0; top: 0; height: 4px;
+            background: linear-gradient(90deg, #e8b500 0%, #ffd34d 50%, #e8b500 100%);
+            z-index: 2;
+        }
+        .logo-container {
+            flex:0 0 auto; position: relative; z-index: 1;
+            display:flex; align-items:center; justify-content:center;
+            background: none; border: none; padding: 0; box-shadow: none;
+        }
+        .logo-left { margin-right:auto; }
+        .logo-right { margin-left:auto; }
+        .header-logo {
+            height:96px; width:96px; object-fit:contain; display:block;
+            filter: drop-shadow(0 3px 6px rgba(0,0,0,0.45));
+        }
+        .header-center { flex:1; text-align:center; padding:0 28px; min-width:300px; position: relative; z-index: 1; }
+        .header-center h1 {
+            margin:0; font-size:28px; font-weight:800; letter-spacing:1.6px;
+            line-height:1.2; text-shadow: 0 2px 4px rgba(0,0,0,0.35);
+        }
+        /* gold gradient text shine on the title */
+        .header-center h1 .shine {
+            background: linear-gradient(180deg, #ffffff 0%, #fff4cf 55%, #ffd86b 100%);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent; color: #ffd86b;
+        }
+        /* gold accent under the title, centred */
+        .header-center h1::after {
+            content: ""; display:block; width:88px; height:3px; margin:11px auto 0;
+            background: linear-gradient(90deg, rgba(232,181,0,0), #ffd34d, rgba(232,181,0,0));
+            border-radius:3px;
+        }
+        .header-center .subtitle {
+            margin:11px 0 0; font-size:16px; font-weight:600;
+            letter-spacing:1.2px; text-transform: uppercase; color:#ffe08a;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .container {
+            max-width: 700px; margin: auto;
+            background: rgba(255,255,255,0.98);
+            padding: 25px 30px; border-radius: 14px;
+            box-shadow: 0 18px 50px rgba(5,16,48,0.45);
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+
+        /* ===== Desktop-only visual enhancements =====
+           Phones skip these entirely, which is what keeps mobile smooth:
+           no live blur, no backdrop-filter, no animated sheen. */
+        @media (min-width: 769px) and (hover: hover) {
+            .container { background: rgba(255,255,255,0.97); backdrop-filter: blur(2px); }
+        }
+        h2 { text-align:center; margin-bottom:25px; color:#002147; border-bottom:2px solid #0056b3; padding-bottom:10px; }
+
+        .field-label { font-weight:bold; margin-top:18px; color:#333; }
+        input, select, textarea {
+            width:100%; padding:11px; margin-top:6px; border:1px solid #ccc;
+            border-radius:6px; font-size:15px; transition: border 0.3s;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: #0056b3; outline:none; box-shadow:0 0 0 2px rgba(0,123,255,0.25);
+        }
+        textarea { resize:vertical; min-height:100px; }
+
+        /* 📌 SEARCHABLE DROPDOWN STYLES (shared) */
+        .searchable-select-wrapper {
+            position: relative;
+            width: 100%;
+            margin-top: 6px;
+        }
+        .searchable-input {
+            width: 100%;
+            padding: 11px;
+            font-size: 15px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            outline: none;
+            background-color: white;
+            transition: border 0.3s;
+            cursor: text;
+        }
+        .searchable-input:focus {
+            border-color: #0056b3;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+        }
+        .dropdown-options {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            max-height: 280px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+            z-index: 999;
+            display: none;
+        }
+        .dropdown-options.show {
+            display: block;
+        }
+        .option-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.15s;
+            font-size: 15px;
+        }
+        .option-item:last-child {
+            border-bottom: none;
+        }
+        .option-item:hover {
+            background-color: #e6f2ff;
+        }
+        .option-item.selected {
+            background-color: #cce5ff;
+            font-weight: 500;
+        }
+        .no-result {
+            padding: 12px;
+            color: #666;
+            font-style: italic;
+            text-align: center;
+        }
+
+        .radio-container {
+            margin-top:8px; background:#f8f9fa; padding:15px; border-radius:6px; border:1px solid #e9ecef;
+        }
+        .radio-container label {
+            display:inline-flex; align-items:center; gap:8px; font-weight:normal;
+            cursor:pointer; margin-bottom:8px; padding:5px 10px; border-radius:4px; transition:background 0.2s;
+        }
+        .radio-container label:hover { background:#e9ecef; }
+        .radio-container input[type="radio"] { margin:0; transform:scale(1.1); }
+
+        /* Duration display */
+        .duration-display {
+            margin-top: 6px;
+            padding: 11px 16px;
+            background: #f0f7ff;
+            border: 1px solid #b8d4f5;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #0056b3;
+            letter-spacing: 0.3px;
+        }
+        .duration-display.invalid {
+            background: #fff5f5;
+            border-color: #f5c6cb;
+            color: #dc3545;
+        }
+        .mode-delivery-container {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+        }
+        .mode-option {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .mode-option:hover {
+            border-color: #0056b3;
+            background: #e8f0fe;
+        }
+        .mode-option input[type="radio"] {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            margin: 0;
+            flex-shrink: 0;
+            accent-color: #0056b3;
+        }
+        .mode-option:has(input[type="radio"]:checked) {
+            border-color: #0056b3;
+            background: #e8f0fe;
+            box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.15);
+        }
+        .mode-option:has(input[type="radio"]:checked) .mode-text {
+            color: #0056b3;
+            font-weight: 600;
+        }
+        .mode-text { font-size: 15px; color: #444; }
+
+        button {
+            width:100%; margin-top:30px; padding:13px;
+            background: linear-gradient(135deg, #0056b3, #003d82);
+            color:#fff; border:none; border-radius:6px; font-size:17px; font-weight:bold;
+            cursor:pointer; transition: all 0.3s; letter-spacing:0.5px;
+        }
+        button:hover {
+            background: linear-gradient(135deg, #004494, #002147);
+            transform: translateY(-2px); box-shadow:0 4px 12px rgba(0,86,179,0.3);
+        }
+
+        .loading, .error-message, .success-message {
+            display: none; text-align:center; padding:12px; border-radius:6px; margin:10px 0;
+        }
+        .loading { background:#e3f2fd; color:#0056b3; font-weight:bold; }
+        .error-message { background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; }
+        .success-message { background:#d4edda; color:#155724; border:1px solid #c3e6cb; }
+
+        @media (max-width: 768px) {
+            body { padding:10px; }
+            .header {
+                padding:16px 14px; min-height:auto; gap:8px;
+                border-radius:12px;
+            }
+            .header-logo { height:54px; width:54px; }
+            .header-center { padding:0 6px; min-width:0; }
+            .header-center h1 { font-size:17px; letter-spacing:0.5px; }
+            .header-center h1::after { width:60px; margin-top:7px; }
+            .header-center .subtitle { font-size:12px; letter-spacing:0.5px; }
+            .container { padding:18px 16px; border-radius:12px; }
+            /* iOS zooms in on focus when input font is <16px — set 16px to stop it. */
+            input, select, textarea, .searchable-input { font-size:16px; }
+            /* Let the two-button rows wrap rather than overflow on tight widths. */
+            .mode-delivery-container { flex-wrap:wrap; }
+            .mode-option { flex:1 1 140px; }
+        }
+        /* Very narrow phones: stack so the title never gets crushed. */
+        @media (max-width: 380px) {
+            .header { flex-direction:column; }
+            .header-logo { height:50px; width:50px; }
+            .header-center h1 { font-size:18px; }
+        }
+    </style>
+</head>
+<body>
+
+<script type="module">
+    // ====== AUTH GUARD — runs before the page shows ======
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut }
+        from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCzgOGc51Qr6DXnJ-zkczBtGniYNLf0jOw",
+        authDomain: "monitoringucc.firebaseapp.com",
+        projectId: "monitoringucc",
+        storageBucket: "monitoringucc.firebasestorage.app",
+        messagingSenderId: "210063574932",
+        appId: "1:210063574932:web:8ccd563312321dcd2af181"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    document.documentElement.style.visibility = 'hidden';
+
+    onAuthStateChanged(auth, (user) => {
+        const hasStaffId = !!sessionStorage.getItem('tutorStaffId');
+        if (user && hasStaffId) {
+            document.documentElement.style.visibility = 'visible';
+            if (typeof window.fillTutorFromLogin === 'function') {
+                window.fillTutorFromLogin();
+            }
+        } else {
+            sessionStorage.removeItem('tutorStaffId');
+            sessionStorage.removeItem('tutorName');
+            if (user) {
+                signOut(auth).finally(() => window.location.replace('index.html'));
+            } else {
+                window.location.replace('index.html');
+            }
+        }
+    });
+
+    window.logout = function () {
+        sessionStorage.removeItem('tutorStaffId');
+        sessionStorage.removeItem('tutorName');
+        signOut(auth).then(() => window.location.replace('index.html'));
+    };
+</script>
+
+<div style="max-width:700px;margin:0 auto 10px;text-align:right;">
+    <button type="button" onclick="logout()"
+        style="width:auto;margin:0;padding:8px 16px;font-size:14px;
+               background:#dc3545;border:none;border-radius:6px;
+               color:#fff;cursor:pointer;">
+        Log out
+    </button>
+</div>
+
+<div class="header">
+    <span class="top-rule"></span>
+    <div class="logo-container logo-left">
+        <img src="CoDE LOGO PNG.png" alt="CoDE Logo" class="header-logo"
+             onerror="this.src='https://via.placeholder.com/100/002147/FFFFFF?text=CoDE'">
+    </div>
+    <div class="header-center">
+        <h1>UNIVERSITY OF CAPE COAST <span class="shine">(UCC)</span></h1>
+        <div class="subtitle">College of Distance Education (CoDE)</div>
+    </div>
+    <div class="logo-container logo-right">
+        <img src="UCC LOGO PNG.png" alt="UCC Logo" class="header-logo"
+             onerror="this.src='https://via.placeholder.com/100/0056b3/FFFFFF?text=UCC'">
+    </div>
+</div>
+
+<div class="container">
+    <h2>Tutor Class Report Form</h2>
+
+    <form id="reportForm">
+        <div class="field-label">STAFF ID</div>
+        <input type="text" id="staffId" name="staffId" readonly required
+               style="background:#f0f7ff;cursor:not-allowed;">
+
+        <div class="field-label">NAME OF TUTOR</div>
+        <input type="text" id="tutorName" name="tutorName" readonly required
+               style="background:#f0f7ff;cursor:not-allowed;">
+        <div class="hint" id="tutorHint" style="font-size:12px;color:#666;margin-top:4px;"></div>
+
+        <div class="field-label">COURSE CODE & TITLE *</div>
+        <div id="courseSearchContainer" class="searchable-select-wrapper">
+            <input type="text" id="courseSearchInput" class="searchable-input"
+                   placeholder="🔍 Select the course you taught..." autocomplete="off" required>
+            <div id="courseDropdown" class="dropdown-options"></div>
+            <input type="hidden" id="course" name="course" required>
+        </div>
+
+        <div class="field-label">PROGRAMME *</div>
+        <select id="program" name="program" required>
+            <option value="" disabled selected>Select programme</option>
+        </select>
+
+        <div class="field-label">STUDY CENTRE *</div>
+        <input type="text" id="studyCentre" name="studyCentre"
+               placeholder="Auto-fills from the course; edit if different">
+
+        <div class="field-label">MODE OF DELIVERY *</div>
+        <div class="mode-delivery-container">
+            <label class="mode-option">
+                <input type="radio" name="modeOfDelivery" value="Face-to-Face" required>
+                <span class="mode-text">Face-to-Face</span>
+            </label>
+            <label class="mode-option">
+                <input type="radio" name="modeOfDelivery" value="Online">
+                <span class="mode-text">Online</span>
+            </label>
+        </div>
+
+        <div class="field-label">SEMESTER *</div>
+        <div class="mode-delivery-container">
+            <label class="mode-option">
+                <input type="radio" name="semester" value="First Semester">
+                <span class="mode-text">First Semester</span>
+            </label>
+            <label class="mode-option">
+                <input type="radio" name="semester" value="Second Semester" checked>
+                <span class="mode-text">Second Semester</span>
+            </label>
+        </div>
+
+        <div class="field-label">BLOCK OF TEACHING *</div>
+        <div class="mode-delivery-container">
+            <label class="mode-option">
+                <input type="radio" name="block" value="Block 1" required>
+                <span class="mode-text">Block 1</span>
+            </label>
+            <label class="mode-option">
+                <input type="radio" name="block" value="Block 2">
+                <span class="mode-text">Block 2</span>
+            </label>
+        </div>
+
+        <div class="field-label">CLASS LEVEL *</div>
+        <div class="radio-container">
+            <label><input type="radio" name="classLevel" value="700" required> Level 700</label><br>
+            <label><input type="radio" name="classLevel" value="800"> Level 800</label><br>
+            <label><input type="radio" name="classLevel" value="850"> Level 850</label><br>
+            <label><input type="radio" name="classLevel" value="900"> Level 900</label>
+        </div>
+
+        <div class="field-label">DATE OF CLASS *</div>
+        <input type="date" id="classDate" name="classDate" required>
+
+        <div class="field-label">CLASS START TIME *</div>
+        <input type="time" id="startTime" name="startTime" required>
+
+        <div class="field-label">CLASS END TIME *</div>
+        <input type="time" id="endTime" name="endTime" required>
+
+        <div class="field-label">DURATION OF CLASS</div>
+        <div class="duration-display" id="durationDisplay">
+            <span id="durationText">— hrs — mins</span>
+        </div>
+        <input type="hidden" id="duration" name="duration">
+
+        <div class="field-label">NUMBER OF STUDENTS PRESENT *</div>
+        <input type="number" id="studentsPresent" name="studentsPresent" min="0" required
+               placeholder="e.g. 42">
+
+        <div class="field-label">TOPIC(S) TAUGHT *</div>
+        <textarea id="topics" name="topics" rows="3" required
+                  placeholder="Briefly list the topic(s) covered in this class..."></textarea>
+
+        <div class="field-label">REMARKS</div>
+        <textarea id="remarks" name="remarks" rows="4"
+                  placeholder="Any additional remarks or observations..."></textarea>
+
+        <div id="loading" class="loading">⏳ Submitting form... Please wait.</div>
+        <div id="errorMessage" class="error-message"></div>
+        <div id="successMessage" class="success-message"></div>
+
+        <button type="submit" id="submitBtn">Submit Class Report</button>
+    </form>
+</div>
+
+<script>
+// ========== 📖 TUTOR DATA (from Master Facilitators List, Sem 2 2025/2026) ==========
+// Keyed by Staff ID. Each tutor has their name, assigned programmes, and the
+// courses they facilitate (with study centre). Generated from the master xlsx.
+const TUTORS = {"PGT0520": {"name": "Dr. Abigail Fiona Dzidzinyo", "programs": ["M.Ed (Science Education)", "MED Science Education"], "courses": [{"code": "ESC804SD", "title": "Integrated Science", "label": "ESC804SD - Integrated Science", "program": "MED Science Education", "centre": "Online"}, {"code": "ESC330SD", "title": "Pedagogical Content Knowledge in Biology II", "label": "ESC330SD - Pedagogical Content Knowledge in Biology II", "program": "MED Science Education", "centre": "Online"}, {"code": "ESC809S", "title": "Ecology and Environmental Science", "label": "ESC809S - Ecology and Environmental Science", "program": "MED Science Education", "centre": "Online"}, {"code": "ESC805SD", "title": "Integrated Science", "label": "ESC805SD - Integrated Science", "program": "M.Ed (Science Education)", "centre": "Online"}]}, "PGT0420": {"name": "Dr. Alimatu Saadia Yussiff", "programs": ["MSc (Information Technology)", "MSc Information Technology"], "courses": [{"code": "INF804D", "title": "Web Applications and Development", "label": "INF804D - Web Applications and Development", "program": "MSc Information Technology", "centre": "Online"}]}, "PGT0132": {"name": "Dr. Carl Korkpoe", "programs": ["MSc (Social Science Data Management and Analysis)"], "courses": [{"code": "DMA 818D", "title": "Machine Learning", "label": "DMA 818D - Machine Learning", "program": "MSc (Social Science Data Management and Analysis)", "centre": "Online Meetings"}]}, "PGT0328": {"name": "Dr. Charles Haruna", "programs": ["MSc (Social Science Data Management and Analysis)"], "courses": [{"code": "DMA 817D", "title": "Database Management", "label": "DMA 817D - Database Management", "program": "MSc (Social Science Data Management and Analysis)", "centre": "Online Meetings"}]}, "PGT0290": {"name": "Dr. Christopher Yarkwah", "programs": ["MED Mathematics Education", "MEd (Mathematics Education)"], "courses": [{"code": "EMA803D", "title": "Curriculum Development in Mathematics Education", "label": "EMA803D - Curriculum Development in Mathematics Education", "program": "MED Mathematics Education", "centre": "Accra"}, {"code": "EMA824D", "title": "Socio-Cultural & Ethnological Foundations in Mathematics", "label": "EMA824D - Socio-Cultural & Ethnological Foundations in Mathematics", "program": "MED Mathematics Education", "centre": "Accra"}, {"code": "EMA843D", "title": "Teaching and Assessment in Mathematics Education", "label": "EMA843D - Teaching and Assessment in Mathematics Education", "program": "MED Mathematics Education", "centre": "Kumasi"}, {"code": "EMA809D", "title": "Sampling Techniques and Survey in Mathematics Education", "label": "EMA809D - Sampling Techniques and Survey in Mathematics Education", "program": "MED Mathematics Education", "centre": "Kumasi"}]}, "PGT0300": {"name": "Dr. Daniel Ampem Darko Asumadu", "programs": ["MA (Sociology of Peace and Security)"], "courses": [{"code": "SPS 802D", "title": "Advanced Data Analysis", "label": "SPS 802D - Advanced Data Analysis", "program": "MA (Sociology of Peace and Security)", "centre": "Online Meetings"}]}, "PGT0291": {"name": "Dr. Daniel Gbormittah", "programs": ["MED Mathematics Education", "MEd (Mathematics Education)"], "courses": [{"code": "EMA803D", "title": "Curriculum Development in Mathematics Education", "label": "EMA803D - Curriculum Development in Mathematics Education", "program": "MED Mathematics Education", "centre": "Kumasi"}, {"code": "EMA824D", "title": "Socio-Cultural & Ethnological Foundations in Mathematics", "label": "EMA824D - Socio-Cultural & Ethnological Foundations in Mathematics", "program": "MED Mathematics Education", "centre": "Kumasi"}, {"code": "EMA843D", "title": "Teaching and Assessment in Mathematics Education", "label": "EMA843D - Teaching and Assessment in Mathematics Education", "program": "MED Mathematics Education", "centre": "Accra"}]}, "PGT0271": {"name": "Dr. Deodat Charles Otami", "programs": ["M.Ed (Science Education)", "MED Science Education", "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "ESC853SD", "title": "Advanced Assessment in Science Education", "label": "ESC853SD - Advanced Assessment in Science Education", "program": "MED Science Education", "centre": "Online"}, {"code": "EPS751D", "title": "ASSESSMENT IN EDUCATION", "label": "EPS751D - ASSESSMENT IN EDUCATION", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Online 1 (Tema, Takoradi & Ho)"}]}, "PGT0816": {"name": "Dr. Elizabeth Darko Agyei", "programs": ["M.Ed (Science Education)", "MED Science Education"], "courses": [{"code": "ESC812SD", "title": "Computer Applications in Science Education", "label": "ESC812SD - Computer Applications in Science Education", "program": "MED Science Education", "centre": "Online"}, {"code": "ESC334SD", "title": "Pedagogical Content Knowledge in Physics II", "label": "ESC334SD - Pedagogical Content Knowledge in Physics II", "program": "MED Science Education", "centre": "Online"}]}, "PGT0262": {"name": "Dr. Emmanuel Arthur Nyarko", "programs": ["MED Information Technology", "MEd (Information Technology)", "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EIT810D", "title": "Design of Computer Networks for Education", "label": "EIT810D - Design of Computer Networks for Education", "program": "MED Information Technology", "centre": "Online"}, {"code": "EPS713D", "title": "BASIC COMPUTING", "label": "EPS713D - BASIC COMPUTING", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Online 1 (Tema, Takoradi & Ho)"}, {"code": "EIT816D", "title": "Programming Language for Education II", "label": "EIT816D - Programming Language for Education II", "program": "MED Information Technology", "centre": "Online"}]}, "PGT0082": {"name": "Dr. Eric Amoo Bondzie", "programs": ["MSc (Economics)", "MSc (Social Science Data Management and Analysis)"], "courses": [{"code": "ECO 804D", "title": "Macroeconomics Analysis", "label": "ECO 804D - Macroeconomics Analysis", "program": "MSc (Economics)", "centre": "Online Meetings"}, {"code": "DMA 816D", "title": "Time Series Analysis", "label": "DMA 816D - Time Series Analysis", "program": "MSc (Social Science Data Management and Analysis)", "centre": "Online Meetings"}]}, "PGT0493": {"name": "Dr. George K. Adom", "programs": ["MED Mathematics Education", "MEd (Mathematics Education)"], "courses": [{"code": "EMA824D", "title": "Socio-Cultural & Ethnological Foundations in Mathematics", "label": "EMA824D - Socio-Cultural & Ethnological Foundations in Mathematics", "program": "MED Mathematics Education", "centre": "Online Only for Other Centres"}]}, "PGT0791": {"name": "Dr. Iddrissu Shaibu Adam", "programs": ["MA (Religion and Human Values)"], "courses": [{"code": "RLH 808D", "title": "History and Expansion of Christianity", "label": "RLH 808D - History and Expansion of Christianity", "program": "MA (Religion and Human Values)", "centre": "Online Meetings"}]}, "PGT0275": {"name": "Dr. Isaac Benning", "programs": ["MED Mathematics Education", "MEd (Mathematics Education)"], "courses": [{"code": "EMA404D", "title": "Vectors and Mechanics", "label": "EMA404D - Vectors and Mechanics", "program": "MED Mathematics Education", "centre": "Kumasi"}, {"code": "EMA311D", "title": "Implementing Secondary School Mathematics", "label": "EMA311D - Implementing Secondary School Mathematics", "program": "MED Mathematics Education", "centre": "Accra"}, {"code": "EMA838D", "title": "Time Series Analysis (Accra/Kumasi only)", "label": "EMA838D - Time Series Analysis (Accra/Kumasi only)", "program": "MED Mathematics Education", "centre": "Accra"}]}, "PGT0098": {"name": "Dr. Isaac Dasmani", "programs": ["MSc (Economics)"], "courses": [{"code": "ECO 802D", "title": "Microeconomics Analysis II", "label": "ECO 802D - Microeconomics Analysis II", "program": "MSc (Economics)", "centre": "Online Meetings"}]}, "PGT0349": {"name": "Dr. Isaac Mwinlaaru", "programs": ["MA (English Language Studies)"], "courses": [{"code": "ENG 803D", "title": "Sematics", "label": "ENG 803D - Sematics", "program": "MA (English Language Studies)", "centre": "Online Meetings"}, {"code": "ENG 815D", "title": "Teaching English as a Second Language", "label": "ENG 815D - Teaching English as a Second Language", "program": "MA (English Language Studies)", "centre": "Online Meetings"}]}, "PGT0580": {"name": "Dr. Isaac Nunoo", "programs": ["MA (International Studies)"], "courses": [{"code": "INS 812D", "title": "Africa and International Relations Theory", "label": "INS 812D - Africa and International Relations Theory", "program": "MA (International Studies)", "centre": "Online Meetings"}, {"code": "INS 808D", "title": "International Law", "label": "INS 808D - International Law", "program": "MA (International Studies)", "centre": "Online Meetings"}]}, "PGT0457": {"name": "Dr. Japhet Osiakwan", "programs": ["MED Mathematics Education", "MEd (Mathematics Education)"], "courses": [{"code": "EMA803D", "title": "Curriculum Development in Mathematics Education", "label": "EMA803D - Curriculum Development in Mathematics Education", "program": "MED Mathematics Education", "centre": "Online Only for Other Centres"}, {"code": "EMA404D", "title": "Vectors and Mechanics", "label": "EMA404D - Vectors and Mechanics", "program": "MED Mathematics Education", "centre": "Accra"}, {"code": "EMA843D", "title": "Teaching and Assessment in Mathematics Education", "label": "EMA843D - Teaching and Assessment in Mathematics Education", "program": "MED Mathematics Education", "centre": "Online Only for Other Centres"}]}, "PGT0199": {"name": "Dr. Joshua Sebu", "programs": ["MA (International Studies)", "MSc (Social Science Data Management and Analysis)"], "courses": [{"code": "INS 852", "title": "Research Methods (Quantitative)", "label": "INS 852 - Research Methods (Quantitative)", "program": "MA (International Studies)", "centre": "Online Meetings"}, {"code": "DMA 821D", "title": "Cross-Sectional and Panel Data Analysis", "label": "DMA 821D - Cross-Sectional and Panel Data Analysis", "program": "MSc (Social Science Data Management and Analysis)", "centre": "Online Meetings"}]}, "PGT0115": {"name": "Dr. Kenneth Adu-Gyamfi", "programs": ["M.Ed (Science Education)", "MED Science Education"], "courses": [{"code": "ESC803SD", "title": "Principles of Science Teacher Education and Supervision", "label": "ESC803SD - Principles of Science Teacher Education and Supervision", "program": "MED Science Education", "centre": "Online"}, {"code": "ESC332SD", "title": "Pedagogical Content Knowledge in Chemistry II", "label": "ESC332SD - Pedagogical Content Knowledge in Chemistry II", "program": "MED Science Education", "centre": "Online"}, {"code": "ESC822S", "title": "Solution Equilibria", "label": "ESC822S - Solution Equilibria", "program": "MED Science Education", "centre": "Online"}]}, "PGT0404": {"name": "Dr. Mohammed Nurudeen A.", "programs": ["MED Mathematics Education", "MEd (Mathematics Education)"], "courses": [{"code": "EMA404D", "title": "Vectors and Mechanics", "label": "EMA404D - Vectors and Mechanics", "program": "MED Mathematics Education", "centre": "Online Only for Other Centres"}]}, "PGT0537": {"name": "Dr. Monica Ofosu-Koranteng", "programs": ["MA (Sociology of Peace and Security)"], "courses": [{"code": "SPS 808D", "title": "Gender, Conflict and Development", "label": "SPS 808D - Gender, Conflict and Development", "program": "MA (Sociology of Peace and Security)", "centre": "Online Meetings"}]}, "PGT0545": {"name": "Dr. Regina Esi Turkson", "programs": ["MSc (Information Technology)", "MSc Information Technology"], "courses": [{"code": "INF802D", "title": "Artificial Intelligence", "label": "INF802D - Artificial Intelligence", "program": "MSc Information Technology", "centre": "Online"}]}, "PGT0056": {"name": "Dr. Valentina Arkorful", "programs": ["MED Information Technology", "MEd (Information Technology)", "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EIT804D", "title": "Modalities of Technology for Education and Training", "label": "EIT804D - Modalities of Technology for Education and Training", "program": "MED Information Technology", "centre": "Online"}, {"code": "EPS713D", "title": "BASIC COMPUTING", "label": "EPS713D - BASIC COMPUTING", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Online (For All Others)"}]}, "PGT0578": {"name": "Dr. Yaw Sarkodie Agyeman", "programs": ["MA (Religion and Human Values)"], "courses": [{"code": "RLH 802D", "title": "Theology of African Traditional Religion", "label": "RLH 802D - Theology of African Traditional Religion", "program": "MA (Religion and Human Values)", "centre": "Online Meetings"}]}, "PGT0486": {"name": "Prof. Eric Koka", "programs": ["MA (Sociology of Peace and Security)"], "courses": [{"code": "SPS 808D", "title": "Gender, Conflict and Development", "label": "SPS 808D - Gender, Conflict and Development", "program": "MA (Sociology of Peace and Security)", "centre": "Online Meetings"}]}, "PGT0037": {"name": "Prof. Francis Andoh", "programs": ["MSc (Economics)"], "courses": [{"code": "ECO 804D", "title": "Macroeconomics Analysis", "label": "ECO 804D - Macroeconomics Analysis", "program": "MSc (Economics)", "centre": "Online Meetings"}]}, "PGT0046": {"name": "Prof. John Windie Ansah", "programs": ["MA (Sociology of Peace and Security)", "MSc (Social Science Data Management and Analysis)"], "courses": [{"code": "SPS 802D", "title": "Advanced Data Analysis", "label": "SPS 802D - Advanced Data Analysis", "program": "MA (Sociology of Peace and Security)", "centre": "Online Meetings"}, {"code": "DMA 804D", "title": "Qualitative Data Analysis", "label": "DMA 804D - Qualitative Data Analysis", "program": "MSc (Social Science Data Management and Analysis)", "centre": "Online Meetings"}]}, "PGT0828": {"name": "Dr Ivy Kpodoe", "programs": ["MED (SPECIAL EDUCATION) PROGRAMME /"], "courses": [{"code": "ESE874D", "title": "PRACTICUM IN SPECIAL EDUCATION", "label": "ESE874D - PRACTICUM IN SPECIAL EDUCATION", "program": "MED (SPECIAL EDUCATION) PROGRAMME /", "centre": "ONLINE 2"}, {"code": "ESE 891D", "title": "PROFESSIONAL AND COMMUNITY COLLABORATION IN SPECIAL EDUCATION", "label": "ESE 891D - PROFESSIONAL AND COMMUNITY COLLABORATION IN SPECIAL EDUCATION", "program": "MED (SPECIAL EDUCATION) PROGRAMME /", "centre": "ONLINE 1 (ALL STUDY CENTRES)"}, {"code": "ESE873D", "title": "CONTEMPORARY ISSUES IN SPECIAL EDUCATION", "label": "ESE873D - CONTEMPORARY ISSUES IN SPECIAL EDUCATION", "program": "MED (SPECIAL EDUCATION) PROGRAMME /", "centre": "ONLINE 2 (ALL STUDY CENTRES)"}]}, "PGT0345": {"name": "Dr Lena Awoonor-Aziaku", "programs": ["MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME"], "courses": [{"code": "ENG803D", "title": "SEMANTICS (ARTS-ENGLISH CNT)", "label": "ENG803D - SEMANTICS (ARTS-ENGLISH CNT)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "Accra"}, {"code": "ENG804D", "title": "SOCIOLINGUISTICS (ENGLISH ONLY)", "label": "ENG804D - SOCIOLINGUISTICS (ENGLISH ONLY)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "Accra"}]}, "PGT0276": {"name": "Dr. Abdul-Jaleel Saani", "programs": ["POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EFO751D", "title": "DEVELOPMENT OF EDUCATION IN GHANA", "label": "EFO751D - DEVELOPMENT OF EDUCATION IN GHANA", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Accra"}]}, "PGT0019": {"name": "Dr. Agbevanu Wisdom", "programs": ["MED/MA (ADMINISTRATION IN HIGHER EDUCATION) PROGRAMME"], "courses": [{"code": "EPA811D", "title": "EDUCATIONAL PLANNING: CONCEPTS AND ISSUES (ADMIN IN H E & EDUCL ADMIN)", "label": "EPA811D - EDUCATIONAL PLANNING: CONCEPTS AND ISSUES (ADMIN IN H E & EDUCL ADMIN)", "program": "MED/MA (ADMINISTRATION IN HIGHER EDUCATION) PROGRAMME", "centre": "Takoradi"}]}, "PGT0268": {"name": "Dr. Alex Adobaw Bansah", "programs": ["MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME"], "courses": [{"code": "EAS808D", "title": "TEACHING ENGLISH AS A SECOND LANGUAGE (ARTS ONLY: ENG & GHL)", "label": "EAS808D - TEACHING ENGLISH AS A SECOND LANGUAGE (ARTS ONLY: ENG & GHL)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "Tamale"}, {"code": "EAS805D", "title": "ASSESSMENT IN ENGLISH EDUCATION (ARTS ONLY: ENG & GHL)", "label": "EAS805D - ASSESSMENT IN ENGLISH EDUCATION (ARTS ONLY: ENG & GHL)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "Tamale"}]}, "PGT0468": {"name": "Dr. Alfred Kuranchie", "programs": ["POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EFO751D", "title": "DEVELOPMENT OF EDUCATION IN GHANA", "label": "EFO751D - DEVELOPMENT OF EDUCATION IN GHANA", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Kumasi"}]}, "PGT0204": {"name": "Dr. Beatrice A. Somuah", "programs": ["MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "MED/MA (ADMINISTRATION IN HIGHER EDUCATION) PROGRAMME", "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EPA824D", "title": "HUMAN RESOURCE DEVELOPMENT IN INSTITUTIONS (ADMIN IN H E & EDUCL ADMIN)", "label": "EPA824D - HUMAN RESOURCE DEVELOPMENT IN INSTITUTIONS (ADMIN IN H E & EDUCL ADMIN)", "program": "MED/MA (ADMINISTRATION IN HIGHER EDUCATION) PROGRAMME", "centre": "UCC"}, {"code": "EFO751D", "title": "DEVELOPMENT OF EDUCATION IN GHANA", "label": "EFO751D - DEVELOPMENT OF EDUCATION IN GHANA", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Online (For All Other Centres)"}, {"code": "EPA814D", "title": "ECONOMICS OF EDUCATION AND EDUCATIONAL FINANCE (ADMIN IN H E & EDUCL ADMIN)", "label": "EPA814D - ECONOMICS OF EDUCATION AND EDUCATIONAL FINANCE (ADMIN IN H E & EDUCL ADMIN)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Online2 (Koforidua/Bolga/Wa)"}, {"code": "EPA828D", "title": "SUPERVISION OF INSTRUCTION (EDUCL ADMIN ONLY)", "label": "EPA828D - SUPERVISION OF INSTRUCTION (EDUCL ADMIN ONLY)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Kumasi"}]}, "PGT0089": {"name": "Dr. Bernard Fentim Darkwa", "programs": ["MED (ACCOUNTING) PROGRAMME", "MED (SOCIAL STUDIES) PROGRAMME", "MED/MA (MEASUREMENT & EVALUATION) PROGRAMME", "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "ACT810D", "title": "PUBLIC SECTOR ACCOUNTING", "label": "ACT810D - PUBLIC SECTOR ACCOUNTING", "program": "MED (ACCOUNTING) PROGRAMME", "centre": "ONLINE (ALL OTHER CENTRES)"}, {"code": "EPS751D", "title": "ASSESSMENT IN EDUCATION", "label": "EPS751D - ASSESSMENT IN EDUCATION", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Cape Coast"}, {"code": "ESS859D", "title": "ASSESSMENT IN EDUCATION (SOC CNT)", "label": "ESS859D - ASSESSMENT IN EDUCATION (SOC CNT)", "program": "MED (SOCIAL STUDIES) PROGRAMME", "centre": "Cape Coast"}, {"code": "EPS858D", "title": "PSYCHOLOGICAL TESTING", "label": "EPS858D - PSYCHOLOGICAL TESTING", "program": "MED/MA (MEASUREMENT & EVALUATION) PROGRAMME", "centre": "Online"}]}, "PGT0318": {"name": "Dr. Bernard Fentim Darkwa", "programs": ["MED (ACCOUNTING) PROGRAMME", "MED (CLOTHING, TEXTILES AND FAMILY STUDIES)", "MED (SOCIAL STUDIES) PROGRAMME"], "courses": [{"code": "CDC808D", "title": "EFFECTIVE TEACHING AND LEARNING IN FOOD, NUTRITION AND FAMILY STUDIES (FN&F)", "label": "CDC808D - EFFECTIVE TEACHING AND LEARNING IN FOOD, NUTRITION AND FAMILY STUDIES (FN&F)", "program": "MED (CLOTHING, TEXTILES AND FAMILY STUDIES)", "centre": "ONLINE 1 (FNF) Takoradi/Accra/ Cape Coast/Koforidua/ Wa"}, {"code": "ESS807D", "title": "EFFECTIVE TEACHING AND LEARNING (SOC)", "label": "ESS807D - EFFECTIVE TEACHING AND LEARNING (SOC)", "program": "MED (SOCIAL STUDIES) PROGRAMME", "centre": "Tamale"}, {"code": "ACT853D", "title": "ADVANCED ASSESSMENT TECHNIQUES IN ACCOUNTING EDUCATION", "label": "ACT853D - ADVANCED ASSESSMENT TECHNIQUES IN ACCOUNTING EDUCATION", "program": "MED (ACCOUNTING) PROGRAMME", "centre": "ONLINE (ALL OTHER CENTRES)"}]}, "PGT0128": {"name": "Dr. Cecilia Alima Issaka", "programs": ["MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME"], "courses": [{"code": "EPS823D", "title": "PSYCHOLOGY OF ADOLESCENCE (MED MA GC & PSY", "label": "EPS823D - PSYCHOLOGY OF ADOLESCENCE (MED MA GC & PSY", "program": "MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "centre": "Tamale"}]}, "PGT0301": {"name": "Dr. Christopher Adosi Mensah", "programs": ["MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "MED/MA (ADMINISTRATION IN HIGHER EDUCATION) PROGRAMME"], "courses": [{"code": "EPA824D", "title": "HUMAN RESOURCE DEVELOPMENT IN INSTITUTIONS (ADMIN IN H E & EDUCL ADMIN)", "label": "EPA824D - HUMAN RESOURCE DEVELOPMENT IN INSTITUTIONS (ADMIN IN H E & EDUCL ADMIN)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Online2 (Koforidua/Bolga/Wa)"}, {"code": "EPA 836D", "title": "CONTEMPORARY ISSUES IN HIGHER EDUCATION (MED MA ADMIN IN H E ONLY)", "label": "EPA 836D - CONTEMPORARY ISSUES IN HIGHER EDUCATION (MED MA ADMIN IN H E ONLY)", "program": "MED/MA (ADMINISTRATION IN HIGHER EDUCATION) PROGRAMME", "centre": "Online 1 Ho, Koforidua, Kumasi"}]}, "PGT0055": {"name": "Dr. Daniel A. Arkoh", "programs": ["MED (SOCIAL STUDIES) PROGRAMME"], "courses": [{"code": "ESS824D", "title": "CULTURE, ENVIRONMENT AND DEVELOPMENT IN AFRICA (SOC)", "label": "ESS824D - CULTURE, ENVIRONMENT AND DEVELOPMENT IN AFRICA (SOC)", "program": "MED (SOCIAL STUDIES) PROGRAMME", "centre": "ACCRA"}, {"code": "ESS812D", "title": "ESSENTIAL CONTENT AREAS IN SOCIAL STUDIES (SOC CNT)", "label": "ESS812D - ESSENTIAL CONTENT AREAS IN SOCIAL STUDIES (SOC CNT)", "program": "MED (SOCIAL STUDIES) PROGRAMME", "centre": "Kumasi"}]}, "PGT0502": {"name": "Dr. Darlington Adanfo", "programs": ["MED (EDUCATIONAL ADMINISTRATION) PROGRAMME"], "courses": [{"code": "EPA824D", "title": "HUMAN RESOURCE DEVELOPMENT IN INSTITUTIONS (ADMIN IN H E & EDUCL ADMIN)", "label": "EPA824D - HUMAN RESOURCE DEVELOPMENT IN INSTITUTIONS (ADMIN IN H E & EDUCL ADMIN)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Online 1 (Ho)"}]}, "PGT0544": {"name": "Dr. Dorcas P. Slippe", "programs": ["MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME"], "courses": [{"code": "EAS808D", "title": "TEACHING ENGLISH AS A SECOND LANGUAGE (ARTS ONLY: ENG & GHL)", "label": "EAS808D - TEACHING ENGLISH AS A SECOND LANGUAGE (ARTS ONLY: ENG & GHL)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "Kumasi"}, {"code": "EAS805D", "title": "ASSESSMENT IN ENGLISH EDUCATION (ARTS ONLY: ENG & GHL)", "label": "EAS805D - ASSESSMENT IN ENGLISH EDUCATION (ARTS ONLY: ENG & GHL)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "Kumasi"}, {"code": "EAS806D", "title": "CULTURE & POLITICS IN SECOND LANGUAGE LEARNING (ARTS ONLY: ENG & GHL)", "label": "EAS806D - CULTURE & POLITICS IN SECOND LANGUAGE LEARNING (ARTS ONLY: ENG & GHL)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "Kumasi"}]}, "PGT0026": {"name": "Dr. Edward Akomaning", "programs": ["MED (EDUCATIONAL ADMINISTRATION) PROGRAMME"], "courses": [{"code": "EPA811D", "title": "EDUCATIONAL PLANNING: CONCEPTS AND ISSUES (ADMIN IN H E & EDUCL ADMIN)", "label": "EPA811D - EDUCATIONAL PLANNING: CONCEPTS AND ISSUES (ADMIN IN H E & EDUCL ADMIN)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Kumasi"}, {"code": "EPA814D", "title": "ECONOMICS OF EDUCATION AND EDUCATIONAL FINANCE (ADMIN IN H E & EDUCL ADMIN)", "label": "EPA814D - ECONOMICS OF EDUCATION AND EDUCATIONAL FINANCE (ADMIN IN H E & EDUCL ADMIN)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Accra (Group 2-EDUCL ADMIN)"}]}, "PGT0274": {"name": "Dr. Ekua T. Amua-Sekyi", "programs": ["MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME"], "courses": [{"code": "EAS808D", "title": "TEACHING ENGLISH AS A SECOND LANGUAGE (ARTS ONLY: ENG & GHL)", "label": "EAS808D - TEACHING ENGLISH AS A SECOND LANGUAGE (ARTS ONLY: ENG & GHL)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "Accra"}, {"code": "EAS805D", "title": "ASSESSMENT IN ENGLISH EDUCATION (ARTS ONLY: ENG & GHL)", "label": "EAS805D - ASSESSMENT IN ENGLISH EDUCATION (ARTS ONLY: ENG & GHL)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "Accra"}, {"code": "EAS806D", "title": "CULTURE & POLITICS IN SECOND LANGUAGE LEARNING (ARTS ONLY: ENG & GHL)", "label": "EAS806D - CULTURE & POLITICS IN SECOND LANGUAGE LEARNING (ARTS ONLY: ENG & GHL)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "Accra"}]}, "PGT0308": {"name": "Dr. Eugene Kwarteng Nantwi", "programs": ["MED (SPECIAL EDUCATION) PROGRAMME /", "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME"], "courses": [{"code": "EPS843D", "title": "PRINCIPLES OF CAREER DEVELOPMENT AND VOCATIONAL COUNSELLING", "label": "EPS843D - PRINCIPLES OF CAREER DEVELOPMENT AND VOCATIONAL COUNSELLING", "program": "MED (SPECIAL EDUCATION) PROGRAMME /", "centre": "ONLINE 2 (ALL OTHER CENTRES)"}, {"code": "EPS849D", "title": "SCHOOL COUNSELLING (MED GC ONLY)", "label": "EPS849D - SCHOOL COUNSELLING (MED GC ONLY)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Kumasi"}, {"code": "EPS809D", "title": "EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "label": "EPS809D - EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Takoradi Group 2"}]}, "PGT0202": {"name": "Dr. Eunice Torto-Seidu", "programs": ["MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EPS811D", "title": "EDUCATIONAL SOCIAL PSYCHOLOGY (PSY ONLY)", "label": "EPS811D - EDUCATIONAL SOCIAL PSYCHOLOGY (PSY ONLY)", "program": "MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "centre": "Online I (Ho & Koforidua)"}, {"code": "EPS824D", "title": "COGNITIVE DEVELOPMENT AND LEARNING IN CHILDHOOD (PSY ONLY)", "label": "EPS824D - COGNITIVE DEVELOPMENT AND LEARNING IN CHILDHOOD (PSY ONLY)", "program": "MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "centre": "Online 3 (All Other Centres)"}, {"code": "EPS822D", "title": "PERSONALITY THEORIES AND ADJUSTMENTS (PSY ONLY)", "label": "EPS822D - PERSONALITY THEORIES AND ADJUSTMENTS (PSY ONLY)", "program": "MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "centre": "Online 3 (All Other Centres)"}, {"code": "EPS731D", "title": "PSYCHOLOGY OF HUMAN LEARNING AND INSTRUCTION", "label": "EPS731D - PSYCHOLOGY OF HUMAN LEARNING AND INSTRUCTION", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Online (For All Other Centres)"}]}, "PGT0135": {"name": "Dr. Felix Kumedzro", "programs": ["MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "MED (SPECIAL EDUCATION) PROGRAMME /"], "courses": [{"code": "ESE874D", "title": "PRACTICUM IN SPECIAL EDUCATION", "label": "ESE874D - PRACTICUM IN SPECIAL EDUCATION", "program": "MED (SPECIAL EDUCATION) PROGRAMME /", "centre": "ONLINE 4"}, {"code": "EPS831D", "title": "ADVANCED PSYCHOLOGY OF HUMAN LEARNING AND INSTRUCTION (PSY ONLY)", "label": "EPS831D - ADVANCED PSYCHOLOGY OF HUMAN LEARNING AND INSTRUCTION (PSY ONLY)", "program": "MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "centre": "Online 2 Ho & Koforidua"}, {"code": "ESE873D", "title": "CONTEMPORARY ISSUES IN SPECIAL EDUCATION", "label": "ESE873D - CONTEMPORARY ISSUES IN SPECIAL EDUCATION", "program": "MED (SPECIAL EDUCATION) PROGRAMME /", "centre": "ONLINE 1 (ACCRA)"}]}, "PGT0323": {"name": "Dr. Felix Senyametor", "programs": ["MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME"], "courses": [{"code": "EPS823D", "title": "PSYCHOLOGY OF ADOLESCENCE (MED MA GC & PSY", "label": "EPS823D - PSYCHOLOGY OF ADOLESCENCE (MED MA GC & PSY", "program": "MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "centre": "Takoradi"}, {"code": "EPS824D", "title": "COGNITIVE DEVELOPMENT AND LEARNING IN CHILDHOOD (PSY ONLY)", "label": "EPS824D - COGNITIVE DEVELOPMENT AND LEARNING IN CHILDHOOD (PSY ONLY)", "program": "MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "centre": "Online 2 Ho & Koforidua"}]}, "PGT0045": {"name": "Dr. Francis Ansah", "programs": ["MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EPA824D", "title": "HUMAN RESOURCE DEVELOPMENT IN INSTITUTIONS (ADMIN IN H E & EDUCL ADMIN)", "label": "EPA824D - HUMAN RESOURCE DEVELOPMENT IN INSTITUTIONS (ADMIN IN H E & EDUCL ADMIN)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Tema"}, {"code": "EPA775D", "title": "EDUCATIONAL MANAGEMENT AND ADMINISTRATION (2 HOURS)", "label": "EPA775D - EDUCATIONAL MANAGEMENT AND ADMINISTRATION (2 HOURS)", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Online 1 (Tema, Takoradi & Ho)"}]}, "PGT0296": {"name": "Dr. Francis Tabiri", "programs": ["MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME"], "courses": [{"code": "EAS808D", "title": "TEACHING ENGLISH AS A SECOND LANGUAGE (ARTS ONLY: ENG & GHL)", "label": "EAS808D - TEACHING ENGLISH AS A SECOND LANGUAGE (ARTS ONLY: ENG & GHL)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "Online 1 (Ho/ Koforidua/Wa)"}, {"code": "EAS805D", "title": "ASSESSMENT IN ENGLISH EDUCATION (ARTS ONLY: ENG & GHL)", "label": "EAS805D - ASSESSMENT IN ENGLISH EDUCATION (ARTS ONLY: ENG & GHL)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "Online 1 (Ho/Koforidua & Wa)"}, {"code": "EAS806D", "title": "CULTURE & POLITICS IN SECOND LANGUAGE LEARNING (ARTS ONLY: ENG & GHL)", "label": "EAS806D - CULTURE & POLITICS IN SECOND LANGUAGE LEARNING (ARTS ONLY: ENG & GHL)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "Online 1 (Koforidua/Ho & Wa)"}]}, "PGT0168": {"name": "Dr. Gloria Nyame", "programs": ["MED (EDUCATIONAL ADMINISTRATION) PROGRAMME"], "courses": [{"code": "EPA824D", "title": "HUMAN RESOURCE DEVELOPMENT IN INSTITUTIONS (ADMIN IN H E & EDUCL ADMIN)", "label": "EPA824D - HUMAN RESOURCE DEVELOPMENT IN INSTITUTIONS (ADMIN IN H E & EDUCL ADMIN)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Accra (Group 1-ADMIN IN H/E )"}, {"code": "EPA829D", "title": "MANAGEMENT OF EDUCATIONAL INSTITUTIONS (EDUCL ADMIN ONLY)", "label": "EPA829D - MANAGEMENT OF EDUCATIONAL INSTITUTIONS (EDUCL ADMIN ONLY)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Kumasi"}]}, "PGT0277": {"name": "Dr. Godwin K. Aboagye", "programs": ["M.Ed (Science Education)", "MED Science Education", "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EPS751D", "title": "ASSESSMENT IN EDUCATION", "label": "EPS751D - ASSESSMENT IN EDUCATION", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Accra"}, {"code": "ESC803SD", "title": "Principles & Practice of Curriculum Development in Science Education", "label": "ESC803SD - Principles & Practice of Curriculum Development in Science Education", "program": "MED Science Education", "centre": "Online"}, {"code": "ESC824S", "title": "Relativity and Modern Physics", "label": "ESC824S - Relativity and Modern Physics", "program": "MED Science Education", "centre": "Online"}]}, "PGT0287": {"name": "Dr. Isaac Atta Kwenin", "programs": ["MED (SOCIAL STUDIES) PROGRAMME"], "courses": [{"code": "ESS827D", "title": "CITIZENSHIP, NATIONAL INTEGRATION AND NATION BUILDING (SOC)", "label": "ESS827D - CITIZENSHIP, NATIONAL INTEGRATION AND NATION BUILDING (SOC)", "program": "MED (SOCIAL STUDIES) PROGRAMME", "centre": "Kumasi"}, {"code": "ESS824D", "title": "CULTURE, ENVIRONMENT AND DEVELOPMENT IN AFRICA (SOC)", "label": "ESS824D - CULTURE, ENVIRONMENT AND DEVELOPMENT IN AFRICA (SOC)", "program": "MED (SOCIAL STUDIES) PROGRAMME", "centre": "Online1 (Ho/Koforidua &Wa)"}]}, "PGT0445": {"name": "Dr. Ivy K. Nkrumah", "programs": ["MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EPS811D", "title": "EDUCATIONAL SOCIAL PSYCHOLOGY (PSY ONLY)", "label": "EPS811D - EDUCATIONAL SOCIAL PSYCHOLOGY (PSY ONLY)", "program": "MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "centre": "Online 2 (All Other Centres)"}, {"code": "EPS831D", "title": "ADVANCED PSYCHOLOGY OF HUMAN LEARNING AND INSTRUCTION (PSY ONLY)", "label": "EPS831D - ADVANCED PSYCHOLOGY OF HUMAN LEARNING AND INSTRUCTION (PSY ONLY)", "program": "MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "centre": "Accra"}, {"code": "EPS701D", "title": "PSYCHOLOGY OF ADOLESCENCE", "label": "EPS701D - PSYCHOLOGY OF ADOLESCENCE", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Online 1 (Tema, Takoradi & Ho)"}, {"code": "EPS731D", "title": "PSYCHOLOGY OF HUMAN LEARNING AND INSTRUCTION", "label": "EPS731D - PSYCHOLOGY OF HUMAN LEARNING AND INSTRUCTION", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Online 1 (Tema, Takoradi & Ho)"}]}, "PGT0131": {"name": "Dr. Janet A. Koomson", "programs": ["MED (EDUCATIONAL ADMINISTRATION) PROGRAMME"], "courses": [{"code": "EPA824D", "title": "HUMAN RESOURCE DEVELOPMENT IN INSTITUTIONS (ADMIN IN H E & EDUCL ADMIN)", "label": "EPA824D - HUMAN RESOURCE DEVELOPMENT IN INSTITUTIONS (ADMIN IN H E & EDUCL ADMIN)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Online 3 (Sunyani/Tamale)"}, {"code": "EPA814D", "title": "ECONOMICS OF EDUCATION AND EDUCATIONAL FINANCE (ADMIN IN H E & EDUCL ADMIN)", "label": "EPA814D - ECONOMICS OF EDUCATION AND EDUCATIONAL FINANCE (ADMIN IN H E & EDUCL ADMIN)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "UCC"}]}, "PGT0460": {"name": "Dr. Kwame Nkrumah", "programs": ["MED (SOCIAL STUDIES) PROGRAMME"], "courses": [{"code": "ESS824D", "title": "CULTURE, ENVIRONMENT AND DEVELOPMENT IN AFRICA (SOC)", "label": "ESS824D - CULTURE, ENVIRONMENT AND DEVELOPMENT IN AFRICA (SOC)", "program": "MED (SOCIAL STUDIES) PROGRAMME", "centre": "Tamale"}, {"code": "ESS812D", "title": "ESSENTIAL CONTENT AREAS IN SOCIAL STUDIES (SOC CNT)", "label": "ESS812D - ESSENTIAL CONTENT AREAS IN SOCIAL STUDIES (SOC CNT)", "program": "MED (SOCIAL STUDIES) PROGRAMME", "centre": "Accra"}]}, "PGT0090": {"name": "Dr. Kyeremeh T. Dabone", "programs": ["MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME"], "courses": [{"code": "EPS843D", "title": "PRINCIPLES OF CAREER DEVELOPMENT AND VOCATIONAL COUNSELLING (MED MA GC ONLY)", "label": "EPS843D - PRINCIPLES OF CAREER DEVELOPMENT AND VOCATIONAL COUNSELLING (MED MA GC ONLY)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Online 1(Sunyani, Takoradi, Tamale & Tema)"}, {"code": "EPS809D", "title": "EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "label": "EPS809D - EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Sunyani"}]}, "PGT0358": {"name": "Dr. Martha-Pearl Okine", "programs": ["MED (SPECIAL EDUCATION) PROGRAMME /"], "courses": [{"code": "ESE874D", "title": "PRACTICUM IN SPECIAL EDUCATION", "label": "ESE874D - PRACTICUM IN SPECIAL EDUCATION", "program": "MED (SPECIAL EDUCATION) PROGRAMME /", "centre": "ONLINE 3"}, {"code": "ESE 876D", "title": "MANAGING EXCEPTIONAL CHILDREN IN INCLUSIVE CLASSROOMS", "label": "ESE 876D - MANAGING EXCEPTIONAL CHILDREN IN INCLUSIVE CLASSROOMS", "program": "MED (SPECIAL EDUCATION) PROGRAMME /", "centre": "ONLINE 1 (ACCRA)"}]}, "PGT0016": {"name": "Dr. Ophelia Affreh", "programs": ["MED (EDUCATIONAL ADMINISTRATION) PROGRAMME"], "courses": [{"code": "EPA824D", "title": "HUMAN RESOURCE DEVELOPMENT IN INSTITUTIONS (ADMIN IN H E & EDUCL ADMIN)", "label": "EPA824D - HUMAN RESOURCE DEVELOPMENT IN INSTITUTIONS (ADMIN IN H E & EDUCL ADMIN)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Kumasi"}, {"code": "EPA828D", "title": "SUPERVISION OF INSTRUCTION (EDUCL ADMIN ONLY)", "label": "EPA828D - SUPERVISION OF INSTRUCTION (EDUCL ADMIN ONLY)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Accra"}]}, "PGT0458": {"name": "Dr. Peter Brown", "programs": ["POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EFO751D", "title": "DEVELOPMENT OF EDUCATION IN GHANA", "label": "EFO751D - DEVELOPMENT OF EDUCATION IN GHANA", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Cape Coast"}]}, "PGT0160": {"name": "Dr. Priscilla Commey Mintah", "programs": ["MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME"], "courses": [{"code": "EPS823D", "title": "PSYCHOLOGY OF ADOLESCENCE (MED MA GC & PSY", "label": "EPS823D - PSYCHOLOGY OF ADOLESCENCE (MED MA GC & PSY", "program": "MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "centre": "Accra (Group 2- MED/MA)"}, {"code": "EPS823D", "title": "PSYCHOLOGY OF ADOLESCENCE (MED MA GC & PSY)", "label": "EPS823D - PSYCHOLOGY OF ADOLESCENCE (MED MA GC & PSY)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Accra (Group 1-MED/MA GC)"}, {"code": "EPS822D", "title": "PERSONALITY THEORIES AND ADJUSTMENTS (PSY ONLY)", "label": "EPS822D - PERSONALITY THEORIES AND ADJUSTMENTS (PSY ONLY)", "program": "MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "centre": "Accra"}]}, "PGT0288": {"name": "Dr. Regina M. Nugba", "programs": ["MED/MA (MEASUREMENT & EVALUATION) PROGRAMME", "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EPS751D", "title": "ASSESSMENT IN EDUCATION", "label": "EPS751D - ASSESSMENT IN EDUCATION", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Kumasi"}, {"code": "EPS855D", "title": "EDUCATIONAL MEASUREMENT", "label": "EPS855D - EDUCATIONAL MEASUREMENT", "program": "MED/MA (MEASUREMENT & EVALUATION) PROGRAMME", "centre": "Online"}]}, "PGT0121": {"name": "Dr. Rita Holm Adzovie", "programs": ["MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME"], "courses": [{"code": "EPS843D", "title": "PRINCIPLES OF CAREER DEVELOPMENT AND VOCATIONAL COUNSELLING (MED MA GC ONLY)", "label": "EPS843D - PRINCIPLES OF CAREER DEVELOPMENT AND VOCATIONAL COUNSELLING (MED MA GC ONLY)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Online 2 (Bolga, Wa, Cape Coast, Ho & Koforidua)"}, {"code": "EPS809D", "title": "EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "label": "EPS809D - EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Takoradi Group 1"}]}, "PGT0086": {"name": "Dr. Ruth Brew-Annan", "programs": ["MED/MA (MEASUREMENT & EVALUATION) PROGRAMME"], "courses": [{"code": "EPS856D", "title": "ADVANCED STATISTICS", "label": "EPS856D - ADVANCED STATISTICS", "program": "MED/MA (MEASUREMENT & EVALUATION) PROGRAMME", "centre": "Online"}]}, "PGT0117": {"name": "Dr. Samuel Tieku Gyansah", "programs": ["MED (EDUCATIONAL ADMINISTRATION) PROGRAMME"], "courses": [{"code": "EPA811D", "title": "EDUCATIONAL PLANNING: CONCEPTS AND ISSUES (ADMIN IN H E & EDUCL ADMIN)", "label": "EPA811D - EDUCATIONAL PLANNING: CONCEPTS AND ISSUES (ADMIN IN H E & EDUCL ADMIN)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Accra (Group 2-EDUCL ADMIN)"}, {"code": "EPA829D", "title": "MANAGEMENT OF EDUCATIONAL INSTITUTIONS (EDUCL ADMIN ONLY)", "label": "EPA829D - MANAGEMENT OF EDUCATIONAL INSTITUTIONS (EDUCL ADMIN ONLY)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Online 3(Cape Coast/Sunyani/Takoradi)"}]}, "PGT0034": {"name": "Dr. Samuel Y. Ampofo", "programs": ["MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EPA811D", "title": "EDUCATIONAL PLANNING: CONCEPTS AND ISSUES (ADMIN IN H E & EDUCL ADMIN)", "label": "EPA811D - EDUCATIONAL PLANNING: CONCEPTS AND ISSUES (ADMIN IN H E & EDUCL ADMIN)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "UCC"}, {"code": "EPA814D", "title": "ECONOMICS OF EDUCATION AND EDUCATIONAL FINANCE (ADMIN IN H E & EDUCL ADMIN)", "label": "EPA814D - ECONOMICS OF EDUCATION AND EDUCATIONAL FINANCE (ADMIN IN H E & EDUCL ADMIN)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Kumasi"}, {"code": "EPA775D", "title": "EDUCATIONAL MANAGEMENT AND ADMINISTRATION (2 HOURS)", "label": "EPA775D - EDUCATIONAL MANAGEMENT AND ADMINISTRATION (2 HOURS)", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Accra"}]}, "PGT0093": {"name": "Dr. T. K. Odame Danso", "programs": ["MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "MED/MA (ADMINISTRATION IN HIGHER EDUCATION) PROGRAMME"], "courses": [{"code": "EPA811D", "title": "EDUCATIONAL PLANNING: CONCEPTS AND ISSUES (ADMIN IN H E & EDUCL ADMIN)", "label": "EPA811D - EDUCATIONAL PLANNING: CONCEPTS AND ISSUES (ADMIN IN H E & EDUCL ADMIN)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Online 1 (Ho)"}, {"code": "EPA829D", "title": "MANAGEMENT OF EDUCATIONAL INSTITUTIONS (EDUCL ADMIN ONLY)", "label": "EPA829D - MANAGEMENT OF EDUCATIONAL INSTITUTIONS (EDUCL ADMIN ONLY)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Online 2(Bolga/Tema/ Tamale)"}, {"code": "EPA819D", "title": "CURRICULUM DEVELOPMENT IN INSTITUTIONS (MED MA ADMIN IN H E ONLY)", "label": "EPA819D - CURRICULUM DEVELOPMENT IN INSTITUTIONS (MED MA ADMIN IN H E ONLY)", "program": "MED/MA (ADMINISTRATION IN HIGHER EDUCATION) PROGRAMME", "centre": "Online 2 Takoradi/Sunyani/Tamale/UCC/Wa/Tema"}]}, "PGT0040": {"name": "Dr. Vera Ankomah-Sey", "programs": ["MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EPA824D", "title": "HUMAN RESOURCE DEVELOPMENT IN INSTITUTIONS (ADMIN IN H E & EDUCL ADMIN)", "label": "EPA824D - HUMAN RESOURCE DEVELOPMENT IN INSTITUTIONS (ADMIN IN H E & EDUCL ADMIN)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Accra (Group 2-EDUCL ADMIN)"}, {"code": "EPA814D", "title": "ECONOMICS OF EDUCATION AND EDUCATIONAL FINANCE (ADMIN IN H E & EDUCL ADMIN)", "label": "EPA814D - ECONOMICS OF EDUCATION AND EDUCATIONAL FINANCE (ADMIN IN H E & EDUCL ADMIN)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Online 1 (Ho)"}, {"code": "EPA775D", "title": "EDUCATIONAL MANAGEMENT AND ADMINISTRATION (2 HOURS)", "label": "EPA775D - EDUCATIONAL MANAGEMENT AND ADMINISTRATION (2 HOURS)", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Online (For All Other Centres)"}]}, "PGT0305": {"name": "Dr. Vincent Minadzi", "programs": ["MED (SOCIAL STUDIES) PROGRAMME"], "courses": [{"code": "ESS827D", "title": "CITIZENSHIP, NATIONAL INTEGRATION AND NATION BUILDING (SOC)", "label": "ESS827D - CITIZENSHIP, NATIONAL INTEGRATION AND NATION BUILDING (SOC)", "program": "MED (SOCIAL STUDIES) PROGRAMME", "centre": "Tamale"}, {"code": "ESS824D", "title": "CULTURE, ENVIRONMENT AND DEVELOPMENT IN AFRICA (SOC)", "label": "ESS824D - CULTURE, ENVIRONMENT AND DEVELOPMENT IN AFRICA (SOC)", "program": "MED (SOCIAL STUDIES) PROGRAMME", "centre": "Kumasi"}]}, "PGT0485": {"name": "Mr. Andrews Lumorvi Degadu", "programs": ["MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME"], "courses": [{"code": "ENG803D", "title": "SEMANTICS (ARTS-ENGLISH CNT)", "label": "ENG803D - SEMANTICS (ARTS-ENGLISH CNT)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "Online 1 (Ho/ Koforidua/Wa)"}]}, "PGT0307": {"name": "Mr. Christopher Yaw Gadese", "programs": ["POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EPS751D", "title": "ASSESSMENT IN EDUCATION", "label": "EPS751D - ASSESSMENT IN EDUCATION", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Online (For All Other Centres)"}]}, "PGT0830": {"name": "Mr. Emmanuel Asubonteng", "programs": ["MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME"], "courses": [{"code": "GHL821D", "title": "LITERATURE (ARTS-GHANAIAN LANGUAGE ONLY)", "label": "GHL821D - LITERATURE (ARTS-GHANAIAN LANGUAGE ONLY)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "ONLINE (FOR ALL CENTRES)"}]}, "PGT0427": {"name": "Mr. Godwin Gaaku", "programs": ["MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME"], "courses": [{"code": "ENG803D", "title": "SEMANTICS (ARTS-ENGLISH CNT)", "label": "ENG803D - SEMANTICS (ARTS-ENGLISH CNT)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "Tamale"}, {"code": "ENG804D", "title": "SOCIOLINGUISTICS (ENGLISH ONLY)", "label": "ENG804D - SOCIOLINGUISTICS (ENGLISH ONLY)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "Online1 (Koforidua/ Ho & Wa)"}]}, "PGT0350": {"name": "Mr. Isaac Gyaase Yeboah", "programs": ["MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME"], "courses": [{"code": "ENG803D", "title": "SEMANTICS (ARTS-ENGLISH CNT)", "label": "ENG803D - SEMANTICS (ARTS-ENGLISH CNT)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "Cape Coast"}, {"code": "ENG804D", "title": "SOCIOLINGUISTICS (ENGLISH ONLY)", "label": "ENG804D - SOCIOLINGUISTICS (ENGLISH ONLY)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "Tamale"}]}, "PGT0461": {"name": "Mr. James Amonoo", "programs": ["POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EFO751D", "title": "DEVELOPMENT OF EDUCATION IN GHANA", "label": "EFO751D - DEVELOPMENT OF EDUCATION IN GHANA", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Online 1 (Tema, Takoradi & Ho)"}]}, "PGT0433": {"name": "Mr. John Bismark Tefe", "programs": ["MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME"], "courses": [{"code": "ENG803D", "title": "SEMANTICS (ARTS-ENGLISH CNT)", "label": "ENG803D - SEMANTICS (ARTS-ENGLISH CNT)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "Online 2 (All other centres)"}, {"code": "ENG804D", "title": "SOCIOLINGUISTICS (ENGLISH ONLY)", "label": "ENG804D - SOCIOLINGUISTICS (ENGLISH ONLY)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "Online 2 (All Other Centres)"}]}, "PGT0050": {"name": "Mr. Palmas Anyagre", "programs": ["MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME"], "courses": [{"code": "EPS811D", "title": "EDUCATIONAL SOCIAL PSYCHOLOGY (PSY ONLY)", "label": "EPS811D - EDUCATIONAL SOCIAL PSYCHOLOGY (PSY ONLY)", "program": "MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "centre": "Accra"}, {"code": "EPS823D", "title": "PSYCHOLOGY OF ADOLESCENCE (MED MA GC & PSY", "label": "EPS823D - PSYCHOLOGY OF ADOLESCENCE (MED MA GC & PSY", "program": "MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "centre": "Online 1 (Ho & Koforidua)"}, {"code": "EPS824D", "title": "COGNITIVE DEVELOPMENT AND LEARNING IN CHILDHOOD (PSY ONLY)", "label": "EPS824D - COGNITIVE DEVELOPMENT AND LEARNING IN CHILDHOOD (PSY ONLY)", "program": "MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "centre": "Accra"}]}, "PGT0383": {"name": "Mrs. Angelina Adu", "programs": ["MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME"], "courses": [{"code": "EPS823D", "title": "PSYCHOLOGY OF ADOLESCENCE (MED MA GC & PSY", "label": "EPS823D - PSYCHOLOGY OF ADOLESCENCE (MED MA GC & PSY", "program": "MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "centre": "Tema"}]}, "PGT0822": {"name": "Mrs. Doreen Tetteh Coffie", "programs": ["MED (CLOTHING, TEXTILES AND FAMILY STUDIES)"], "courses": [{"code": "CDC804D", "title": "ADVANCED TEXTILE TECHNOLOGY CT&F Only", "label": "CDC804D - ADVANCED TEXTILE TECHNOLOGY CT&F Only", "program": "MED (CLOTHING, TEXTILES AND FAMILY STUDIES)", "centre": "ONLINE FOR ALL CENTRES"}, {"code": "CDC802D", "title": "SOCIAL PSYCHOLOGY OF CLOTHING", "label": "CDC802D - SOCIAL PSYCHOLOGY OF CLOTHING", "program": "MED (CLOTHING, TEXTILES AND FAMILY STUDIES)", "centre": "ONLINE FOR ALL CENTRES"}]}, "PGT0285": {"name": "Mrs. Dorothy Adentwi-Hayford", "programs": ["MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME"], "courses": [{"code": "EAS808D", "title": "TEACHING ENGLISH AS A SECOND LANGUAGE (ARTS ONLY: ENG & GHL)", "label": "EAS808D - TEACHING ENGLISH AS A SECOND LANGUAGE (ARTS ONLY: ENG & GHL)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "Online 2 (All Other Centers)"}, {"code": "EAS806D", "title": "CULTURE & POLITICS IN SECOND LANGUAGE LEARNING (ARTS ONLY: ENG & GHL)", "label": "EAS806D - CULTURE & POLITICS IN SECOND LANGUAGE LEARNING (ARTS ONLY: ENG & GHL)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "Tamale"}]}, "PGT0509": {"name": "Mrs. Rebecca Kaedabi-Donkor", "programs": ["MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EPS823D", "title": "PSYCHOLOGY OF ADOLESCENCE (MED MA GC & PSY)", "label": "EPS823D - PSYCHOLOGY OF ADOLESCENCE (MED MA GC & PSY)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Cape Coast"}, {"code": "EPS701D", "title": "PSYCHOLOGY OF ADOLESCENCE", "label": "EPS701D - PSYCHOLOGY OF ADOLESCENCE", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Cape Coast"}, {"code": "EPS822D", "title": "PERSONALITY THEORIES AND ADJUSTMENTS (PSY ONLY)", "label": "EPS822D - PERSONALITY THEORIES AND ADJUSTMENTS (PSY ONLY)", "program": "MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "centre": "Online 2 Ho & Koforidua"}]}, "PGT0839": {"name": "Prof Sarah Darkwa", "programs": ["MED (CLOTHING, TEXTILES AND FAMILY STUDIES)", "MED (FOOD, NUTRITION AND FAMILY STUDIES)"], "courses": [{"code": "CDF804D", "title": "CLINICAL NUTRITION", "label": "CDF804D - CLINICAL NUTRITION", "program": "MED (FOOD, NUTRITION AND FAMILY STUDIES)", "centre": "ONLINE 1 Takoradi/Accra/ Cape Coast/Koforidua/ Wa"}, {"code": "CDF802D", "title": "EFFECTIVE TEACHING AND LEARNING IN FOOD, NUTRITION AND FAMILY STUDIES (FN&F) CDC808D EFFECTIVE TEACHING AND LEARNING IN CLOTHING, TEXTILES AND FAMILY STUDIES (CT&F)", "label": "CDF802D - EFFECTIVE TEACHING AND LEARNING IN FOOD, NUTRITION AND FAMILY STUDIES (FN&F) CDC808D EFFECTIVE TEACHING AND LEARNING IN CLOTHING, TEXTILES AND FAMILY STUDIES (CT&F)", "program": "MED (FOOD, NUTRITION AND FAMILY STUDIES)", "centre": "ONLINE 2 (FNF) (Kumasi/Sunyani)"}, {"code": "CDF808D", "title": "SUSTAINABLE FOOD SYSTEMS AND PRACTICES", "label": "CDF808D - SUSTAINABLE FOOD SYSTEMS AND PRACTICES", "program": "MED (FOOD, NUTRITION AND FAMILY STUDIES)", "centre": "ONLINE 1 Takoradi/Accra/ Cape Coast/Koforidua/Wa"}, {"code": "CDF806D", "title": "HEALTH AND WELL-BEING ACROSS THE LIFESPAN", "label": "CDF806D - HEALTH AND WELL-BEING ACROSS THE LIFESPAN", "program": "MED (FOOD, NUTRITION AND FAMILY STUDIES)", "centre": "ONLINE 1 Takoradi/Accra/ Cape Coast/Koforidua/Wa"}, {"code": "CDE802D", "title": "FAMILY AND COMMUNITY DEVELOPMENT (FN&F & CT&F)", "label": "CDE802D - FAMILY AND COMMUNITY DEVELOPMENT (FN&F & CT&F)", "program": "MED (CLOTHING, TEXTILES AND FAMILY STUDIES)", "centre": "ONLINE 3 (FNF) (Ho/Tamale/Bolga)"}]}, "PGT0150": {"name": "Prof. Alfred Ampah-Mensah", "programs": ["MED (EDUCATIONAL ADMINISTRATION) PROGRAMME"], "courses": [{"code": "EPA811D", "title": "EDUCATIONAL PLANNING: CONCEPTS AND ISSUES (ADMIN IN H E & EDUCL ADMIN)", "label": "EPA811D - EDUCATIONAL PLANNING: CONCEPTS AND ISSUES (ADMIN IN H E & EDUCL ADMIN)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Tema"}, {"code": "EPA814D", "title": "ECONOMICS OF EDUCATION AND EDUCATIONAL FINANCE (ADMIN IN H E & EDUCL ADMIN)", "label": "EPA814D - ECONOMICS OF EDUCATION AND EDUCATIONAL FINANCE (ADMIN IN H E & EDUCL ADMIN)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Tema"}]}, "PGT0102": {"name": "Prof. Bakari Y. Dramanu", "programs": ["MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EPS823D", "title": "PSYCHOLOGY OF ADOLESCENCE (MED MA GC & PSY", "label": "EPS823D - PSYCHOLOGY OF ADOLESCENCE (MED MA GC & PSY", "program": "MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "centre": "Kumasi"}, {"code": "EPS824D", "title": "COGNITIVE DEVELOPMENT AND LEARNING IN CHILDHOOD (PSY ONLY)", "label": "EPS824D - COGNITIVE DEVELOPMENT AND LEARNING IN CHILDHOOD (PSY ONLY)", "program": "MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "centre": "Online 1 Kumasi/Cape Coast & Tema"}, {"code": "EPS701D", "title": "PSYCHOLOGY OF ADOLESCENCE", "label": "EPS701D - PSYCHOLOGY OF ADOLESCENCE", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Kumasi"}, {"code": "EPS822D", "title": "PERSONALITY THEORIES AND ADJUSTMENTS (PSY ONLY)", "label": "EPS822D - PERSONALITY THEORIES AND ADJUSTMENTS (PSY ONLY)", "program": "MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "centre": "Online 1 Kumasi/Cape Coast & Tema"}]}, "PGT0330": {"name": "Prof. Cosmas Cobbold", "programs": ["MED (SOCIAL STUDIES) PROGRAMME"], "courses": [{"code": "ESS824D", "title": "CULTURE, ENVIRONMENT AND DEVELOPMENT IN AFRICA (SOC)", "label": "ESS824D - CULTURE, ENVIRONMENT AND DEVELOPMENT IN AFRICA (SOC)", "program": "MED (SOCIAL STUDIES) PROGRAMME", "centre": "Online2 (For All Other Centres)"}, {"code": "ESS812D", "title": "ESSENTIAL CONTENT AREAS IN SOCIAL STUDIES (SOC CNT)", "label": "ESS812D - ESSENTIAL CONTENT AREAS IN SOCIAL STUDIES (SOC CNT)", "program": "MED (SOCIAL STUDIES) PROGRAMME", "centre": "Online2 (For All Other Centres)"}]}, "PGT0399": {"name": "Prof. Frederick Ocansey", "programs": ["MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME"], "courses": [{"code": "EPS843D", "title": "PRINCIPLES OF CAREER DEVELOPMENT AND VOCATIONAL COUNSELLING (MED MA GC ONLY)", "label": "EPS843D - PRINCIPLES OF CAREER DEVELOPMENT AND VOCATIONAL COUNSELLING (MED MA GC ONLY)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Kumasi"}]}, "PGT0214": {"name": "Prof. Irene Vanderpuye", "programs": ["MED (SPECIAL EDUCATION) PROGRAMME /"], "courses": [{"code": "ESE874D", "title": "PRACTICUM IN SPECIAL EDUCATION", "label": "ESE874D - PRACTICUM IN SPECIAL EDUCATION", "program": "MED (SPECIAL EDUCATION) PROGRAMME /", "centre": "ONLINE 1"}, {"code": "ESE 876D", "title": "MANAGING EXCEPTIONAL CHILDREN IN INCLUSIVE CLASSROOMS", "label": "ESE 876D - MANAGING EXCEPTIONAL CHILDREN IN INCLUSIVE CLASSROOMS", "program": "MED (SPECIAL EDUCATION) PROGRAMME /", "centre": "ONLINE 2 (ALL OTHER CENTRES"}, {"code": "ESE876D", "title": "CURRICULUM AND INSTRUCTIONAL PROGRAMMING FOR EXCEPTIONAL CHILDREN", "label": "ESE876D - CURRICULUM AND INSTRUCTIONAL PROGRAMMING FOR EXCEPTIONAL CHILDREN", "program": "MED (SPECIAL EDUCATION) PROGRAMME /", "centre": "ONLINE 1 (ACCRA) ONLINE 2 (ALL OTHER CENTRES"}, {"code": "ESE 891D", "title": "PROFESSIONAL AND COMMUNITY COLLABORATION IN SPECIAL EDUCATION", "label": "ESE 891D - PROFESSIONAL AND COMMUNITY COLLABORATION IN SPECIAL EDUCATION", "program": "MED (SPECIAL EDUCATION) PROGRAMME /", "centre": "ONLINE (ACCRA)"}]}, "PGT0289": {"name": "Prof. K. Asamoah-Gyimah", "programs": ["MED/MA (MEASUREMENT & EVALUATION) PROGRAMME"], "courses": [{"code": "EPS857D", "title": "ADVANCED THEORY AND PRACTICE IN MEASUREMENT & EVALUATION", "label": "EPS857D - ADVANCED THEORY AND PRACTICE IN MEASUREMENT & EVALUATION", "program": "MED/MA (MEASUREMENT & EVALUATION) PROGRAMME", "centre": "Online"}, {"code": "EPS854D", "title": "EVALUATION, METHODOLOGY AND THEORY", "label": "EPS854D - EVALUATION, METHODOLOGY AND THEORY", "program": "MED/MA (MEASUREMENT & EVALUATION) PROGRAMME", "centre": "Online"}]}, "PGT0076": {"name": "Prof. Kankam Boadu", "programs": ["MED (SOCIAL STUDIES) PROGRAMME"], "courses": [{"code": "ESS827D", "title": "CITIZENSHIP, NATIONAL INTEGRATION AND NATION BUILDING (SOC)", "label": "ESS827D - CITIZENSHIP, NATIONAL INTEGRATION AND NATION BUILDING (SOC)", "program": "MED (SOCIAL STUDIES) PROGRAMME", "centre": "ACCRA"}]}, "PGT0110": {"name": "Prof. Linda Forde", "programs": ["MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME"], "courses": [{"code": "EPS843D", "title": "PRINCIPLES OF CAREER DEVELOPMENT AND VOCATIONAL COUNSELLING (MED MA GC ONLY)", "label": "EPS843D - PRINCIPLES OF CAREER DEVELOPMENT AND VOCATIONAL COUNSELLING (MED MA GC ONLY)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Accra"}, {"code": "EPS805D", "title": "COUNSELLING TECHNIQUES AND PRACTICUM (MED MA GC)", "label": "EPS805D - COUNSELLING TECHNIQUES AND PRACTICUM (MED MA GC)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Accra"}, {"code": "EPS809D", "title": "EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "label": "EPS809D - EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Accra Group 1"}]}, "PGT0072": {"name": "Prof. Marie A. Bakah", "programs": ["MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "MED/MA (ADMINISTRATION IN HIGHER EDUCATION) PROGRAMME"], "courses": [{"code": "EPA811D", "title": "EDUCATIONAL PLANNING: CONCEPTS AND ISSUES (ADMIN IN H E & EDUCL ADMIN)", "label": "EPA811D - EDUCATIONAL PLANNING: CONCEPTS AND ISSUES (ADMIN IN H E & EDUCL ADMIN)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Accra (Group 1-ADMIN IN H/E)"}, {"code": "EPA 836D", "title": "CONTEMPORARY ISSUES IN HIGHER EDUCATION (MED MA ADMIN IN H E ONLY)", "label": "EPA 836D - CONTEMPORARY ISSUES IN HIGHER EDUCATION (MED MA ADMIN IN H E ONLY)", "program": "MED/MA (ADMINISTRATION IN HIGHER EDUCATION) PROGRAMME", "centre": "Accra"}, {"code": "EPA828D", "title": "SUPERVISION OF INSTRUCTION (EDUCL ADMIN ONLY)", "label": "EPA828D - SUPERVISION OF INSTRUCTION (EDUCL ADMIN ONLY)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Online 1 (Ho/Koforidua)"}]}, "PGT0035": {"name": "Prof. Mark O. Amponsah", "programs": ["MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EPS811D", "title": "EDUCATIONAL SOCIAL PSYCHOLOGY (PSY ONLY)", "label": "EPS811D - EDUCATIONAL SOCIAL PSYCHOLOGY (PSY ONLY)", "program": "MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "centre": "Kumasi"}, {"code": "EPS831D", "title": "ADVANCED PSYCHOLOGY OF HUMAN LEARNING AND INSTRUCTION (PSY ONLY)", "label": "EPS831D - ADVANCED PSYCHOLOGY OF HUMAN LEARNING AND INSTRUCTION (PSY ONLY)", "program": "MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "centre": "Online 1 Kumasi/Cape Coast & Tema"}, {"code": "EPS731D", "title": "PSYCHOLOGY OF HUMAN LEARNING AND INSTRUCTION", "label": "EPS731D - PSYCHOLOGY OF HUMAN LEARNING AND INSTRUCTION", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Kumasi"}]}, "PGT0172": {"name": "Prof. Maxwell Nyatsikor", "programs": ["MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EPS823D", "title": "PSYCHOLOGY OF ADOLESCENCE (MED MA GC & PSY", "label": "EPS823D - PSYCHOLOGY OF ADOLESCENCE (MED MA GC & PSY", "program": "MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "centre": "Online 2 (All Other Centres)"}, {"code": "EPS701D", "title": "PSYCHOLOGY OF ADOLESCENCE", "label": "EPS701D - PSYCHOLOGY OF ADOLESCENCE", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Online (For All Other Centres)"}]}, "PGT0024": {"name": "Prof. Paul Dela Ahiatrogah", "programs": ["MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EPS823D", "title": "PSYCHOLOGY OF ADOLESCENCE (MED MA GC & PSY", "label": "EPS823D - PSYCHOLOGY OF ADOLESCENCE (MED MA GC & PSY", "program": "MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "centre": "Accra (Group 1-PSY)"}, {"code": "EPS701D", "title": "PSYCHOLOGY OF ADOLESCENCE", "label": "EPS701D - PSYCHOLOGY OF ADOLESCENCE", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Accra"}, {"code": "EPS831D", "title": "ADVANCED PSYCHOLOGY OF HUMAN LEARNING AND INSTRUCTION (PSY ONLY)", "label": "EPS831D - ADVANCED PSYCHOLOGY OF HUMAN LEARNING AND INSTRUCTION (PSY ONLY)", "program": "MED (EDUCATIONAL PSYCHOLOGY) PROGRAMME", "centre": "Online 3 (All Other Centres)"}, {"code": "EPS731D", "title": "PSYCHOLOGY OF HUMAN LEARNING AND INSTRUCTION", "label": "EPS731D - PSYCHOLOGY OF HUMAN LEARNING AND INSTRUCTION", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Accra"}]}, "PGT0023": {"name": "Prof. Tuffour Kwarteng", "programs": ["MED (ACCOUNTING) PROGRAMME"], "courses": [{"code": "ACT804D", "title": "ADVANCED FINANCIAL ACCOUNTING", "label": "ACT804D - ADVANCED FINANCIAL ACCOUNTING", "program": "MED (ACCOUNTING) PROGRAMME", "centre": "ONLINE (ALL OTHER CENTRES)"}]}, "PGT0321": {"name": "Prof. Vera Arhin", "programs": ["MED (SPECIAL EDUCATION) PROGRAMME /", "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EPS843D", "title": "PRINCIPLES OF CAREER DEVELOPMENT AND VOCATIONAL COUNSELLING", "label": "EPS843D - PRINCIPLES OF CAREER DEVELOPMENT AND VOCATIONAL COUNSELLING", "program": "MED (SPECIAL EDUCATION) PROGRAMME /", "centre": "ONLINE 1 ACCRA"}, {"code": "EPS849D", "title": "SCHOOL COUNSELLING (MED GC ONLY)", "label": "EPS849D - SCHOOL COUNSELLING (MED GC ONLY)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Online 2 (Bolga, Wa, Cape Coast, Ho & Koforidua)"}, {"code": "EPS731AD", "title": "PRINCIPLES AND TECHNIQUES OF GUIDANCE AND COUNSELLING", "label": "EPS731AD - PRINCIPLES AND TECHNIQUES OF GUIDANCE AND COUNSELLING", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Accra"}]}, "PGT0041": {"name": "Prof. Yaw Afari Ankomah", "programs": ["MED (EDUCATIONAL ADMINISTRATION) PROGRAMME"], "courses": [{"code": "EPA811D", "title": "EDUCATIONAL PLANNING: CONCEPTS AND ISSUES (ADMIN IN H E & EDUCL ADMIN)", "label": "EPA811D - EDUCATIONAL PLANNING: CONCEPTS AND ISSUES (ADMIN IN H E & EDUCL ADMIN)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Online 3 (Sunyani/Tamale)"}]}, "PGT0562": {"name": "Dr. Albert Annang", "programs": ["MA (Sociology of Peace and Security)"], "courses": [{"code": "SPS 810D", "title": "Social Exclusion, Crime Regulation and Security", "label": "SPS 810D - Social Exclusion, Crime Regulation and Security", "program": "MA (Sociology of Peace and Security)", "centre": "Online Meetings"}, {"code": "SPS 818D", "title": "African Politics and Security", "label": "SPS 818D - African Politics and Security", "program": "MA (Sociology of Peace and Security)", "centre": "Online Meetings"}]}, "PGT0075": {"name": "Dr. Brandford Bervel", "programs": ["MED Information Technology", "MEd (Information Technology)"], "courses": [{"code": "EIT814D", "title": "Educational Statistics", "label": "EIT814D - Educational Statistics", "program": "MED Information Technology", "centre": "Online"}]}, "PGT0576": {"name": "Dr. Charles Asante", "programs": ["MA (International Studies)"], "courses": [{"code": "INS 814D", "title": "International Conflicts and Management", "label": "INS 814D - International Conflicts and Management", "program": "MA (International Studies)", "centre": "Online Meetings"}]}, "PGT0027": {"name": "Dr. Edgar T. Akonor", "programs": ["MA (Sociology of Peace and Security)"], "courses": [{"code": "SPS 810D", "title": "Social Exclusion, Crime Regulation and Security", "label": "SPS 810D - Social Exclusion, Crime Regulation and Security", "program": "MA (Sociology of Peace and Security)", "centre": "Online Meetings"}]}, "PGT0029": {"name": "Dr. Edward Amarteifio", "programs": ["MSc (Information Technology)", "MSc Information Technology"], "courses": [{"code": "INF808D", "title": "Entrepreneurship", "label": "INF808D - Entrepreneurship", "program": "MSc Information Technology", "centre": "Online"}]}, "PGT0570": {"name": "Dr. Emmanuel Dortey", "programs": ["MSc (Information Technology)", "MSc Information Technology"], "courses": [{"code": "INF814D", "title": "Software Engineering", "label": "INF814D - Software Engineering", "program": "MSc Information Technology", "centre": "Online"}]}, "PGT0788": {"name": "Dr. George Anderson Jr.", "programs": ["MA (Religion and Human Values)"], "courses": [{"code": "RLH 814D", "title": "Theory of Ethics and Religion", "label": "RLH 814D - Theory of Ethics and Religion", "program": "MA (Religion and Human Values)", "centre": "Online Meetings"}]}, "PGT0803": {"name": "Dr. Helena N. K. Ashong", "programs": ["MED Mathematics Education", "MEd (Mathematics Education)"], "courses": [{"code": "EMA311D", "title": "Implementing Secondary School Mathematics", "label": "EMA311D - Implementing Secondary School Mathematics", "program": "MED Mathematics Education", "centre": "Online Only for Other Centres"}]}, "PGT0270": {"name": "Dr. Justice K. Armah", "programs": ["MED Information Technology", "MEd (Information Technology)"], "courses": [{"code": "EIT805D", "title": "Instructional Design and Technology", "label": "EIT805D - Instructional Design and Technology", "program": "MED Information Technology", "centre": "Online"}]}, "PGT0332": {"name": "Dr. Kofi Acheaw Owusu", "programs": ["M.Ed (Science Education)", "MED Science Education"], "courses": [{"code": "ESC806SD", "title": "Topics in Science Education", "label": "ESC806SD - Topics in Science Education", "program": "MED Science Education", "centre": "Online"}]}, "PGT0471": {"name": "Dr. Razak Imoro Jaha", "programs": ["MA (Sociology of Peace and Security)"], "courses": [{"code": "SPS 812D", "title": "Conflict Transformation and Peace Building", "label": "SPS 812D - Conflict Transformation and Peace Building", "program": "MA (Sociology of Peace and Security)", "centre": "Online Meetings"}]}, "PGT0798": {"name": "Dr. William G. Cantah", "programs": ["MSc (Economics)", "MSc (Social Science Data Management and Analysis)"], "courses": [{"code": "ECO 826D", "title": "Research Methods II", "label": "ECO 826D - Research Methods II", "program": "MSc (Economics)", "centre": "Online Meetings"}, {"code": "DMA 806D", "title": "Social Network Analysis", "label": "DMA 806D - Social Network Analysis", "program": "MSc (Social Science Data Management and Analysis)", "centre": "Online Meetings"}]}, "PGT0476": {"name": "Ms. Mary Donkor", "programs": ["MED Mathematics Education", "MEd (Mathematics Education)"], "courses": [{"code": "EMA311D", "title": "Implementing Secondary School Mathematics", "label": "EMA311D - Implementing Secondary School Mathematics", "program": "MED Mathematics Education", "centre": "Kumasi"}]}, "PGT0489": {"name": "Prof. Alex Somuah Obeng", "programs": ["MA (Sociology of Peace and Security)"], "courses": [{"code": "SPS 812D", "title": "Conflict Transformation and Peace Building", "label": "SPS 812D - Conflict Transformation and Peace Building", "program": "MA (Sociology of Peace and Security)", "centre": "Online Meetings"}]}, "PGT0359": {"name": "Prof. Douglas D. Agyei", "programs": ["MED (SPECIAL EDUCATION) PROGRAMME /", "MED Mathematics Education", "MEd (Mathematics Education)"], "courses": [{"code": "EMA838D", "title": "Time Series Analysis (Accra/Kumasi only)", "label": "EMA838D - Time Series Analysis (Accra/Kumasi only)", "program": "MED Mathematics Education", "centre": "Kumasi"}, {"code": "ESE875D", "title": "CURRICULUM AND INSTRUCTIONAL PROGRAMMING FOR EXCEPTIONAL CHILDREN", "label": "ESE875D - CURRICULUM AND INSTRUCTIONAL PROGRAMMING FOR EXCEPTIONAL CHILDREN", "program": "MED (SPECIAL EDUCATION) PROGRAMME /", "centre": ""}, {"code": "EMA809D", "title": "Sampling Techniques and Survey in Mathematics Education", "label": "EMA809D - Sampling Techniques and Survey in Mathematics Education", "program": "MED Mathematics Education", "centre": "Accra"}, {"code": "EMA838D", "title": "Time Series Analysis (Online Centres Only)", "label": "EMA838D - Time Series Analysis (Online Centres Only)", "program": "MED Mathematics Education", "centre": "Online Centres Only excluding Accra/Kumasi"}]}, "PGT0789": {"name": "Prof. Kojo Okyere", "programs": ["MA (Religion and Human Values)"], "courses": [{"code": "RLH 826D", "title": "Prophetic Literature", "label": "RLH 826D - Prophetic Literature", "program": "MA (Religion and Human Values)", "centre": "Online Meetings"}]}, "PGT0057": {"name": "Prof. Mark Armah", "programs": ["MSc (Economics)"], "courses": [{"code": "ECO 820D", "title": "Quantitative Methods II", "label": "ECO 820D - Quantitative Methods II", "program": "MSc (Economics)", "centre": "Online Meetings"}]}, "PGT0533": {"name": "Prof. Wilson Yayoh", "programs": ["MA (International Studies)"], "courses": [{"code": "INS 810D", "title": "Africa and China Since the 1950s", "label": "INS 810D - Africa and China Since the 1950s", "program": "MA (International Studies)", "centre": "Online Meetings"}]}, "PGT0800": {"name": "Dr John Ekow Laryea", "programs": ["MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME"], "courses": [{"code": "EPS805D", "title": "COUNSELLING TECHNIQUES AND PRACTICUM (MED MA GC)", "label": "EPS805D - COUNSELLING TECHNIQUES AND PRACTICUM (MED MA GC)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Online 2 (Bolga, Wa, Cape Coast, Ho & Koforidua)"}, {"code": "EPS809D", "title": "EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "label": "EPS809D - EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Cape Coast"}]}, "PGT0835": {"name": "Dr Joy Olive Boye", "programs": ["MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME"], "courses": [{"code": "EPS841D", "title": "PRINCIPLES OF GUIDANCE & COUNSELLING (MA GC ONLY)", "label": "EPS841D - PRINCIPLES OF GUIDANCE & COUNSELLING (MA GC ONLY)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Online for All Centres"}, {"code": "EPS809D", "title": "EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "label": "EPS809D - EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Accra Group 3"}]}, "PGT0331": {"name": "Dr. Amina Jangu Alhassan", "programs": ["MED (EDUCATIONAL ADMINISTRATION) PROGRAMME"], "courses": [{"code": "EPA829D", "title": "MANAGEMENT OF EDUCATIONAL INSTITUTIONS (EDUCL ADMIN ONLY)", "label": "EPA829D - MANAGEMENT OF EDUCATIONAL INSTITUTIONS (EDUCL ADMIN ONLY)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Online 1 (Ho/Koforidua)"}, {"code": "EPA828D", "title": "SUPERVISION OF INSTRUCTION (EDUCL ADMIN ONLY)", "label": "EPA828D - SUPERVISION OF INSTRUCTION (EDUCL ADMIN ONLY)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Online 2(Bolga/Tema & Tamale)"}]}, "PGT0356": {"name": "Dr. Anthony A. Owusu", "programs": ["MED (SOCIAL STUDIES) PROGRAMME"], "courses": [{"code": "ESS859D", "title": "ASSESSMENT IN EDUCATION (SOC CNT)", "label": "ESS859D - ASSESSMENT IN EDUCATION (SOC CNT)", "program": "MED (SOCIAL STUDIES) PROGRAMME", "centre": "Online 1 (Ho/ Koforidua & Wa)"}, {"code": "ESS804D", "title": "CURRICULUM ORGANIZATION (SOC CNT)", "label": "ESS804D - CURRICULUM ORGANIZATION (SOC CNT)", "program": "MED (SOCIAL STUDIES) PROGRAMME", "centre": "Kumasi"}]}, "PGT0006": {"name": "Dr. Bernard Y. S. Acquah", "programs": ["MED (SOCIAL STUDIES) PROGRAMME", "MED (SOCIAL STUDIES) PROGRAMME/MED CURRICULUM AND TEACHING"], "courses": [{"code": "ESS807D", "title": "EFFECTIVE TEACHING AND LEARNING (SOC)", "label": "ESS807D - EFFECTIVE TEACHING AND LEARNING (SOC)", "program": "MED (SOCIAL STUDIES) PROGRAMME", "centre": "Cape Coast"}, {"code": "ESS804D", "title": "CURRICULUM ORGANIZATION (SOC CNT)", "label": "ESS804D - CURRICULUM ORGANIZATION (SOC CNT)", "program": "MED (SOCIAL STUDIES) PROGRAMME/MED CURRICULUM AND TEACHING", "centre": "Online 1 (Ho/Koforidua & Wa)"}]}, "PGT0501": {"name": "Dr. Daniel Kweku Anhwere", "programs": ["MED (SOCIAL STUDIES) PROGRAMME"], "courses": [{"code": "ESS807D", "title": "EFFECTIVE TEACHING AND LEARNING (SOC)", "label": "ESS807D - EFFECTIVE TEACHING AND LEARNING (SOC)", "program": "MED (SOCIAL STUDIES) PROGRAMME", "centre": "Online (Ho/Koforidua & Wa)"}]}, "PGT0417": {"name": "Dr. Edmund Kwesi Agormedah", "programs": ["MED (SOCIAL STUDIES) PROGRAMME"], "courses": [{"code": "ESS859D", "title": "ASSESSMENT IN EDUCATION (SOC CNT)", "label": "ESS859D - ASSESSMENT IN EDUCATION (SOC CNT)", "program": "MED (SOCIAL STUDIES) PROGRAMME", "centre": "Kumasi"}]}, "PGT0836": {"name": "Dr. Josephine Anterkyi Bentil", "programs": ["MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME"], "courses": [{"code": "EPS849D", "title": "SCHOOL COUNSELLING (MED GC ONLY)", "label": "EPS849D - SCHOOL COUNSELLING (MED GC ONLY)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Online 1(Sunyani, Takoradi, Tamale & Tema)"}, {"code": "EPS809D", "title": "EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "label": "EPS809D - EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Kumasi Group 2"}]}, "PGT0299": {"name": "Dr. Joyce K. Dankyi", "programs": ["MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME"], "courses": [{"code": "EPS805D", "title": "COUNSELLING TECHNIQUES AND PRACTICUM (MED MA GC)", "label": "EPS805D - COUNSELLING TECHNIQUES AND PRACTICUM (MED MA GC)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Kumasi"}, {"code": "EPS809D", "title": "EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "label": "EPS809D - EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Koforidua"}]}, "PGT0833": {"name": "Dr. Kofi Abrefa Busia", "programs": ["MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME"], "courses": [{"code": "GHL806D", "title": "SYNTAX AND SEMANTICS OF THE GHANAIAN LANGUAGE (ARTS-GHANAIAN LANGUAGE)", "label": "GHL806D - SYNTAX AND SEMANTICS OF THE GHANAIAN LANGUAGE (ARTS-GHANAIAN LANGUAGE)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "ONLINE (FOR ALL CENTRES)"}]}, "PGT0084": {"name": "Dr. Leticia Bosu", "programs": ["MED (SOCIAL STUDIES) PROGRAMME"], "courses": [{"code": "ESS807D", "title": "EFFECTIVE TEACHING AND LEARNING (SOC)", "label": "ESS807D - EFFECTIVE TEACHING AND LEARNING (SOC)", "program": "MED (SOCIAL STUDIES) PROGRAMME", "centre": "Kumasi"}]}, "PGT0442": {"name": "Dr. Magdalene Brown", "programs": ["MED (SOCIAL STUDIES) PROGRAMME"], "courses": [{"code": "ESS807D", "title": "EFFECTIVE TEACHING AND LEARNING (SOC)", "label": "ESS807D - EFFECTIVE TEACHING AND LEARNING (SOC)", "program": "MED (SOCIAL STUDIES) PROGRAMME", "centre": "ACCRA"}]}, "PGT0428": {"name": "Dr. Peter Anti Partey", "programs": ["MED (SOCIAL STUDIES) PROGRAMME"], "courses": [{"code": "ESS859D", "title": "ASSESSMENT IN EDUCATION (SOC CNT)", "label": "ESS859D - ASSESSMENT IN EDUCATION (SOC CNT)", "program": "MED (SOCIAL STUDIES) PROGRAMME", "centre": "Accra"}]}, "PGT0329": {"name": "Dr. Prince Yeboah Asare", "programs": ["MED (SOCIAL STUDIES) PROGRAMME"], "courses": [{"code": "ESS859D", "title": "ASSESSMENT IN EDUCATION (SOC CNT)", "label": "ESS859D - ASSESSMENT IN EDUCATION (SOC CNT)", "program": "MED (SOCIAL STUDIES) PROGRAMME", "centre": "Online 2 (For All Other Centres)"}]}, "PGT0212": {"name": "Dr. Rosemary Twum", "programs": ["POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EPS713D", "title": "BASIC COMPUTING", "label": "EPS713D - BASIC COMPUTING", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Cape Coast"}]}, "PGT0038": {"name": "Dr. Tahir Ahmed Andzie", "programs": ["MED (SOCIAL STUDIES) PROGRAMME"], "courses": [{"code": "ESS859D", "title": "ASSESSMENT IN EDUCATION (SOC CNT)", "label": "ESS859D - ASSESSMENT IN EDUCATION (SOC CNT)", "program": "MED (SOCIAL STUDIES) PROGRAMME", "centre": "Tamale"}]}, "PGT0347": {"name": "Mr Calvis Wonder Azidor", "programs": ["MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME"], "courses": [{"code": "ENG804D", "title": "SOCIOLINGUISTICS (ENGLISH ONLY)", "label": "ENG804D - SOCIOLINGUISTICS (ENGLISH ONLY)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "Kumasi"}]}, "PGT0278": {"name": "Mr. Ibrahim Imoro", "programs": ["MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME"], "courses": [{"code": "EAS805D", "title": "ASSESSMENT IN ENGLISH EDUCATION (ARTS ONLY: ENG & GHL)", "label": "EAS805D - ASSESSMENT IN ENGLISH EDUCATION (ARTS ONLY: ENG & GHL)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "Online 2 (All Other Centers)"}, {"code": "EAS806D", "title": "CULTURE & POLITICS IN SECOND LANGUAGE LEARNING (ARTS ONLY: ENG & GHL)", "label": "EAS806D - CULTURE & POLITICS IN SECOND LANGUAGE LEARNING (ARTS ONLY: ENG & GHL)", "program": "MED (ARTS EDUCATION – ENGLISH/GHANAIAN LANGUAGE) PROGRAMME", "centre": "Online 2 (All Other Centers)"}]}, "PGT0846": {"name": "Ms. Cecilia Barachia Mark-Aba", "programs": ["MED (CLOTHING, TEXTILES AND FAMILY STUDIES)"], "courses": [{"code": "CDC806D", "title": "FASHION DESIGN AND PATTERN DEVELOPMENT", "label": "CDC806D - FASHION DESIGN AND PATTERN DEVELOPMENT", "program": "MED (CLOTHING, TEXTILES AND FAMILY STUDIES)", "centre": "ONLINE FOR ALL CENTRES"}]}, "PGT0165": {"name": "Prof. Hope P. Nudzor", "programs": ["MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "MED/MA (ADMINISTRATION IN HIGHER EDUCATION) PROGRAMME"], "courses": [{"code": "EPA814D", "title": "ECONOMICS OF EDUCATION AND EDUCATIONAL FINANCE (ADMIN IN H E & EDUCL ADMIN)", "label": "EPA814D - ECONOMICS OF EDUCATION AND EDUCATIONAL FINANCE (ADMIN IN H E & EDUCL ADMIN)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Accra (Group 1-ADMIN IN H/E)"}, {"code": "EPA819D", "title": "CURRICULUM DEVELOPMENT IN INSTITUTIONS (MED MA ADMIN IN H E ONLY)", "label": "EPA819D - CURRICULUM DEVELOPMENT IN INSTITUTIONS (MED MA ADMIN IN H E ONLY)", "program": "MED/MA (ADMINISTRATION IN HIGHER EDUCATION) PROGRAMME", "centre": "Accra"}]}, "PGT0070": {"name": "Prof. K Ayebi-Arthur", "programs": ["POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EPS713D", "title": "BASIC COMPUTING", "label": "EPS713D - BASIC COMPUTING", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Kumasi"}]}, "PGT0594": {"name": "Prof. Lydia A. Dankyi", "programs": ["MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME"], "courses": [{"code": "EPS805D", "title": "COUNSELLING TECHNIQUES AND PRACTICUM (MED MA GC)", "label": "EPS805D - COUNSELLING TECHNIQUES AND PRACTICUM (MED MA GC)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Online 1(Sunyani, Takoradi, Tamale & Tema)"}, {"code": "EPS809D", "title": "EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "label": "EPS809D - EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Accra Group 2"}]}, "PGT0223": {"name": "Prof. Michael Boakye-Yiadom", "programs": ["MED/MA (ADMINISTRATION IN HIGHER EDUCATION) PROGRAMME"], "courses": [{"code": "EPA 836D", "title": "CONTEMPORARY ISSUES IN HIGHER EDUCATION (MED MA ADMIN IN H E ONLY)", "label": "EPA 836D - CONTEMPORARY ISSUES IN HIGHER EDUCATION (MED MA ADMIN IN H E ONLY)", "program": "MED/MA (ADMINISTRATION IN HIGHER EDUCATION) PROGRAMME", "centre": "Online 2 Takoradi/Sunyani/Tamale/UCC/Wa/Tema"}]}, "PGT0167": {"name": "Prof. Paul Nyagorme", "programs": ["MED Information Technology", "MEd (Information Technology)", "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EPS713D", "title": "BASIC COMPUTING", "label": "EPS713D - BASIC COMPUTING", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Accra"}, {"code": "EIT811D", "title": "Information Technology Project Management", "label": "EIT811D - Information Technology Project Management", "program": "MED Information Technology", "centre": "Online"}]}, "PGT0136": {"name": "Prof. Samuel Kwaku Agyei", "programs": ["MED (ACCOUNTING) PROGRAMME"], "courses": [{"code": "EAC856D", "title": "ADVANCED AUDIT AND ASSURANCE", "label": "EAC856D - ADVANCED AUDIT AND ASSURANCE", "program": "MED (ACCOUNTING) PROGRAMME", "centre": "ONLINE (ALL OTHER CENTRES)"}, {"code": "EAC858D", "title": "PHILOSOPHY OF ACCOUNTING EDUCATION", "label": "EAC858D - PHILOSOPHY OF ACCOUNTING EDUCATION", "program": "MED (ACCOUNTING) PROGRAMME", "centre": "ONLINE (ALL OTHER CENTRES)"}, {"code": "EAC859D", "title": "ACCOUNTING, PEDAGOGY, AND LEARNING", "label": "EAC859D - ACCOUNTING, PEDAGOGY, AND LEARNING", "program": "MED (ACCOUNTING) PROGRAMME", "centre": "ONLINE (ALL OTHER CENTRES)"}]}, "PGT0099": {"name": "Prof. Stephen Doh Fia", "programs": ["MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME"], "courses": [{"code": "EPS849D", "title": "SCHOOL COUNSELLING (MED GC ONLY)", "label": "EPS849D - SCHOOL COUNSELLING (MED GC ONLY)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Accra"}, {"code": "EPS809D", "title": "EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "label": "EPS809D - EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Ho"}]}, "PGT0473": {"name": "Dr. (Mrs) Agnes Adom-Konadu", "programs": ["MED Mathematics Education", "MEd (Mathematics Education)"], "courses": [{"code": "MAT806D", "title": "Ordinary Differential Equations II", "label": "MAT806D - Ordinary Differential Equations II", "program": "MED Mathematics Education", "centre": "Online Only for Other Centres"}]}, "PGT0790": {"name": "Dr. Abdulssalam Alhaji Adam", "programs": ["MA (Religion and Human Values)"], "courses": [{"code": "RLH 836D", "title": "Quranic Studies", "label": "RLH 836D - Quranic Studies", "program": "MA (Religion and Human Values)", "centre": "Online Meetings"}]}, "PGT0343": {"name": "Dr. Albert Sackitey", "programs": ["MED Mathematics Education", "MEd (Mathematics Education)"], "courses": [{"code": "MAT806D", "title": "Ordinary Differential Equations II", "label": "MAT806D - Ordinary Differential Equations II", "program": "MED Mathematics Education", "centre": "Accra"}]}, "PGT0272": {"name": "Dr. Emmanuel Asante", "programs": ["MA (Sociology of Peace and Security)"], "courses": [{"code": "SPS 818D", "title": "African Politics and Security", "label": "SPS 818D - African Politics and Security", "program": "MA (Sociology of Peace and Security)", "centre": "Online Meetings"}]}, "PGT0796": {"name": "Dr. Harrison K. Golo", "programs": ["MA (Sociology of Peace and Security)"], "courses": [{"code": "SPS 814D", "title": "International Human Rights", "label": "SPS 814D - International Human Rights", "program": "MA (Sociology of Peace and Security)", "centre": "Online Meetings"}]}, "PGT0854": {"name": "Dr. Mohammed Abdul Moomin", "programs": ["MA (Religion and Human Values)"], "courses": [{"code": "RLH 836D", "title": "Quranic Studies", "label": "RLH 836D - Quranic Studies", "program": "MA (Religion and Human Values)", "centre": "Online Meetings"}]}, "PGT0506": {"name": "Dr. Solomon Sika-Bright", "programs": ["MA (Sociology of Peace and Security)"], "courses": [{"code": "SPS 814D", "title": "International Human Rights", "label": "SPS 814D - International Human Rights", "program": "MA (Sociology of Peace and Security)", "centre": "Online Meetings"}]}, "PGT0152": {"name": "Isaac Armah-Mensah", "programs": ["MSc (Information Technology)", "MSc Information Technology"], "courses": [{"code": "INF810D", "title": "Internet of Things and Applications", "label": "INF810D - Internet of Things and Applications", "program": "MSc Information Technology", "centre": "Online"}]}, "PGT0600": {"name": "Mr. Mathew Alidza", "programs": ["MA (International Studies)"], "courses": [{"code": "INS 804D", "title": "The Language of Diplomatic Discourse", "label": "INS 804D - The Language of Diplomatic Discourse", "program": "MA (International Studies)", "centre": "Online Meetings"}]}, "PGT0855": {"name": "Mr. William Osei", "programs": ["MED Mathematics Education", "MEd (Mathematics Education)"], "courses": [{"code": "EMA809D", "title": "Sampling Techniques and Survey in Mathematics Education", "label": "EMA809D - Sampling Techniques and Survey in Mathematics Education", "program": "MED Mathematics Education", "centre": "Online Only for Other Centres"}]}, "PGT0174": {"name": "Prof. Camara Obeng", "programs": ["MSc (Economics)"], "courses": [{"code": "ECO 810D", "title": "International Finance and Open-Economy Macroeconomics", "label": "ECO 810D - International Finance and Open-Economy Macroeconomics", "program": "MSc (Economics)", "centre": "Online Meetings"}]}, "PGT0436": {"name": "Prof. George Aggrey", "programs": ["MSc (Information Technology)", "MSc Information Technology"], "courses": [{"code": "INF812D", "title": "Management Information Systems", "label": "INF812D - Management Information Systems", "program": "MSc Information Technology", "centre": "Online"}]}, "PGT0191": {"name": "Prof. James Attah Peprah", "programs": ["MSc (Economics)"], "courses": [{"code": "ECO 818D", "title": "Theories & Models of Economic Growth & Development II", "label": "ECO 818D - Theories & Models of Economic Growth & Development II", "program": "MSc (Economics)", "centre": "Online Meetings"}]}, "PGT0043": {"name": "Prof. Martin Anokye", "programs": ["MED Mathematics Education", "MEd (Mathematics Education)"], "courses": [{"code": "MAT806D", "title": "Ordinary Differential Equations II", "label": "MAT806D - Ordinary Differential Equations II", "program": "MED Mathematics Education", "centre": "Kumasi"}]}, "PGT0584": {"name": "Rev. Sr. Dr. Alice Matilda Nsiah", "programs": ["MA (Religion and Human Values)"], "courses": [{"code": "RLH 832D", "title": "Pauline Epistle", "label": "RLH 832D - Pauline Epistle", "program": "MA (Religion and Human Values)", "centre": "Online Meetings"}]}, "PGT0060": {"name": "Dr. Alale Amos Asamari", "programs": ["MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EPS809D", "title": "EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "label": "EPS809D - EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Tamale/Wa"}, {"code": "EPS731AD", "title": "PRINCIPLES AND TECHNIQUES OF GUIDANCE AND COUNSELLING", "label": "EPS731AD - PRINCIPLES AND TECHNIQUES OF GUIDANCE AND COUNSELLING", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Online 2 (For All Other Centres)"}]}, "PGT0552": {"name": "Dr. Christian Evadzi", "programs": ["MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME"], "courses": [{"code": "EPS809D", "title": "EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "label": "EPS809D - EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Bolga"}]}, "PGT0159": {"name": "Dr. Clara A. Mills", "programs": ["MED (EDUCATIONAL ADMINISTRATION) PROGRAMME"], "courses": [{"code": "EPA828D", "title": "SUPERVISION OF INSTRUCTION (EDUCL ADMIN ONLY)", "label": "EPA828D - SUPERVISION OF INSTRUCTION (EDUCL ADMIN ONLY)", "program": "MED (EDUCATIONAL ADMINISTRATION) PROGRAMME", "centre": "Online 3(Cape Coast /Sunyani &Takoradi)"}]}, "PGT0508": {"name": "Dr. Gloria Owusu-Ambrose", "programs": ["POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EPS731AD", "title": "PRINCIPLES AND TECHNIQUES OF GUIDANCE AND COUNSELLING", "label": "EPS731AD - PRINCIPLES AND TECHNIQUES OF GUIDANCE AND COUNSELLING", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Cape Coast"}]}, "PGT0416": {"name": "Dr. Mrs. Leticia Sam", "programs": ["MED (SOCIAL STUDIES) PROGRAMME"], "courses": [{"code": "ESS804D", "title": "CURRICULUM ORGANIZATION (SOC CNT)", "label": "ESS804D - CURRICULUM ORGANIZATION (SOC CNT)", "program": "MED (SOCIAL STUDIES) PROGRAMME", "centre": "Online1 (Ho, Kofodua, WA)"}]}, "PGT0446": {"name": "Dr. Sylvester Tenkorang", "programs": ["POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EPS731AD", "title": "PRINCIPLES AND TECHNIQUES OF GUIDANCE AND COUNSELLING", "label": "EPS731AD - PRINCIPLES AND TECHNIQUES OF GUIDANCE AND COUNSELLING", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Online 1 (Tema, Takoradi & Ho)"}]}, "PGT0507": {"name": "Madam Esenam Adjetey", "programs": ["POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EPS731D", "title": "PSYCHOLOGY OF HUMAN LEARNING AND INSTRUCTION", "label": "EPS731D - PSYCHOLOGY OF HUMAN LEARNING AND INSTRUCTION", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Cape Coast"}]}, "PGT0302": {"name": "Mr. Robert Appiah", "programs": ["POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EPA775D", "title": "EDUCATIONAL MANAGEMENT AND ADMINISTRATION (2 HOURS)", "label": "EPA775D - EDUCATIONAL MANAGEMENT AND ADMINISTRATION (2 HOURS)", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Kumasi"}]}, "PGT0842": {"name": "Mrs. Eugenia Tawiah Adam", "programs": ["MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME"], "courses": [{"code": "EPS809D", "title": "EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "label": "EPS809D - EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Accra Group 4"}]}, "PGT0443": {"name": "Ms. Grace Yeboah", "programs": ["POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EPS731AD", "title": "PRINCIPLES AND TECHNIQUES OF GUIDANCE AND COUNSELLING", "label": "EPS731AD - PRINCIPLES AND TECHNIQUES OF GUIDANCE AND COUNSELLING", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Kumasi"}]}, "PGT0224": {"name": "Prof. Alhaji M. B. Yidana", "programs": ["MED (SOCIAL STUDIES) PROGRAMME"], "courses": [{"code": "ESS804D", "title": "CURRICULUM ORGANIZATION (SOC CNT)", "label": "ESS804D - CURRICULUM ORGANIZATION (SOC CNT)", "program": "MED (SOCIAL STUDIES) PROGRAMME", "centre": "Tamale"}, {"code": "ESS812D", "title": "ESSENTIAL CONTENT AREAS IN SOCIAL STUDIES (SOC CNT)", "label": "ESS812D - ESSENTIAL CONTENT AREAS IN SOCIAL STUDIES (SOC CNT)", "program": "MED (SOCIAL STUDIES) PROGRAMME", "centre": "Online 1 (Ho/Koforidua& Wa)"}]}, "PGT0284": {"name": "Rev. Prof. Kwasi Otopa Antiri", "programs": ["MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME"], "courses": [{"code": "EPS809D", "title": "EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "label": "EPS809D - EPS806D COUNSELLING PRACTICUM (IN EDUCATIONAL SETTING COMMUNITY AGENCY) (MED MA GC)", "program": "MED/MA (GUIDANCE AND COUNSELLING) PROGRAMME", "centre": "Kumasi Group 1"}]}, "PGT0087": {"name": "Rev. Rexford Peter Brown", "programs": ["POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME"], "courses": [{"code": "EPA775D", "title": "EDUCATIONAL MANAGEMENT AND ADMINISTRATION (2 HOURS)", "label": "EPA775D - EDUCATIONAL MANAGEMENT AND ADMINISTRATION (2 HOURS)", "program": "POST GRADUATE DIPLOMA IN EDUCATION (PGDE) PROGRAMME", "centre": "Cape Coast"}]}};
+
+// ========== SEARCHABLE DROPDOWN FACTORY ==========
+function createSearchableDropdown(config) {
+    const { inputId, dropdownId, hiddenId, getData, placeholder, onSelect } = config;
+    const input = document.getElementById(inputId);
+    const dropdown = document.getElementById(dropdownId);
+    const hidden = document.getElementById(hiddenId);
+
+    function render(filter = '') {
+        const dataArray = getData();
+        const lowerFilter = filter.toLowerCase().trim();
+        let matched = dataArray.filter(item => item.toLowerCase().includes(lowerFilter));
+        matched.sort((a,b) => a.localeCompare(b));
+        dropdown.innerHTML = '';
+        const list = filter ? matched : dataArray.slice();
+        if (list.length === 0) {
+            dropdown.innerHTML = '<div class="no-result">No matching items</div>';
+            return;
+        }
+        list.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'option-item';
+            div.textContent = item;
+            div.onclick = () => selectItem(item);
+            dropdown.appendChild(div);
+        });
+    }
+    function selectItem(value) {
+        input.value = value;
+        hidden.value = value;
+        dropdown.classList.remove('show');
+        input.setCustomValidity('');
+        if (typeof onSelect === 'function') onSelect(value);
+    }
+    input.addEventListener('focus', () => { render(input.value); dropdown.classList.add('show'); });
+    input.addEventListener('input', function() {
+        render(this.value); dropdown.classList.add('show'); hidden.value = '';
+    });
+    document.addEventListener('click', (e) => {
+        if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.remove('show');
+            input.setCustomValidity(!hidden.value && input.value.trim() !== ''
+                ? 'Please select a valid item from the list' : '');
+        }
+    });
+    input.addEventListener('blur', function() {
+        this.setCustomValidity(!hidden.value && this.value.trim() !== ''
+            ? 'Please select a valid item from the list' : '');
+    });
+    hidden.required = true;
+    input.placeholder = placeholder || '🔍 Type to search...';
+}
+
+// ========== TUTOR IDENTITY (from login) ==========
+let CURRENT_TUTOR = null;   // the logged-in tutor's record
+
+function fillTutorFromLogin() {
+    const rawId = (sessionStorage.getItem('tutorStaffId') || '').trim().toUpperCase();
+    const fbName = (sessionStorage.getItem('tutorName') || '').trim();
+    const idField = document.getElementById('staffId');
+    const nameField = document.getElementById('tutorName');
+    const hint = document.getElementById('tutorHint');
+
+    const rec = TUTORS[rawId];
+    CURRENT_TUTOR = rec || null;
+
+    idField.value = rawId || '';
+    if (rec) {
+        nameField.value = rec.name;
+        hint.textContent = 'Signed in as ' + rawId;
+    } else if (fbName) {
+        nameField.value = fbName;
+        hint.textContent = 'Signed in as ' + rawId + ' (no course list found — contact admin)';
+    } else {
+        nameField.value = rawId;
+        hint.textContent = 'No record found for ' + rawId + '. Contact the administrator.';
+    }
+    populateProgramDropdown();
+}
+window.fillTutorFromLogin = fillTutorFromLogin;
+
+// Courses for the logged-in tutor only
+function tutorCourses() {
+    if (!CURRENT_TUTOR) return [];
+    return [...new Set(CURRENT_TUTOR.courses.map(c => c.label))];
+}
+
+// ========== POPULATE PROGRAMME DROPDOWN ==========
+function populateProgramDropdown() {
+    const prog = document.getElementById('program');
+    if (!prog) return;
+    prog.innerHTML = '<option value="" disabled selected>Select programme</option>';
+    const progs = CURRENT_TUTOR ? CURRENT_TUTOR.programs : [];
+    progs.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p; opt.textContent = p; prog.appendChild(opt);
+    });
+    if (progs.length === 1) prog.value = progs[0];
+}
+
+// When a course is chosen, auto-fill programme + study centre from that assignment
+function onCourseSelected(label) {
+    if (!CURRENT_TUTOR) return;
+    const match = CURRENT_TUTOR.courses.find(c => c.label === label);
+    if (!match) return;
+    if (match.program) document.getElementById('program').value = match.program;
+    if (match.centre) document.getElementById('studyCentre').value = match.centre;
+}
+
+// ========== DURATION ==========
+function calculateDuration() {
+    const start = document.getElementById('startTime').value;
+    const end = document.getElementById('endTime').value;
+    const display = document.getElementById('durationDisplay');
+    const text = document.getElementById('durationText');
+    const hidden = document.getElementById('duration');
+    if (!start || !end) {
+        text.textContent = '— hrs — mins'; hidden.value = '';
+        display.classList.remove('invalid'); return;
+    }
+    const [sh, sm] = start.split(':').map(Number);
+    const [eh, em] = end.split(':').map(Number);
+    const diff = (eh*60+em) - (sh*60+sm);
+    if (diff <= 0) {
+        text.textContent = 'End time must be after start time';
+        hidden.value = ''; display.classList.add('invalid'); return;
+    }
+    display.classList.remove('invalid');
+    const hrs = Math.floor(diff/60), mins = diff%60;
+    const label = hrs > 0
+        ? (mins > 0 ? hrs+' hr'+(hrs>1?'s':'')+' '+mins+' min'+(mins>1?'s':'') : hrs+' hr'+(hrs>1?'s':''))
+        : mins+' min'+(mins>1?'s':'');
+    text.textContent = label; hidden.value = label;
+}
+
+function setDefaultDate() {
+    const d = document.getElementById('classDate');
+    if (d) d.value = new Date().toISOString().split('T')[0];
+}
+
+// ========== INIT ==========
+document.addEventListener('DOMContentLoaded', function() {
+    createSearchableDropdown({
+        inputId: 'courseSearchInput', dropdownId: 'courseDropdown', hiddenId: 'course',
+        getData: tutorCourses, placeholder: '🔍 Select the course you taught...',
+        onSelect: onCourseSelected
+    });
+    setDefaultDate();
+    setupFormSubmission(document.getElementById('reportForm'));
+    if (typeof fillTutorFromLogin === 'function') fillTutorFromLogin();
+    document.getElementById('startTime').addEventListener('change', calculateDuration);
+    document.getElementById('endTime').addEventListener('change', calculateDuration);
+});
+
+// ========== SUBMISSION ==========
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyJk2xPi1GjW858JJZEKh3J783facWjEKzyIFvQMapeOLZPf6cM0mgVlrv-R0qf0M6G/exec';
+const FORM_TOKEN = 'CHANGE_ME_to_match_FORM_SECRET';
+
+function setupFormSubmission(form) {
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        if (!document.getElementById('course').value) {
+            alert('Please select a valid course from the dropdown.'); return;
+        }
+        if (!validateForm()) return;
+        await submitFormData(prepareFormData());
+    });
+}
+
+function validateForm() {
+    let ok = true;
+    document.querySelectorAll('[required]').forEach(f => f.style.borderColor = '');
+    document.querySelectorAll('[required]').forEach(f => {
+        if (!f.value.trim()) { f.style.borderColor = 'red'; ok = false; }
+    });
+    if (!document.querySelector('input[name="modeOfDelivery"]:checked')) { alert('Select mode of delivery'); ok = false; }
+    if (!document.querySelector('input[name="semester"]:checked')) { alert('Select semester'); ok = false; }
+    if (!document.querySelector('input[name="block"]:checked')) { alert('Select block of teaching'); ok = false; }
+    if (!document.querySelector('input[name="classLevel"]:checked')) { alert('Select class level'); ok = false; }
+    return ok;
+}
+
+function prepareFormData() {
+    const data = {};
+    new FormData(document.getElementById('reportForm')).forEach((v,k) => data[k]=v);
+    data.formType = 'TutorClassReport';
+    data.token = FORM_TOKEN;
+    ['modeOfDelivery','semester','block','classLevel'].forEach(name => {
+        const el = document.querySelector('input[name="'+name+'"]:checked');
+        if (el) data[name] = el.value;
+    });
+    data.staffId = document.getElementById('staffId').value;
+    data.tutorName = document.getElementById('tutorName').value;
+    data.duration = document.getElementById('duration').value;
+    return data;
+}
+
+async function submitFormData(data) {
+    const btn = document.getElementById('submitBtn');
+    const orig = btn.textContent;
+    btn.disabled = true; btn.textContent = '⏳ Sending...';
+    document.getElementById('loading').style.display = 'block';
+    hideMessages();
+    try {
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams(data).toString()
+        });
+        if (!response.ok) throw new Error('Server returned HTTP ' + response.status);
+        let result;
+        try { result = await response.json(); }
+        catch (parseErr) { throw new Error('Could not read server response. Check the script deployment.'); }
+        if (result && result.success) {
+            showSuccessMessage();
+            setTimeout(() => resetForm(), 2000);
+        } else {
+            showErrorMessage((result && (result.error || result.message)) || 'Unknown error');
+        }
+    } catch (e) {
+        showErrorMessage(e.message);
+    } finally {
+        btn.disabled = false; btn.textContent = orig;
+        document.getElementById('loading').style.display = 'none';
+    }
+}
+
+function hideMessages() {
+    ['errorMessage','successMessage'].forEach(id => document.getElementById(id).style.display = 'none');
+}
+function showSuccessMessage() {
+    const msg = document.getElementById('successMessage');
+    msg.innerHTML = '✅ <strong>Success!</strong> Class report submitted.';
+    msg.style.display = 'block';
+}
+function showErrorMessage(m) {
+    const msg = document.getElementById('errorMessage');
+    msg.innerHTML = '❌ <strong>Error:</strong> ' + m;
+    msg.style.display = 'block';
+}
+
+function resetForm() {
+    document.getElementById('reportForm').reset();
+    setDefaultDate();
+    document.getElementById('courseSearchInput').value = '';
+    document.getElementById('course').value = '';
+    document.getElementById('studyCentre').value = '';
+    document.querySelector('input[name="semester"][value="Second Semester"]').checked = true;
+    fillTutorFromLogin();   // restore identity + programme list
+    hideMessages();
+}
+</script>
+
+</body>
+</html>
