@@ -73,6 +73,16 @@
         }
         .form-group input:focus { border-color: #1d3a8f; }
         .hint { font-size: 12px; color: #666; margin-top: 4px; }
+        .pw-wrap { position: relative; }
+        .pw-wrap input { padding-right: 70px; }
+        .pw-toggle {
+            position: absolute; top: 50%; right: 8px; transform: translateY(-50%);
+            background: transparent; border: none; cursor: pointer;
+            font-size: 13px; font-weight: bold; color: #1d3a8f;
+            padding: 4px 8px; border-radius: 4px; line-height: 1;
+        }
+        .pw-toggle:hover { background: #eef3fb; }
+        .pw-toggle:focus { outline: 2px solid #1d3a8f; outline-offset: 1px; }
         .primary-btn {
             width: 100%; padding: 12px; border: none;
             border-radius: 6px; font-size: 16px; font-weight: bold;
@@ -113,7 +123,7 @@
     <div class="header">
         <img src="CoDE LOGO PNG.png" height="60" width="60" class="logo"
              onerror="this.src='https://via.placeholder.com/60/002147/FFFFFF?text=CoDE'">
-        <h2>Tutor Login</h2>
+        <h2>Tutor's Claim Form Login</h2>
         <img src="UCC LOGO PNG.png" height="60" width="60" class="logo"
              onerror="this.src='https://via.placeholder.com/60/0056b3/FFFFFF?text=UCC'">
     </div>
@@ -127,8 +137,12 @@
 
     <div class="form-group">
         <label for="password">Password</label>
-        <input type="password" id="password" placeholder="Your password"
-               autocomplete="current-password">
+        <div class="pw-wrap">
+            <input type="password" id="password" placeholder="Your password"
+                   autocomplete="current-password">
+            <button type="button" class="pw-toggle" id="pwToggle"
+                    aria-label="Show password" aria-pressed="false">Show</button>
+        </div>
     </div>
 
     <div id="loginError" class="error-message"></div>
@@ -236,6 +250,18 @@
     }
 
     document.getElementById('loginBtn').addEventListener('click', doLogin);
+
+    // Show/hide password — toggle (click to show, click again to hide)
+    const pwToggle = document.getElementById('pwToggle');
+    const pwField = document.getElementById('password');
+    pwToggle.addEventListener('click', () => {
+        const showing = pwField.type === 'text';
+        pwField.type = showing ? 'password' : 'text';
+        pwToggle.textContent = showing ? 'Show' : 'Hide';
+        pwToggle.setAttribute('aria-pressed', showing ? 'false' : 'true');
+        pwToggle.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+        pwField.focus();
+    });
     document.getElementById('staffId').addEventListener('keydown', (e) => {
         if (e.key === 'Enter') document.getElementById('password').focus();
     });
