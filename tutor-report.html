@@ -1,8 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
     <meta charset="UTF-8">
-    <title>Tutor Claim Form</title>
+    <title>Tutor Block Claim Form</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
         * { box-sizing: border-box; }
@@ -19,7 +22,7 @@
         }
         img { max-width: 100%; }
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Rubik', Arial, sans-serif;
             background: #0a1f5c;
             padding: 20px;
             min-height: 100vh;
@@ -140,6 +143,45 @@
         h2 { text-align:center; margin-bottom:25px; color:#002147; border-bottom:2px solid #0056b3; padding-bottom:10px; }
 
         .field-label { font-weight:bold; margin-top:18px; color:#333; }
+        .sub-label { font-weight:600; font-size:13px; margin:12px 0 4px; color:#444; }
+        .note-box {
+            background:#fff8e1; border:1px solid #ffe082; border-radius:8px;
+            padding:12px 14px; margin-top:16px; font-size:13.5px; line-height:1.55; color:#5d4b00;
+        }
+        .section-head {
+            margin:24px 0 6px; font-size:16px; color:#0a2a6b;
+            border-bottom:2px solid #0a2a6b; padding-bottom:5px;
+        }
+        .delivery-section {
+            border:1px solid #d9e1ef; border-radius:10px; padding:6px 14px 16px;
+            margin-top:14px; background:#fafcff;
+        }
+        .row-2 { display:flex; gap:14px; flex-wrap:wrap; }
+        .row-2 > div { flex:1; min-width:150px; }
+        .session-table { width:100%; border-collapse:collapse; margin-top:6px; font-size:13px; }
+        .session-table th {
+            text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.3px;
+            color:#555; padding:4px 6px; border-bottom:1px solid #dde3ee;
+        }
+        .session-table td { padding:4px 6px; vertical-align:middle; }
+        .session-table input { width:100%; padding:7px; font-size:14px; border:1px solid #ccc; border-radius:5px; }
+        .session-table .hrs-cell { font-weight:600; color:#0a2a6b; white-space:nowrap; }
+        .session-table .hm, .total-line .hm, .grand-total-line .hm { color:#6b7a99; font-weight:500; font-size:.92em; }
+        .row-del {
+            background:#dc3545; color:#fff; border:none; border-radius:5px;
+            width:28px; height:28px; cursor:pointer; font-size:15px; line-height:1;
+        }
+        .row-del:hover { background:#b32a37; }
+        .add-row-btn {
+            margin-top:8px; background:#0a2a6b; color:#fff; border:none; border-radius:6px;
+            padding:8px 14px; font-size:13px; cursor:pointer; font-weight:500;
+        }
+        .add-row-btn:hover { background:#08205a; }
+        .total-line { margin-top:10px; font-size:14px; }
+        .grand-total-line {
+            margin-top:16px; padding:12px 14px; background:#e8f0ff; border:1px solid #b9d0ff;
+            border-radius:8px; font-size:15px; color:#0a2a6b;
+        }
         input, select, textarea {
             width:100%; padding:11px; margin-top:6px; border:1px solid #ccc;
             border-radius:6px; font-size:15px; transition: border 0.3s;
@@ -395,7 +437,7 @@
 </div>
 
 <div class="container">
-    <h2>Tutor Claim Form</h2>
+    <h2>Tutor Claim Summary</h2>
 
     <form id="reportForm">
         <div class="field-label">STAFF ID</div>
@@ -424,17 +466,25 @@
         <input type="text" id="studyCentre" name="studyCentre"
                placeholder="Auto-fills from the course; edit if different">
 
+        <div class="note-box">
+            <strong>Please note:</strong> Fill out <strong>one form per course</strong>.
+            If you taught more than one course this block, submit a separate form for
+            each additional course. This form is completed <strong>once, at the end of
+            the block of teaching</strong>.
+        </div>
+
         <div class="field-label">MODE OF DELIVERY *</div>
         <div class="mode-delivery-container">
             <label class="mode-option">
-                <input type="radio" name="modeOfDelivery" value="Face-to-Face" required>
-                <span class="mode-text">Face-to-Face</span>
+                <input type="radio" name="modeOfDelivery" value="Blended" required>
+                <span class="mode-text">Blended</span>
             </label>
             <label class="mode-option">
-                <input type="radio" name="modeOfDelivery" value="Online">
-                <span class="mode-text">Online</span>
+                <input type="radio" name="modeOfDelivery" value="Purely Online">
+                <span class="mode-text">Purely Online</span>
             </label>
         </div>
+        <div class="hint" id="modeHint">Blended = 2 weeks face-to-face + 2 weeks online. Purely online = all sessions online.</div>
 
         <div class="field-label">SEMESTER *</div>
         <div class="mode-delivery-container">
@@ -472,38 +522,107 @@
             <label><input type="radio" name="classLevel" value="900"> Level 900</label>
         </div>
 
-        <div class="field-label">DATE OF CLASS *</div>
-        <input type="date" id="classDate" name="classDate" required>
-
-        <div class="field-label">CLASS START TIME *</div>
-        <input type="time" id="startTime" name="startTime" required>
-
-        <div class="field-label">CLASS END TIME *</div>
-        <input type="time" id="endTime" name="endTime" required>
-
-        <div class="field-label">DURATION OF CLASS</div>
-        <div class="duration-display" id="durationDisplay">
-            <span id="durationText">— hrs — mins</span>
+        <!-- ============ BLENDED: FACE-TO-FACE SECTION ============ -->
+        <div id="f2fSection" class="delivery-section" style="display:none;">
+            <h3 class="section-head">Face-to-Face Teaching (2 weeks)</h3>
+            <div class="row-2">
+                <div>
+                    <div class="field-label">Start date (F2F)</div>
+                    <input type="date" id="f2fStart" name="f2fStart">
+                </div>
+                <div>
+                    <div class="field-label">Completion date (F2F)</div>
+                    <input type="date" id="f2fEnd" name="f2fEnd">
+                </div>
+            </div>
+            <div class="field-label">Sessions taught (face-to-face)</div>
+            <div class="hint">Add a row for each session. Hours are summed automatically.</div>
+            <table class="session-table"><thead>
+                <tr><th>Date</th><th>Start</th><th>End</th><th>Hours</th><th></th></tr>
+            </thead><tbody id="f2fRows"></tbody></table>
+            <button type="button" class="add-row-btn" data-target="f2f">+ Add face-to-face session</button>
+            <div class="total-line">Total face-to-face hours: <strong id="f2fTotal">0.00</strong></div>
+            <input type="hidden" id="f2fHours" name="f2fHours">
         </div>
-        <input type="hidden" id="duration" name="duration">
 
-        <div class="field-label">NUMBER OF STUDENTS PRESENT *</div>
-        <input type="number" id="studentsPresent" name="studentsPresent" min="0" required
-               placeholder="e.g. 42">
+        <!-- ============ BLENDED: ONLINE SECTION ============ -->
+        <div id="onlineSection" class="delivery-section" style="display:none;">
+            <h3 class="section-head">Online Teaching (2 weeks)</h3>
+            <div class="row-2">
+                <div>
+                    <div class="field-label">Start date (Online)</div>
+                    <input type="date" id="onStart" name="onStart">
+                </div>
+                <div>
+                    <div class="field-label">Completion date (Online)</div>
+                    <input type="date" id="onEnd" name="onEnd">
+                </div>
+            </div>
+            <div class="field-label">Sessions taught (online)</div>
+            <div class="hint">Add a row for each session. Hours are summed automatically.</div>
+            <table class="session-table"><thead>
+                <tr><th>Date</th><th>Start</th><th>End</th><th>Hours</th><th></th></tr>
+            </thead><tbody id="onRows"></tbody></table>
+            <button type="button" class="add-row-btn" data-target="on">+ Add online session</button>
+            <div class="total-line">Total online hours: <strong id="onTotal">0.00</strong></div>
+            <input type="hidden" id="onHours" name="onHours">
+        </div>
 
-        <div class="field-label">TOPIC(S) TAUGHT *</div>
-        <textarea id="topics" name="topics" rows="3" required
-                  placeholder="Briefly list the topic(s) covered in this class..."></textarea>
+        <div class="grand-total-line">Grand total teaching hours: <strong id="grandTotal">0.00</strong></div>
+        <input type="hidden" id="totalHours" name="totalHours">
+
+        <!-- ============ FACILITATOR MOVEMENT ============ -->
+        <div class="field-label">FACILITATOR MOVEMENT</div>
+        <div class="row-2">
+            <div>
+                <div class="sub-label">Commuting from</div>
+                <input type="text" id="travelFrom" name="travelFrom" placeholder="e.g. Accra">
+            </div>
+            <div>
+                <div class="sub-label">To (study centre)</div>
+                <input type="text" id="travelTo" name="travelTo" placeholder="e.g. Cape Coast">
+            </div>
+        </div>
+
+        <!-- ============ BANK DETAILS ============ -->
+        <h3 class="section-head">Bank Details (for payment)</h3>
+        <div class="row-2">
+            <div>
+                <div class="sub-label">Name of bank *</div>
+                <input type="text" id="bankName" name="bankName" placeholder="e.g. GCB Bank">
+            </div>
+            <div>
+                <div class="sub-label">Branch *</div>
+                <input type="text" id="bankBranch" name="bankBranch" placeholder="e.g. Cape Coast">
+            </div>
+        </div>
+        <div class="row-2">
+            <div>
+                <div class="sub-label">Account name *</div>
+                <input type="text" id="accountName" name="accountName" placeholder="Name on the account">
+            </div>
+            <div>
+                <div class="sub-label">Account number *</div>
+                <input type="text" id="accountNumber" name="accountNumber"
+                       inputmode="numeric" placeholder="Account number">
+            </div>
+        </div>
 
         <div class="field-label">REMARKS</div>
         <textarea id="remarks" name="remarks" rows="4"
-                  placeholder="Any additional remarks or observations..."></textarea>
+                  placeholder="Any additional remarks..."></textarea>
+
+        <!-- ============ SIGNATURE ============ -->
+        <h3 class="section-head">Signature</h3>
+        <div class="sub-label">Facilitator signature (type name/initials) *</div>
+        <input type="text" id="facilitatorSignature" name="facilitatorSignature"
+               placeholder="Type your name or initials">
 
         <div id="loading" class="loading">⏳ Submitting form... Please wait.</div>
         <div id="errorMessage" class="error-message"></div>
         <div id="successMessage" class="success-message"></div>
 
-        <button type="submit" id="submitBtn">Submit Claim Form</button>
+        <button type="submit" id="submitBtn">Submit Claim Summary</button>
     </form>
 </div>
 
@@ -621,35 +740,93 @@ function onCourseSelected(label) {
     if (match.centre) document.getElementById('studyCentre').value = match.centre;
 }
 
-// ========== DURATION ==========
-function calculateDuration() {
-    const start = document.getElementById('startTime').value;
-    const end = document.getElementById('endTime').value;
-    const display = document.getElementById('durationDisplay');
-    const text = document.getElementById('durationText');
-    const hidden = document.getElementById('duration');
-    if (!start || !end) {
-        text.textContent = '— hrs — mins'; hidden.value = '';
-        display.classList.remove('invalid'); return;
-    }
+// ========== SESSION ROWS + HOUR SUMMING ==========
+// Each section ('f2f' or 'on') has a tbody of rows; each row = date/start/end + computed hours.
+function hoursBetween(start, end) {
+    if (!start || !end) return 0;
     const [sh, sm] = start.split(':').map(Number);
     const [eh, em] = end.split(':').map(Number);
     const diff = (eh*60+em) - (sh*60+sm);
-    if (diff <= 0) {
-        text.textContent = 'End time must be after start time';
-        hidden.value = ''; display.classList.add('invalid'); return;
-    }
-    display.classList.remove('invalid');
-    const hrs = Math.floor(diff/60), mins = diff%60;
-    const label = hrs > 0
-        ? (mins > 0 ? hrs+' hr'+(hrs>1?'s':'')+' '+mins+' min'+(mins>1?'s':'') : hrs+' hr'+(hrs>1?'s':''))
-        : mins+' min'+(mins>1?'s':'');
-    text.textContent = label; hidden.value = label;
+    return diff > 0 ? diff/60 : 0;
 }
 
-function setDefaultDate() {
-    const d = document.getElementById('classDate');
-    if (d) d.value = new Date().toISOString().split('T')[0];
+function addSessionRow(target) {
+    const tbody = document.getElementById(target === 'f2f' ? 'f2fRows' : 'onRows');
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+        '<td><input type="date" class="s-date"></td>' +
+        '<td><input type="time" class="s-start"></td>' +
+        '<td><input type="time" class="s-end"></td>' +
+        '<td class="hrs-cell">0.00 <span class="hm">(0m)</span></td>' +
+        '<td><button type="button" class="row-del" title="Remove">\u00d7</button></td>';
+    tbody.appendChild(tr);
+    const recompute = () => recomputeTotals();
+    tr.querySelectorAll('input').forEach(inp => inp.addEventListener('change', recompute));
+    tr.querySelector('.row-del').addEventListener('click', () => { tr.remove(); recomputeTotals(); });
+    recomputeTotals();
+}
+
+// Format decimal hours as a friendly "Xh Ym" string. 6.1667 -> "6h 10m".
+function hmLabel(decimalHours) {
+    const totalMins = Math.round(decimalHours * 60);
+    const h = Math.floor(totalMins / 60);
+    const m = totalMins % 60;
+    if (h && m) return h + 'h ' + m + 'm';
+    if (h) return h + 'h';
+    return m + 'm';
+}
+
+function sumSection(target) {
+    const tbody = document.getElementById(target === 'f2f' ? 'f2fRows' : 'onRows');
+    let total = 0;
+    tbody.querySelectorAll('tr').forEach(tr => {
+        const s = tr.querySelector('.s-start').value;
+        const e = tr.querySelector('.s-end').value;
+        const h = hoursBetween(s, e);
+        // decimal first, friendly h/m in lighter text beside it
+        tr.querySelector('.hrs-cell').innerHTML =
+            h.toFixed(2) + ' <span class="hm">(' + hmLabel(h) + ')</span>';
+        total += h;
+    });
+    return total;
+}
+
+function recomputeTotals() {
+    const mode = (document.querySelector('input[name="modeOfDelivery"]:checked') || {}).value;
+    let f2f = 0, on = 0;
+    if (mode === 'Blended') { f2f = sumSection('f2f'); on = sumSection('on'); }
+    else if (mode === 'Purely Online') { on = sumSection('on'); }
+    document.getElementById('f2fTotal').innerHTML = f2f.toFixed(2) + ' <span class="hm">(' + hmLabel(f2f) + ')</span>';
+    document.getElementById('onTotal').innerHTML = on.toFixed(2) + ' <span class="hm">(' + hmLabel(on) + ')</span>';
+    document.getElementById('f2fHours').value = f2f.toFixed(2);
+    document.getElementById('onHours').value = on.toFixed(2);
+    const grand = f2f + on;
+    document.getElementById('grandTotal').innerHTML = grand.toFixed(2) + ' <span class="hm">(' + hmLabel(grand) + ')</span>';
+    document.getElementById('totalHours').value = grand.toFixed(2);
+}
+
+// Show/hide sections based on mode. Blended -> both; Purely Online -> online only.
+function applyMode() {
+    const mode = (document.querySelector('input[name="modeOfDelivery"]:checked') || {}).value;
+    const f2f = document.getElementById('f2fSection');
+    const on = document.getElementById('onlineSection');
+    const onHead = on.querySelector('.section-head');
+    if (mode === 'Blended') {
+        f2f.style.display = 'block';
+        on.style.display = 'block';
+        onHead.textContent = 'Online Teaching (2 weeks)';
+        if (document.getElementById('f2fRows').children.length === 0) addSessionRow('f2f');
+        if (document.getElementById('onRows').children.length === 0) addSessionRow('on');
+    } else if (mode === 'Purely Online') {
+        f2f.style.display = 'none';
+        on.style.display = 'block';
+        onHead.textContent = 'Online Teaching';
+        if (document.getElementById('onRows').children.length === 0) addSessionRow('on');
+    } else {
+        f2f.style.display = 'none';
+        on.style.display = 'none';
+    }
+    recomputeTotals();
 }
 
 // ========== INIT ==========
@@ -659,11 +836,13 @@ document.addEventListener('DOMContentLoaded', function() {
         getData: tutorCourses, placeholder: '🔍 Select the course you taught...',
         onSelect: onCourseSelected
     });
-    setDefaultDate();
     setupFormSubmission(document.getElementById('reportForm'));
     if (typeof fillTutorFromLogin === 'function') fillTutorFromLogin();
-    document.getElementById('startTime').addEventListener('change', calculateDuration);
-    document.getElementById('endTime').addEventListener('change', calculateDuration);
+
+    document.querySelectorAll('input[name="modeOfDelivery"]').forEach(r =>
+        r.addEventListener('change', applyMode));
+    document.querySelectorAll('.add-row-btn').forEach(btn =>
+        btn.addEventListener('click', () => addSessionRow(btn.getAttribute('data-target'))));
 });
 
 // ========== SUBMISSION ==========
@@ -687,17 +866,47 @@ function validateForm() {
     document.querySelectorAll('[required]').forEach(f => {
         if (!f.value.trim()) { f.style.borderColor = 'red'; ok = false; }
     });
-    if (!document.querySelector('input[name="modeOfDelivery"]:checked')) { alert('Select mode of delivery'); ok = false; }
+    const mode = (document.querySelector('input[name="modeOfDelivery"]:checked') || {}).value;
+    if (!mode) { alert('Select mode of delivery'); ok = false; }
     if (!document.querySelector('input[name="semester"]:checked')) { alert('Select semester'); ok = false; }
     if (!document.querySelector('input[name="block"]:checked')) { alert('Select block of teaching'); ok = false; }
     if (!document.querySelector('input[name="classLevel"]:checked')) { alert('Select class level'); ok = false; }
+
+    // bank + signature required
+    const required = {
+        bankName:'Name of bank', bankBranch:'Bank branch',
+        accountName:'Account name', accountNumber:'Account number',
+        facilitatorSignature:'Facilitator signature'
+    };
+    for (const id in required) {
+        const el = document.getElementById(id);
+        if (!el.value.trim()) { el.style.borderColor = 'red'; alert('Please fill: ' + required[id]); ok = false; break; }
+    }
+
+    // require at least one session with hours for the active mode
+    recomputeTotals();
+    const grand = parseFloat(document.getElementById('totalHours').value || '0');
+    if (mode && grand <= 0) { alert('Add at least one teaching session with valid start/end times.'); ok = false; }
     return ok;
+}
+
+// Collect session rows into a readable string for the sheet.
+function collectSessions(target) {
+    const tbody = document.getElementById(target === 'f2f' ? 'f2fRows' : 'onRows');
+    const out = [];
+    tbody.querySelectorAll('tr').forEach(tr => {
+        const d = tr.querySelector('.s-date').value;
+        const s = tr.querySelector('.s-start').value;
+        const e = tr.querySelector('.s-end').value;
+        if (d || s || e) out.push((d||'?') + ' ' + (s||'?') + '-' + (e||'?'));
+    });
+    return out.join('; ');
 }
 
 function prepareFormData() {
     const data = {};
     new FormData(document.getElementById('reportForm')).forEach((v,k) => data[k]=v);
-    data.formType = 'TutorClassReport';
+    data.formType = 'TutorBlockClaim';
     data.token = FORM_TOKEN;
     ['modeOfDelivery','semester','block','classLevel'].forEach(name => {
         const el = document.querySelector('input[name="'+name+'"]:checked');
@@ -705,7 +914,12 @@ function prepareFormData() {
     });
     data.staffId = document.getElementById('staffId').value;
     data.tutorName = document.getElementById('tutorName').value;
-    data.duration = document.getElementById('duration').value;
+    recomputeTotals();
+    data.f2fHours = document.getElementById('f2fHours').value;
+    data.onHours = document.getElementById('onHours').value;
+    data.totalHours = document.getElementById('totalHours').value;
+    data.f2fSessions = collectSessions('f2f');
+    data.onSessions = collectSessions('on');
     return data;
 }
 
@@ -744,7 +958,7 @@ function hideMessages() {
 }
 function showSuccessMessage() {
     const msg = document.getElementById('successMessage');
-    msg.innerHTML = '✅ <strong>Success!</strong> Class report submitted.';
+    msg.innerHTML = '✅ <strong>Success!</strong> Block claim submitted.';
     msg.style.display = 'block';
 }
 function showErrorMessage(m) {
@@ -755,11 +969,14 @@ function showErrorMessage(m) {
 
 function resetForm() {
     document.getElementById('reportForm').reset();
-    setDefaultDate();
     document.getElementById('courseSearchInput').value = '';
     document.getElementById('course').value = '';
     document.getElementById('studyCentre').value = '';
+    document.getElementById('f2fRows').innerHTML = '';
+    document.getElementById('onRows').innerHTML = '';
     document.querySelector('input[name="semester"][value="Second Semester"]').checked = true;
+    applyMode();            // hide sections until mode re-picked
+    recomputeTotals();
     fillTutorFromLogin();   // restore identity + programme list
     hideMessages();
 }
