@@ -525,16 +525,6 @@
         <!-- ============ BLENDED: FACE-TO-FACE SECTION ============ -->
         <div id="f2fSection" class="delivery-section" style="display:none;">
             <h3 class="section-head">Face-to-Face Teaching (2 weeks)</h3>
-            <div class="row-2">
-                <div>
-                    <div class="field-label">Start date (F2F)</div>
-                    <input type="date" id="f2fStart" name="f2fStart">
-                </div>
-                <div>
-                    <div class="field-label">Completion date (F2F)</div>
-                    <input type="date" id="f2fEnd" name="f2fEnd">
-                </div>
-            </div>
             <div class="field-label">Sessions taught (face-to-face)</div>
             <div class="hint">Add a row for each session. Hours are summed automatically.</div>
             <table class="session-table"><thead>
@@ -548,16 +538,6 @@
         <!-- ============ BLENDED: ONLINE SECTION ============ -->
         <div id="onlineSection" class="delivery-section" style="display:none;">
             <h3 class="section-head">Online Teaching (2 weeks)</h3>
-            <div class="row-2">
-                <div>
-                    <div class="field-label">Start date (Online)</div>
-                    <input type="date" id="onStart" name="onStart">
-                </div>
-                <div>
-                    <div class="field-label">Completion date (Online)</div>
-                    <input type="date" id="onEnd" name="onEnd">
-                </div>
-            </div>
             <div class="field-label">Sessions taught (online)</div>
             <div class="hint">Add a row for each session. Hours are summed automatically.</div>
             <table class="session-table"><thead>
@@ -580,7 +560,20 @@
             </div>
             <div>
                 <div class="sub-label">To (study centre)</div>
-                <input type="text" id="travelTo" name="travelTo" placeholder="e.g. Cape Coast">
+                <select id="travelTo" name="travelTo">
+                    <option value="" disabled selected>Select study centre</option>
+                    <option value="Accra (Papafio Hills, Adjiringano)">Accra (Papafio Hills, Adjiringano)</option>
+                    <option value="Tema (Fountain Head University Campus)">Tema (Fountain Head University Campus)</option>
+                    <option value="Kumasi (St. Louis College of Education, Suame)">Kumasi (St. Louis College of Education, Suame)</option>
+                    <option value="Cape Coast (CoDE, UCC)">Cape Coast (CoDE, UCC)</option>
+                    <option value="Tamale College of Education (TATCO)">Tamale College of Education (TATCO)</option>
+                    <option value="Sekondi-Takoradi (Holy Child College of Education)">Sekondi-Takoradi (Holy Child College of Education)</option>
+                    <option value="Sunyani (Dreamfield International School)">Sunyani (Dreamfield International School)</option>
+                    <option value="Koforidua">Koforidua</option>
+                    <option value="Ho">Ho</option>
+                    <option value="Bolgatanga (John Bosco College of Education)">Bolgatanga (John Bosco College of Education)</option>
+                    <option value="Nadoli (Mccoy College of Education)">Nadoli (Mccoy College of Education)</option>
+                </select>
             </div>
         </div>
 
@@ -589,7 +582,34 @@
         <div class="row-2">
             <div>
                 <div class="sub-label">Name of bank *</div>
-                <input type="text" id="bankName" name="bankName" placeholder="e.g. GCB Bank">
+                <select id="bankName" name="bankName">
+                    <option value="" disabled selected>Select bank</option>
+                    <option value="Absa Bank Ghana">Absa Bank Ghana</option>
+                    <option value="Access Bank Ghana">Access Bank Ghana</option>
+                    <option value="Agricultural Development Bank (ADB)">Agricultural Development Bank (ADB)</option>
+                    <option value="Bank of Africa Ghana">Bank of Africa Ghana</option>
+                    <option value="CalBank">CalBank</option>
+                    <option value="Consolidated Bank Ghana (CBG)">Consolidated Bank Ghana (CBG)</option>
+                    <option value="Ecobank Ghana">Ecobank Ghana</option>
+                    <option value="FBNBank Ghana">FBNBank Ghana</option>
+                    <option value="Fidelity Bank Ghana">Fidelity Bank Ghana</option>
+                    <option value="First Atlantic Bank">First Atlantic Bank</option>
+                    <option value="First National Bank Ghana">First National Bank Ghana</option>
+                    <option value="GCB Bank">GCB Bank</option>
+                    <option value="GT Bank Ghana">GT Bank Ghana</option>
+                    <option value="National Investment Bank (NIB)">National Investment Bank (NIB)</option>
+                    <option value="OmniBSIC Bank">OmniBSIC Bank</option>
+                    <option value="Prudential Bank">Prudential Bank</option>
+                    <option value="Republic Bank Ghana">Republic Bank Ghana</option>
+                    <option value="Société Générale Ghana">Société Générale Ghana</option>
+                    <option value="Stanbic Bank Ghana">Stanbic Bank Ghana</option>
+                    <option value="Standard Chartered Bank Ghana">Standard Chartered Bank Ghana</option>
+                    <option value="United Bank for Africa (UBA) Ghana">United Bank for Africa (UBA) Ghana</option>
+                    <option value="Universal Merchant Bank (UMB)">Universal Merchant Bank (UMB)</option>
+                    <option value="Zenith Bank Ghana">Zenith Bank Ghana</option>
+                    <option value="ARB Apex Bank">ARB Apex Bank</option>
+                    <option value="Other">Other</option>
+                </select>
             </div>
             <div>
                 <div class="sub-label">Branch *</div>
