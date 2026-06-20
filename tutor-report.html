@@ -164,14 +164,44 @@
             color:#555; padding:4px 6px; border-bottom:1px solid #dde3ee;
         }
         .session-table td { padding:4px 6px; vertical-align:middle; }
-        .session-table input { width:100%; padding:7px; font-size:14px; border:1px solid #ccc; border-radius:5px; }
+        .session-table input { width:100%; padding:7px; font-size:14px; border:1px solid #ccc; border-radius:5px; box-sizing:border-box; }
         .session-table .hrs-cell { font-weight:600; color:#0a2a6b; white-space:nowrap; }
         .session-table .hm, .total-line .hm, .grand-total-line .hm { color:#6b7a99; font-weight:500; font-size:.92em; }
         .row-del {
-            background:#dc3545; color:#fff; border:none; border-radius:5px;
-            width:28px; height:28px; cursor:pointer; font-size:15px; line-height:1;
+            background:#fff0f1; color:#dc3545; border:1px solid #f3c0c5; border-radius:50%;
+            width:32px; height:32px; min-width:32px; cursor:pointer; font-size:16px; font-weight:600;
+            line-height:1; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center;
+            padding:0; transition:background .15s, color .15s, border-color .15s;
         }
-        .row-del:hover { background:#b32a37; }
+        .row-del:hover { background:#dc3545; color:#fff; border-color:#dc3545; }
+        .row-del:active { transform:scale(0.94); }
+
+        /* On narrow screens, each session row becomes a stacked card instead of
+           a rigid 5-column table row, so the Hours/Delete cell never gets clipped. */
+        @media (max-width:560px) {
+            .session-table thead { display:none; }
+            .session-table, .session-table tbody { display:block; width:100%; }
+            .session-table tr {
+                display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end;
+                background:#fff; border:1px solid #dde3ee; border-radius:8px;
+                padding:10px; margin-bottom:10px;
+            }
+            .session-table td { padding:0; }
+            .session-table td:nth-child(1) { flex:1 1 100%; }
+            .session-table td:nth-child(2),
+            .session-table td:nth-child(3) { flex:1 1 calc(50% - 4px); }
+            .session-table td:nth-child(4) { flex:1 1 auto; }
+            .session-table td:nth-child(5) { flex:0 0 auto; }
+            .session-table td:nth-child(1)::before { content:"Date"; }
+            .session-table td:nth-child(2)::before { content:"Start"; }
+            .session-table td:nth-child(3)::before { content:"End"; }
+            .session-table td:nth-child(1)::before,
+            .session-table td:nth-child(2)::before,
+            .session-table td:nth-child(3)::before {
+                display:block; font-size:10px; text-transform:uppercase; letter-spacing:.3px;
+                color:#777; margin-bottom:3px;
+            }
+        }
         .add-row-btn {
             margin-top:8px; background:#0a2a6b; color:#fff; border:none; border-radius:6px;
             padding:8px 14px; font-size:13px; cursor:pointer; font-weight:500;
@@ -610,6 +640,7 @@
                     <option value="ARB Apex Bank">ARB Apex Bank</option>
                     <option value="Other">Other</option>
                 </select>
+                <input type="text" id="bankNameOther" placeholder="Enter bank name" style="display:none; margin-top:8px;">
             </div>
             <div>
                 <div class="sub-label">Branch *</div>
@@ -863,6 +894,18 @@ document.addEventListener('DOMContentLoaded', function() {
         r.addEventListener('change', applyMode));
     document.querySelectorAll('.add-row-btn').forEach(btn =>
         btn.addEventListener('click', () => addSessionRow(btn.getAttribute('data-target'))));
+
+    const bankSelect = document.getElementById('bankName');
+    const bankOther = document.getElementById('bankNameOther');
+    bankSelect.addEventListener('change', function() {
+        if (this.value === 'Other') {
+            bankOther.style.display = 'block';
+            bankOther.focus();
+        } else {
+            bankOther.style.display = 'none';
+            bankOther.value = '';
+        }
+    });
 });
 
 // ========== SUBMISSION ==========
@@ -900,7 +943,14 @@ function validateForm() {
     };
     for (const id in required) {
         const el = document.getElementById(id);
-        if (!el.value.trim()) { el.style.borderColor = 'red'; alert('Please fill: ' + required[id]); ok = false; break; }
+        let val = el.value.trim();
+        if (id === 'bankName' && val === 'Other') {
+            const otherEl = document.getElementById('bankNameOther');
+            val = otherEl.value.trim();
+            if (!val) { otherEl.style.borderColor = 'red'; alert('Please type the bank name'); ok = false; break; }
+            continue;
+        }
+        if (!val) { el.style.borderColor = 'red'; alert('Please fill: ' + required[id]); ok = false; break; }
     }
 
     // require at least one session with hours for the active mode
@@ -928,6 +978,9 @@ function prepareFormData() {
     new FormData(document.getElementById('reportForm')).forEach((v,k) => data[k]=v);
     data.formType = 'TutorBlockClaim';
     data.token = FORM_TOKEN;
+    if (document.getElementById('bankName').value === 'Other') {
+        data.bankName = document.getElementById('bankNameOther').value.trim();
+    }
     ['modeOfDelivery','semester','block','classLevel'].forEach(name => {
         const el = document.querySelector('input[name="'+name+'"]:checked');
         if (el) data[name] = el.value;
@@ -995,6 +1048,9 @@ function resetForm() {
     document.getElementById('f2fRows').innerHTML = '';
     document.getElementById('onRows').innerHTML = '';
     document.querySelector('input[name="semester"][value="Second Semester"]').checked = true;
+    const bankOther = document.getElementById('bankNameOther');
+    bankOther.value = '';
+    bankOther.style.display = 'none';
     applyMode();            // hide sections until mode re-picked
     recomputeTotals();
     fillTutorFromLogin();   // restore identity + programme list
