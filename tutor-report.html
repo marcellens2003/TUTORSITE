@@ -433,6 +433,33 @@
                               background: none; border: none; font-size: 20px;
                               color: #888; cursor: pointer; line-height: 1; padding: 2px 6px; }
         .pw-modal .pw-close:hover { color: #333; }
+
+        /* ===== Signature Upload ===== */
+        .sig-drop-zone {
+            position: relative; border: 2px dashed #c0c8d6; border-radius: 10px;
+            background: #fafbfd; min-height: 130px; display: flex;
+            align-items: center; justify-content: center; cursor: pointer;
+            transition: border-color .15s, background .15s; padding: 12px;
+        }
+        .sig-drop-zone:hover, .sig-drop-zone.dragover { border-color: #0056b3; background: #f0f5fc; }
+        .sig-drop-zone:focus-visible { border-color: #0056b3; background: #f0f5fc;
+                                        outline: 2px solid #0056b3; outline-offset: 2px; }
+        .sig-drop-zone.has-image { background: #fff; cursor: default; }
+        .sig-icon { font-size: 28px; text-align: center; margin-bottom: 6px; }
+        .sig-instructions { text-align: center; font-size: 14px; color: #444; line-height: 1.5; }
+        .sig-instructions strong { color: #0056b3; }
+        .sig-sub { display: block; font-size: 12px; color: #888; margin-top: 3px; }
+        .sig-preview { max-width: 100%; max-height: 110px; object-fit: contain;
+                       border-radius: 4px; }
+        .sig-remove-btn {
+            position: absolute; top: 8px; right: 8px; width: 26px; height: 26px;
+            border-radius: 50%; border: 1px solid #f3c0c5; background: #fff0f1;
+            color: #dc3545; font-size: 15px; font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; line-height: 1;
+            transition: background .15s, color .15s;
+        }
+        .sig-remove-btn:hover { background: #dc3545; color: #fff; }
+        .sig-error { color: #b32a37; font-size: 13px; margin-top: 6px; }
     </style>
 </head>
 <body>
@@ -759,9 +786,23 @@
 
         <!-- ============ SIGNATURE ============ -->
         <h3 class="section-head">Signature</h3>
-        <div class="sub-label">Facilitator signature *</div>
-        <input type="text" id="facilitatorSignature" name="facilitatorSignature"
-               placeholder="Upload/Paste Your Signature">
+        <div class="sub-label">Facilitator signature (image) *</div>
+        <div id="sigDropZone" class="sig-drop-zone" tabindex="0" role="button"
+             aria-label="Upload, drag, or paste your signature image">
+            <div id="sigEmptyState">
+                <div class="sig-icon">✍️</div>
+                <div class="sig-instructions">
+                    <strong>Click to upload</strong>, drag &amp; drop, or
+                    <strong>paste (Ctrl+V)</strong> a small image of your signature
+                    <span class="sig-sub">PNG or JPEG, ideally on a white background — max 1MB</span>
+                </div>
+            </div>
+            <img id="sigPreview" class="sig-preview" style="display:none;" alt="Signature preview">
+            <button type="button" id="sigRemoveBtn" class="sig-remove-btn" style="display:none;" title="Remove signature">×</button>
+        </div>
+        <input type="file" id="sigFileInput" accept="image/png, image/jpeg" style="display:none;">
+        <div id="sigError" class="sig-error" style="display:none;"></div>
+        <input type="hidden" id="facilitatorSignature" name="facilitatorSignature">
 
         <div id="loading" class="loading">⏳ Submitting form... Please wait.</div>
         <div id="errorMessage" class="error-message"></div>
@@ -1051,7 +1092,156 @@ document.addEventListener('DOMContentLoaded', function() {
             bankOther.value = '';
         }
     });
+
+    initSignatureUpload();
 });
+
+// ========== SIGNATURE UPLOAD ==========
+// Max base64 size we'll allow into the sheet cell. Google Sheets cells cap
+// out around 50,000 characters; we stay well under that for safety margin.
+const SIG_MAX_BASE64_CHARS = 28000;
+const SIG_MAX_DIMENSION = 500; // px, longest side after resize
+
+function initSignatureUpload() {
+    const dropZone   = document.getElementById('sigDropZone');
+    const emptyState = document.getElementById('sigEmptyState');
+    const preview     = document.getElementById('sigPreview');
+    const removeBtn    = document.getElementById('sigRemoveBtn');
+    const fileInput     = document.getElementById('sigFileInput');
+    const errorEl        = document.getElementById('sigError');
+    const hiddenField     = document.getElementById('facilitatorSignature');
+
+    function showError(msg) {
+        errorEl.textContent = msg;
+        errorEl.style.display = 'block';
+    }
+    function clearError() {
+        errorEl.style.display = 'none';
+        errorEl.textContent = '';
+    }
+
+    function setImage(dataUrl) {
+        preview.src = dataUrl;
+        preview.style.display = 'block';
+        emptyState.style.display = 'none';
+        removeBtn.style.display = 'flex';
+        dropZone.classList.add('has-image');
+        hiddenField.value = dataUrl;
+    }
+    function clearImage() {
+        preview.src = '';
+        preview.style.display = 'none';
+        emptyState.style.display = 'block';
+        removeBtn.style.display = 'none';
+        dropZone.classList.remove('has-image');
+        hiddenField.value = '';
+        fileInput.value = '';
+    }
+
+    // Resizes/recompresses the image client-side so the resulting base64
+    // string fits comfortably in a Sheets cell. Tries progressively lower
+    // JPEG quality until it's under the size cap.
+    function processFile(file) {
+        clearError();
+        if (!file) return;
+        if (!/^image\/(png|jpeg|jpg)$/i.test(file.type)) {
+            showError('Please upload a PNG or JPEG image.');
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            showError('Image is too large (max 5MB before compression).');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                let w = img.width, h = img.height;
+                if (w > h && w > SIG_MAX_DIMENSION) { h = Math.round(h * SIG_MAX_DIMENSION / w); w = SIG_MAX_DIMENSION; }
+                else if (h > SIG_MAX_DIMENSION) { w = Math.round(w * SIG_MAX_DIMENSION / h); h = SIG_MAX_DIMENSION; }
+                canvas.width = w; canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                // White background first — signatures are often transparent
+                // PNGs, and a transparent area can otherwise turn black
+                // when flattened to JPEG.
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, w, h);
+                ctx.drawImage(img, 0, 0, w, h);
+
+                let quality = 0.92;
+                let dataUrl = canvas.toDataURL('image/jpeg', quality);
+                while (dataUrl.length > SIG_MAX_BASE64_CHARS && quality > 0.3) {
+                    quality -= 0.1;
+                    dataUrl = canvas.toDataURL('image/jpeg', quality);
+                }
+
+                if (dataUrl.length > SIG_MAX_BASE64_CHARS) {
+                    showError('Could not compress this image enough. Try a smaller or simpler image (a tightly cropped signature works best).');
+                    return;
+                }
+                setImage(dataUrl);
+            };
+            img.onerror = function() { showError('Could not read that image. Try a different file.'); };
+            img.src = e.target.result;
+        };
+        reader.onerror = function() { showError('Could not read that file. Try again.'); };
+        reader.readAsDataURL(file);
+    }
+
+    dropZone.addEventListener('click', function(e) {
+        if (e.target === removeBtn) return;
+        if (!hiddenField.value) fileInput.click();
+    });
+    fileInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) processFile(this.files[0]);
+    });
+    removeBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        clearImage();
+        clearError();
+    });
+
+    ['dragenter','dragover'].forEach(evt =>
+        dropZone.addEventListener(evt, function(e) {
+            e.preventDefault(); e.stopPropagation();
+            if (!hiddenField.value) dropZone.classList.add('dragover');
+        }));
+    ['dragleave','drop'].forEach(evt =>
+        dropZone.addEventListener(evt, function(e) {
+            e.preventDefault(); e.stopPropagation();
+            dropZone.classList.remove('dragover');
+        }));
+    dropZone.addEventListener('drop', function(e) {
+        if (hiddenField.value) return; // already has an image; remove first
+        const file = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (file) processFile(file);
+    });
+
+    // Clipboard paste: works when the drop zone itself has focus (click it
+    // first, or tab to it), and also as a page-wide fallback if no image is
+    // set yet and the paste didn't land in some other text field.
+    function handlePasteEvent(e) {
+        if (hiddenField.value) return; // already has an image; remove first
+        const items = (e.clipboardData && e.clipboardData.items) || [];
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type && items[i].type.indexOf('image') === 0) {
+                const file = items[i].getAsFile();
+                if (file) { e.preventDefault(); processFile(file); }
+                return;
+            }
+        }
+    }
+    dropZone.addEventListener('paste', handlePasteEvent);
+    document.addEventListener('paste', function(e) {
+        // Skip if the user is pasting into an actual text input/textarea —
+        // we only want to intercept "stray" pastes meant for the signature.
+        const tag = (document.activeElement && document.activeElement.tagName || '').toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || document.activeElement === dropZone) return;
+        handlePasteEvent(e);
+    });
+}
 
 // ========== SUBMISSION ==========
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyJk2xPi1GjW858JJZEKh3J783facWjEKzyIFvQMapeOLZPf6cM0mgVlrv-R0qf0M6G/exec';
@@ -1081,12 +1271,16 @@ function validateForm() {
 
     // facilitator signature still required; bank details are optional
     const required = {
-        facilitatorSignature: 'Facilitator signature'
+        facilitatorSignature: 'Facilitator signature (please upload an image)'
     };
     for (const id in required) {
         const el = document.getElementById(id);
         let val = el.value.trim();
-        if (!val) { el.style.borderColor = 'red'; alert('Please fill: ' + required[id]); ok = false; break; }
+        if (!val) {
+            if (id === 'facilitatorSignature') document.getElementById('sigDropZone').style.borderColor = 'red';
+            else el.style.borderColor = 'red';
+            alert('Please fill: ' + required[id]); ok = false; break;
+        }
     }
     // bank name: only validate the typed field if 'Other' was selected
     if (document.getElementById('bankName').value === 'Other') {
@@ -1250,6 +1444,15 @@ function resetForm() {
     const bankOther = document.getElementById('bankNameOther');
     bankOther.value = '';
     bankOther.style.display = 'none';
+    // Reset signature upload UI back to empty state
+    document.getElementById('sigPreview').src = '';
+    document.getElementById('sigPreview').style.display = 'none';
+    document.getElementById('sigEmptyState').style.display = 'block';
+    document.getElementById('sigRemoveBtn').style.display = 'none';
+    document.getElementById('sigDropZone').classList.remove('has-image');
+    document.getElementById('sigDropZone').style.borderColor = '';
+    document.getElementById('sigFileInput').value = '';
+    document.getElementById('sigError').style.display = 'none';
     applyMode();            // hide sections until mode re-picked
     recomputeTotals();
     fillTutorFromLogin();   // restore identity + programme list
