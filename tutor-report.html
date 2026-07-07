@@ -1338,10 +1338,20 @@ async function submitFormData(data) {
     document.getElementById('loading').style.display = 'block';
     hideMessages();
     try {
+        // Build the body manually so the signature's base64 string is encoded
+        // with encodeURIComponent (which encodes '+' as '%2B'), not with
+        // URLSearchParams (which leaves '+' as '+', causing Apps Script's
+        // e.parameter to decode it as a space and corrupt the image data).
+        const sig = data.facilitatorSignature || '';
+        const dataWithoutSig = Object.assign({}, data);
+        delete dataWithoutSig.facilitatorSignature;
+        let body = new URLSearchParams(dataWithoutSig).toString();
+        if (sig) body += '&facilitatorSignature=' + encodeURIComponent(sig);
+
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams(data).toString()
+            body: body
         });
         if (!response.ok) throw new Error('Server returned HTTP ' + response.status);
         let result;
