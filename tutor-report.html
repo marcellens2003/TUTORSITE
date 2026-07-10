@@ -460,6 +460,77 @@
         }
         .sig-remove-btn:hover { background: #dc3545; color: #fff; }
         .sig-error { color: #b32a37; font-size: 13px; margin-top: 6px; }
+
+        /* ===== Preview Modal ===== */
+        .preview-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,.6); z-index: 10000;
+            align-items: flex-start; justify-content: center;
+            padding: 20px 12px; overflow-y: auto;
+        }
+        .preview-overlay.open { display: flex; }
+        .preview-modal {
+            background: #fff; border-radius: 12px; width: 100%; max-width: 640px;
+            box-shadow: 0 12px 40px rgba(0,0,0,.25); margin: auto;
+            overflow: hidden; position: relative;
+        }
+        .preview-header {
+            background: #002147; color: #fff; padding: 18px 22px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .preview-header h3 { margin: 0; font-size: 17px; }
+        .preview-header .preview-subtitle {
+            font-size: 12px; opacity: .8; margin-top: 3px;
+        }
+        .preview-close {
+            background: none; border: none; color: #fff; font-size: 22px;
+            cursor: pointer; line-height: 1; padding: 2px 6px; opacity: .8;
+        }
+        .preview-close:hover { opacity: 1; }
+        .preview-body { padding: 20px 22px; max-height: 65vh; overflow-y: auto; }
+        .preview-section { margin-bottom: 20px; }
+        .preview-section-title {
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .5px; color: #0056b3; border-bottom: 1px solid #dde3ee;
+            padding-bottom: 5px; margin-bottom: 10px;
+        }
+        .preview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+        .preview-grid.single { grid-template-columns: 1fr; }
+        .preview-item label {
+            display: block; font-size: 11px; color: #888; font-weight: 600;
+            text-transform: uppercase; letter-spacing: .3px; margin-bottom: 2px;
+        }
+        .preview-item .pval {
+            font-size: 14px; color: #111; font-weight: 500;
+            word-break: break-word; min-height: 18px;
+        }
+        .preview-item .pval.empty { color: #bbb; font-style: italic; font-weight: 400; }
+        .preview-sessions { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
+        .preview-sessions th {
+            text-align: left; font-size: 11px; text-transform: uppercase;
+            letter-spacing: .3px; color: #666; padding: 4px 8px;
+            border-bottom: 1px solid #eee; background: #f8f9fa;
+        }
+        .preview-sessions td { padding: 5px 8px; border-bottom: 1px solid #f0f0f0; color: #222; }
+        .preview-sig { max-width: 220px; max-height: 90px; border: 1px solid #eee;
+                       border-radius: 6px; object-fit: contain; margin-top: 4px; }
+        .preview-total {
+            background: #f0f5fc; border-radius: 8px; padding: 10px 14px;
+            font-size: 14px; color: #002147; font-weight: 600; margin-bottom: 8px;
+        }
+        .preview-footer {
+            padding: 14px 22px; border-top: 1px solid #eee;
+            display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap;
+        }
+        .preview-footer button {
+            padding: 11px 22px; font-size: 14px; font-weight: 600;
+            border: none; border-radius: 7px; cursor: pointer; transition: background .15s;
+        }
+        .btn-edit { background: #f0f2f5; color: #333; }
+        .btn-edit:hover { background: #e1e5ea; }
+        .btn-confirm { background: #0056b3; color: #fff; }
+        .btn-confirm:hover:not(:disabled) { background: #003d82; }
+        .btn-confirm:disabled { background: #9ec5e8; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -1247,6 +1318,172 @@ function initSignatureUpload() {
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyJk2xPi1GjW858JJZEKh3J783facWjEKzyIFvQMapeOLZPf6cM0mgVlrv-R0qf0M6G/exec';
 const FORM_TOKEN = 'CHANGE_ME_to_match_FORM_SECRET';
 
+// ========== PREVIEW ==========
+function esc(s) {
+    return String(s || '').replace(/[&<>"']/g, c =>
+        ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function pval(v) {
+    const s = String(v || '').trim();
+    return s ? '<span class="pval">' + esc(s) + '</span>'
+             : '<span class="pval empty">—</span>';
+}
+function pitem(label, value) {
+    return '<div class="preview-item"><label>' + esc(label) + '</label>' + pval(value) + '</div>';
+}
+
+function buildSessionTable(target) {
+    const tbody = document.getElementById(target === 'f2f' ? 'f2fRows' : 'onRows');
+    const rows = tbody.querySelectorAll('tr');
+    if (!rows.length) return '<span class="pval empty">No sessions recorded</span>';
+    let html = '<table class="preview-sessions"><thead><tr><th>Date</th><th>Start</th><th>End</th><th>Hours</th></tr></thead><tbody>';
+    rows.forEach(tr => {
+        const d = tr.querySelector('.s-date').value;
+        const s = tr.querySelector('.s-start').value;
+        const e = tr.querySelector('.s-end').value;
+        const h = tr.querySelector('.hrs-cell') ? tr.querySelector('.hrs-cell').textContent : '';
+        html += '<tr><td>' + esc(d||'—') + '</td><td>' + esc(s||'—') + '</td><td>' + esc(e||'—') + '</td><td>' + esc(h) + '</td></tr>';
+    });
+    return html + '</tbody></table>';
+}
+
+function showPreview() {
+    recomputeTotals();
+    const mode = (document.querySelector('input[name="modeOfDelivery"]:checked') || {}).value || '';
+    const semester = (document.querySelector('input[name="semester"]:checked') || {}).value || '';
+    const block = (document.querySelector('input[name="block"]:checked') || {}).value || '';
+    const staffId = document.getElementById('staffId').value;
+    const tutorName = document.getElementById('tutorName').value;
+    const course = document.getElementById('courseSearchInput').value;
+    const program = document.getElementById('program').value;
+    const studyCentre = document.getElementById('studyCentre').value;
+    const f2fTotal = document.getElementById('f2fTotal').textContent;
+    const onTotal = document.getElementById('onTotal').textContent;
+    const grandTotal = document.getElementById('grandTotal').textContent;
+    const travelFrom = document.getElementById('travelFrom') ? document.getElementById('travelFrom').value : '';
+    const travelTo = document.getElementById('travelTo') ? document.getElementById('travelTo').value : '';
+    const bankNameEl = document.getElementById('bankName');
+    const bankName = bankNameEl.value === 'Other'
+        ? document.getElementById('bankNameOther').value
+        : bankNameEl.value;
+    const bankBranch = document.getElementById('bankBranch').value;
+    const accountName = document.getElementById('accountName').value;
+    const accountNumber = document.getElementById('accountNumber').value;
+    const remarks = document.getElementById('remarks').value;
+    const sigSrc = document.getElementById('sigPreview').src;
+
+    let html = '';
+
+    // --- Identity ---
+    html += '<div class="preview-section">';
+    html += '<div class="preview-section-title">Facilitator</div>';
+    html += '<div class="preview-grid">';
+    html += pitem('Staff ID', staffId);
+    html += pitem('Name', tutorName);
+    html += '</div></div>';
+
+    // --- Course ---
+    html += '<div class="preview-section">';
+    html += '<div class="preview-section-title">Course Details</div>';
+    html += '<div class="preview-grid single">' + pitem('Course', course) + '</div>';
+    html += '<div class="preview-grid" style="margin-top:8px;">';
+    html += pitem('Programme', program);
+    html += pitem('Study Centre', studyCentre);
+    html += '</div></div>';
+
+    // --- Schedule ---
+    html += '<div class="preview-section">';
+    html += '<div class="preview-section-title">Schedule</div>';
+    html += '<div class="preview-grid">';
+    html += pitem('Mode of Delivery', mode);
+    html += pitem('Semester', semester);
+    html += pitem('Block', block);
+    html += '</div></div>';
+
+    // --- Sessions ---
+    if (mode === 'Blended' || mode === 'Purely Online') {
+        html += '<div class="preview-section">';
+        if (mode === 'Blended') {
+            html += '<div class="preview-section-title">Face-to-Face Sessions</div>';
+            html += buildSessionTable('f2f');
+            html += '<div style="margin:6px 0 14px;font-size:13px;color:#555;">Total F2F hours: <strong>' + esc(f2fTotal) + '</strong></div>';
+            if (travelFrom || travelTo) {
+                html += '<div class="preview-grid" style="margin-bottom:10px;">';
+                html += pitem('Commuting from', travelFrom);
+                html += pitem('To (study centre)', travelTo);
+                html += '</div>';
+            }
+            html += '<div class="preview-section-title" style="margin-top:4px;">Online Sessions</div>';
+            html += buildSessionTable('on');
+            html += '<div style="margin:6px 0 4px;font-size:13px;color:#555;">Total online hours: <strong>' + esc(onTotal) + '</strong></div>';
+        } else {
+            html += '<div class="preview-section-title">Online Sessions</div>';
+            html += buildSessionTable('on');
+            html += '<div style="margin:6px 0 4px;font-size:13px;color:#555;">Total online hours: <strong>' + esc(onTotal) + '</strong></div>';
+        }
+        html += '</div>';
+    }
+
+    // --- Grand total ---
+    html += '<div class="preview-total">Grand total teaching hours: ' + esc(grandTotal) + '</div>';
+
+    // --- Bank ---
+    if (bankName || bankBranch || accountName || accountNumber) {
+        html += '<div class="preview-section">';
+        html += '<div class="preview-section-title">Bank Details</div>';
+        html += '<div class="preview-grid">';
+        html += pitem('Bank', bankName);
+        html += pitem('Branch', bankBranch);
+        html += pitem('Account Name', accountName);
+        html += pitem('Account Number', accountNumber);
+        html += '</div></div>';
+    }
+
+    // --- Remarks ---
+    if (remarks.trim()) {
+        html += '<div class="preview-section">';
+        html += '<div class="preview-section-title">Remarks</div>';
+        html += '<div class="preview-grid single">' + pitem('', remarks) + '</div>';
+        html += '</div>';
+    }
+
+    // --- Signature ---
+    html += '<div class="preview-section">';
+    html += '<div class="preview-section-title">Signature</div>';
+    const hasSig = !!document.getElementById('facilitatorSignature').value;
+    if (hasSig && sigSrc) {
+        html += '<img src="' + sigSrc + '" class="preview-sig" alt="Signature">';
+    } else {
+        html += '<span class="pval empty">No signature uploaded</span>';
+    }
+    html += '</div>';
+
+    document.getElementById('previewBody').innerHTML = html;
+    document.getElementById('confirmSubmitBtn').disabled = false;
+    document.getElementById('confirmSubmitBtn').textContent = '✅ Confirm & Submit';
+    document.getElementById('previewOverlay').classList.add('open');
+    document.getElementById('previewBody').scrollTop = 0;
+}
+
+function closePreview() {
+    document.getElementById('previewOverlay').classList.remove('open');
+}
+
+async function confirmSubmit() {
+    const btn = document.getElementById('confirmSubmitBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Submitting…';
+    closePreview();
+    await submitFormData(prepareFormData());
+}
+
+// Close on backdrop click
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('previewOverlay').addEventListener('click', function(e) {
+        if (e.target === this) closePreview();
+    });
+});
+
 function setupFormSubmission(form) {
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -1254,7 +1491,7 @@ function setupFormSubmission(form) {
             alert('Please select a valid course from the dropdown.'); return;
         }
         if (!validateForm()) return;
-        await submitFormData(prepareFormData());
+        showPreview();
     });
 }
 
@@ -1469,6 +1706,24 @@ function resetForm() {
     hideMessages();
 }
 </script>
+
+<!-- ===== PREVIEW MODAL ===== -->
+<div class="preview-overlay" id="previewOverlay">
+  <div class="preview-modal" id="previewModal">
+    <div class="preview-header">
+      <div>
+        <h3>Review Your Submission</h3>
+        <div class="preview-subtitle">Please check everything carefully before confirming.</div>
+      </div>
+      <button class="preview-close" onclick="closePreview()" aria-label="Close">×</button>
+    </div>
+    <div class="preview-body" id="previewBody"></div>
+    <div class="preview-footer">
+      <button class="btn-edit" onclick="closePreview()">✏️ Edit</button>
+      <button class="btn-confirm" id="confirmSubmitBtn" onclick="confirmSubmit()">✅ Confirm &amp; Submit</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
