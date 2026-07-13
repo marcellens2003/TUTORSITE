@@ -187,20 +187,40 @@
                 padding:10px; margin-bottom:10px;
             }
             .session-table td { padding:0; }
-            .session-table td:nth-child(1) { flex:1 1 100%; }
+
+            /* Mobile layout: date, start and end each get a full row so the
+               time box + AM/PM buttons are not squeezed. Hours + delete are
+               moved to their own final row. */
+            .session-table td:nth-child(1),
             .session-table td:nth-child(2),
-            .session-table td:nth-child(3) { flex:1 1 calc(50% - 4px); }
-            .session-table td:nth-child(4) { flex:1 1 auto; }
-            .session-table td:nth-child(5) { flex:0 0 auto; }
+            .session-table td:nth-child(3) { flex:1 1 100%; }
+
+            .session-table td:nth-child(4) {
+                flex:1 1 calc(100% - 52px);
+                display:flex; align-items:center; justify-content:flex-end;
+                min-height:36px; padding-top:4px;
+            }
+            .session-table td:nth-child(5) {
+                flex:0 0 44px;
+                display:flex; align-items:center; justify-content:flex-end;
+                padding-top:4px;
+            }
+
             .session-table td:nth-child(1)::before { content:"Date"; }
             .session-table td:nth-child(2)::before { content:"Start"; }
             .session-table td:nth-child(3)::before { content:"End"; }
+            .session-table td:nth-child(4)::before { content:"Hours"; margin-right:auto; }
             .session-table td:nth-child(1)::before,
             .session-table td:nth-child(2)::before,
-            .session-table td:nth-child(3)::before {
+            .session-table td:nth-child(3)::before,
+            .session-table td:nth-child(4)::before {
                 display:block; font-size:10px; text-transform:uppercase; letter-spacing:.3px;
                 color:#777; margin-bottom:3px;
             }
+            .session-table td:nth-child(4)::before { margin-bottom:0; }
+            .session-table .time-entry { gap:8px; }
+            .session-table .time-entry input[type="time"] { min-width:0; }
+            .session-table .period-btn { padding:8px 10px; font-size:12px; }
         }
         .add-row-btn {
             margin-top:8px; background:#0a2a6b; color:#fff; border:none; border-radius:6px;
