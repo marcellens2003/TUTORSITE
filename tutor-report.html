@@ -584,6 +584,7 @@
     window.logout = function () {
         sessionStorage.removeItem('tutorStaffId');
         sessionStorage.removeItem('tutorName');
+        sessionStorage.removeItem('forcePasswordChange');
         signOut(auth).then(() => window.location.replace('index.html'));
     };
 
@@ -595,6 +596,7 @@
             const cred = EmailAuthProvider.credential(user.email, currentPw);
             await reauthenticateWithCredential(user, cred);
             await updatePassword(user, newPw);
+            sessionStorage.removeItem('forcePasswordChange');
             return { ok: true };
         } catch (e) {
             if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential')
@@ -626,7 +628,7 @@
 <!-- ===== Change Password Modal ===== -->
 <div class="pw-modal-overlay" id="pwModalOverlay" onclick="closePwModalOnBackdrop(event)">
     <div class="pw-modal" role="dialog" aria-modal="true" aria-labelledby="pwModalTitle">
-        <button class="pw-close" onclick="closePwModal()" aria-label="Close">×</button>
+        <button class="pw-close" id="pwCloseBtn" onclick="closePwModal()" aria-label="Close">×</button>
         <h3 id="pwModalTitle">Change Password</h3>
         <div class="pw-subtitle">
             Enter your current password to confirm it's you, then choose a new one.
@@ -643,7 +645,7 @@
             ✓ Password changed successfully! Use your new password next time you log in.
         </div>
         <div class="pw-actions">
-            <button class="pw-cancel" onclick="closePwModal()">Cancel</button>
+            <button class="pw-cancel" id="pwCancelBtn" onclick="closePwModal()">Cancel</button>
             <button class="pw-save" id="pwSaveBtn" onclick="submitPwChange()">Save password</button>
         </div>
     </div>
@@ -1165,6 +1167,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     initSignatureUpload();
+
+    // If the tutor entered with the temporary reset password (123456),
+    // immediately force them to create a new password before using the form.
+    if (sessionStorage.getItem('forcePasswordChange') === '1') {
+        setTimeout(() => openPwModal(true), 300);
+    }
 });
 
 // ========== SIGNATURE UPLOAD ==========
@@ -1487,6 +1495,10 @@ document.addEventListener('DOMContentLoaded', function() {
 function setupFormSubmission(form) {
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
+        if (sessionStorage.getItem('forcePasswordChange') === '1') {
+            openPwModal(true);
+            return;
+        }
         if (!document.getElementById('course').value) {
             alert('Please select a valid course from the dropdown.'); return;
         }
@@ -1623,23 +1635,65 @@ function showErrorMessage(m) {
 }
 
 // ===== Change Password Modal =====
-function openPwModal() {
-    document.getElementById('pwCurrent').value = '';
-    document.getElementById('pwNew').value = '';
-    document.getElementById('pwConfirm').value = '';
+const TEMP_PASSWORD_THAT_MUST_BE_CHANGED = '123456';
+
+function mustForcePasswordChange() {
+    return sessionStorage.getItem('forcePasswordChange') === '1';
+}
+
+function openPwModal(forced = false) {
+    const forcedMode = forced || mustForcePasswordChange();
+    const currentInput = document.getElementById('pwCurrent');
+    const newInput = document.getElementById('pwNew');
+    const confirmInput = document.getElementById('pwConfirm');
+    const title = document.getElementById('pwModalTitle');
+    const subtitle = document.querySelector('.pw-modal .pw-subtitle');
+    const closeBtn = document.getElementById('pwCloseBtn');
+    const cancelBtn = document.getElementById('pwCancelBtn');
+    const saveBtn = document.getElementById('pwSaveBtn');
+
+    currentInput.value = forcedMode ? TEMP_PASSWORD_THAT_MUST_BE_CHANGED : '';
+    currentInput.readOnly = forcedMode;
+    currentInput.style.background = forcedMode ? '#f0f7ff' : '';
+    currentInput.style.cursor = forcedMode ? 'not-allowed' : '';
+
+    newInput.value = '';
+    confirmInput.value = '';
     document.getElementById('pwError').style.display = 'none';
     document.getElementById('pwSuccess').style.display = 'none';
-    document.getElementById('pwSaveBtn').disabled = false;
+    saveBtn.disabled = false;
+
+    if (forcedMode) {
+        title.textContent = 'Change Temporary Password';
+        subtitle.innerHTML = 'You signed in with the temporary password <strong>123456</strong>. For security, create your own password before using the claim form.';
+        if (closeBtn) closeBtn.style.display = 'none';
+        if (cancelBtn) cancelBtn.style.display = 'none';
+    } else {
+        title.textContent = 'Change Password';
+        subtitle.innerHTML = "Enter your current password to confirm it's you, then choose a new one. Your new password must be at least 6 characters.";
+        if (closeBtn) closeBtn.style.display = '';
+        if (cancelBtn) cancelBtn.style.display = '';
+    }
+
     document.getElementById('pwModalOverlay').classList.add('open');
-    setTimeout(() => document.getElementById('pwCurrent').focus(), 50);
+    setTimeout(() => (forcedMode ? newInput : currentInput).focus(), 50);
 }
+
 function closePwModal() {
+    // When forced, the tutor must change password before the modal can close.
+    if (mustForcePasswordChange()) {
+        showPwError('You must change the temporary password before continuing.');
+        return;
+    }
     document.getElementById('pwModalOverlay').classList.remove('open');
 }
+
 function closePwModalOnBackdrop(e) {
     if (e.target === document.getElementById('pwModalOverlay')) closePwModal();
 }
+
 async function submitPwChange() {
+    const forcedMode = mustForcePasswordChange();
     const current = document.getElementById('pwCurrent').value;
     const newPw   = document.getElementById('pwNew').value;
     const confirm = document.getElementById('pwConfirm').value;
@@ -1655,6 +1709,10 @@ async function submitPwChange() {
     if (newPw.length < 6) { showPwError('New password must be at least 6 characters.'); return; }
     if (newPw !== confirm) { showPwError('New passwords do not match.'); return; }
     if (newPw === current) { showPwError('New password must be different from your current one.'); return; }
+    if (forcedMode && newPw === TEMP_PASSWORD_THAT_MUST_BE_CHANGED) {
+        showPwError('Please choose a password different from the temporary password 123456.');
+        return;
+    }
 
     btn.disabled = true;
     btn.textContent = 'Saving…';
@@ -1663,6 +1721,7 @@ async function submitPwChange() {
     btn.textContent = 'Save password';
 
     if (result.ok) {
+        sessionStorage.removeItem('forcePasswordChange');
         okEl.textContent = '✓ Password changed successfully! Logging you out now…';
         okEl.style.display = 'block';
         btn.disabled = true;
@@ -1674,6 +1733,7 @@ async function submitPwChange() {
         showPwError(result.msg);
     }
 }
+
 function showPwError(msg) {
     const el = document.getElementById('pwError');
     el.textContent = msg;
