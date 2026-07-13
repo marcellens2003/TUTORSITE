@@ -215,6 +215,8 @@
         document.getElementById('loginBtn').disabled = isLoading;
     }
 
+    const TEMP_PASSWORD_THAT_MUST_BE_CHANGED = '123456';
+
     async function doLogin() {
         clearMessages();
         const rawStaffId = document.getElementById('staffId').value.trim().toUpperCase();
@@ -255,6 +257,13 @@
                     showError('Could not verify your facilitator record. Check your connection and try again.');
                 }
                 return;
+            }
+
+            // If tutor signs in with the temporary reset password, force a password change on the report page.
+            if (password === TEMP_PASSWORD_THAT_MUST_BE_CHANGED) {
+                sessionStorage.setItem('forcePasswordChange', '1');
+            } else {
+                sessionStorage.removeItem('forcePasswordChange');
             }
 
             sessionStorage.setItem('tutorStaffId', rawStaffId);
