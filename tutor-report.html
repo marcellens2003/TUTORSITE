@@ -728,6 +728,31 @@
             font-size: 13px; line-height: 1.5;
         }
         .edit-notice strong { color: #3d3200; }
+
+        .duplicate-notice {
+            display: none;
+            border: 1px solid #f5c2c7;
+            background: #fff1f2;
+            color: #721c24;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin: 12px 0 16px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .duplicate-notice strong { color: #5a1018; }
+        .duplicate-notice .duplicate-actions { margin-top: 8px; display:flex; gap:8px; flex-wrap:wrap; }
+        .duplicate-notice button {
+            border: 0;
+            border-radius: 7px;
+            padding: 7px 11px;
+            font-weight: 700;
+            cursor: pointer;
+            background: #b02a37;
+            color: #fff;
+            font-size: 12px;
+        }
+        .duplicate-notice button.secondary { background:#6c757d; }
         @media (max-width: 560px) {
             .claim-item { grid-template-columns: 1fr; }
             .claim-item button { width: 100%; }
@@ -777,7 +802,7 @@
     import { getAuth, onAuthStateChanged, signOut,
              updatePassword, EmailAuthProvider, reauthenticateWithCredential }
         from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, collection, setDoc, updateDoc, getDocs, query, where, serverTimestamp }
+    import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, collection, setDoc, updateDoc, getDocs, query, where, serverTimestamp }
         from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -791,7 +816,17 @@
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const db = getFirestore(app);
+    let db;
+    try {
+        // Enable browser-side Firestore persistence so a saved claim can remain queued
+        // and sync to Firestore when the tutor's connection returns.
+        db = initializeFirestore(app, {
+            localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+        });
+    } catch (e) {
+        console.warn('Firestore persistence could not be enabled; using normal Firestore mode.', e);
+        db = getFirestore(app);
+    }
     window.__currentUserUid = '';
 
     // Exposed so the plain (non-module) script below can read tutor records
@@ -913,11 +948,11 @@
 
     <div class="claims-card" id="claimsCard">
         <h3>My Submitted Claims</h3>
-        <p>Pull up a previous claim, edit it, and submit again.</p>
+        <p>Pull up a previous claim, edit it, and submit again. Claims save to Firestore first; Google Sheet copies are created automatically by Apps Script.</p>
         <div class="claims-actions">
             <button type="button" id="newClaimBtn">+ Start New Claim</button>
             <button type="button" id="refreshClaimsBtn" class="secondary">↻ Refresh My Claims</button>
-            <button type="button" id="retryPendingSyncBtn" class="secondary">☁ Sync pending Sheet copies</button>
+            <button type="button" id="retryPendingSyncBtn" class="secondary">↻ Check Sheet Sync Status</button>
         </div>
         <div id="claimsStatus" class="claims-status">Your claims will appear here after your profile loads.</div>
         <div id="claimsList" class="claims-list"></div>
@@ -958,10 +993,9 @@
                placeholder="Auto-fills from the course; edit if different">
 
         <div class="note-box">
-            <strong>Please note:</strong> Fill out <strong>one form per course</strong>.
-            If you taught more than one course this block, submit a separate form for
-            each additional course. This form is completed <strong>once, at the end of
-            the block of teaching</strong>.
+            <strong>Please note:</strong> Fill out <strong>one form per course, programme, centre, semester, and block</strong>.
+            If you have already submitted for the same course in the same block, open the existing claim and edit it instead of starting a fresh one.
+            This form is completed <strong>once, at the end of the block of teaching</strong>.
         </div>
 
         <div class="field-label">MODE OF DELIVERY *</div>
@@ -1003,6 +1037,15 @@
                 <input type="radio" name="block" value="Block 3">
                 <span class="mode-text">Block 3</span>
             </label>
+        </div>
+
+        <div class="duplicate-notice" id="duplicateNotice">
+            <strong>Already submitted:</strong>
+            <span id="duplicateNoticeText">You already have a claim for this course and block.</span>
+            <div class="duplicate-actions">
+                <button type="button" id="openDuplicateClaimBtn">Open existing claim</button>
+                <button type="button" class="secondary" id="hideDuplicateNoticeBtn">Dismiss</button>
+            </div>
         </div>
 
 
@@ -1320,6 +1363,7 @@ function onCourseSelected(label) {
     if (!match) return;
     if (match.program) document.getElementById('program').value = match.program;
     if (match.centre) document.getElementById('studyCentre').value = match.centre;
+    scheduleDuplicateCheck();
 }
 
 // ========== SESSION ROWS + HOUR SUMMING ==========
@@ -1505,6 +1549,20 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.add-row-btn').forEach(btn =>
         btn.addEventListener('click', () => addSessionRow(btn.getAttribute('data-target'))));
 
+    ['courseSearchInput', 'program', 'studyCentre'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('input', scheduleDuplicateCheck);
+        el.addEventListener('change', scheduleDuplicateCheck);
+        el.addEventListener('blur', scheduleDuplicateCheck);
+    });
+    document.querySelectorAll('input[name="semester"], input[name="block"]').forEach(r =>
+        r.addEventListener('change', scheduleDuplicateCheck));
+    const openDupBtn = document.getElementById('openDuplicateClaimBtn');
+    if (openDupBtn) openDupBtn.addEventListener('click', openDuplicateClaimFromNotice);
+    const hideDupBtn = document.getElementById('hideDuplicateNoticeBtn');
+    if (hideDupBtn) hideDupBtn.addEventListener('click', clearDuplicateNotice);
+
     const bankSelect = document.getElementById('bankName');
     const bankOther = document.getElementById('bankNameOther');
     bankSelect.addEventListener('change', function() {
@@ -1522,7 +1580,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const refreshClaimsBtn = document.getElementById('refreshClaimsBtn');
     if (refreshClaimsBtn) refreshClaimsBtn.addEventListener('click', loadMyClaims);
     const retryPendingSyncBtn = document.getElementById('retryPendingSyncBtn');
-    if (retryPendingSyncBtn) retryPendingSyncBtn.addEventListener('click', function() { retryPendingSheetSyncs({ manual: true, includeFailed: true }); });
+    if (retryPendingSyncBtn) retryPendingSyncBtn.addEventListener('click', loadMyClaims);
     const newClaimBtn = document.getElementById('newClaimBtn');
     if (newClaimBtn) newClaimBtn.addEventListener('click', function() { clearEditMode(); resetForm(); });
     const cancelEditBtn = document.getElementById('cancelEditBtn');
@@ -2165,7 +2223,7 @@ function sheetSyncText(status) {
     if (status === 'synced') return 'Sheet: Synced';
     if (status === 'syncing') return 'Sheet: Syncing';
     if (status === 'failed') return 'Sheet: Failed';
-    return 'Sheet: Pending';
+    return 'Sheet: Waiting for automatic sync';
 }
 
 function sheetSyncClass(status) {
@@ -2192,13 +2250,160 @@ function formatClaimDate(value) {
     return ms ? new Date(ms).toLocaleString() : '';
 }
 
+function normalizeClaimPart(value) {
+    return String(value || '')
+        .trim()
+        .toUpperCase()
+        .normalize('NFKD')
+        .replace(/[^\x20-\x7E]/g, '')
+        .replace(/&/g, ' AND ')
+        .replace(/[^A-Z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'NA';
+}
+
+function courseCodeFromLabel(course) {
+    const raw = String(course || '').trim();
+    if (!raw) return '';
+    const beforePipe = raw.split('|')[0].trim();
+    return (beforePipe.split(/\s+/)[0] || beforePipe || raw).trim();
+}
+
+function buildClaimKeyFromData(data) {
+    data = data || {};
+    const staffId = normalizeClaimPart(data.staffId || document.getElementById('staffId')?.value || sessionStorage.getItem('tutorStaffId'));
+    const courseCode = normalizeClaimPart(courseCodeFromLabel(data.course || document.getElementById('course')?.value || document.getElementById('courseSearchInput')?.value));
+    const program = normalizeClaimPart(data.program || data.programme || document.getElementById('program')?.value);
+    const centre = normalizeClaimPart(data.studyCentre || data.centre || document.getElementById('studyCentre')?.value);
+    const semester = normalizeClaimPart(data.semester || (document.querySelector('input[name="semester"]:checked') || {}).value);
+    const block = normalizeClaimPart(data.block || (document.querySelector('input[name="block"]:checked') || {}).value);
+    return [staffId, courseCode, program, centre, semester, block].join('__');
+}
+
+function buildDeterministicClaimId(data) {
+    return 'CLAIM-' + buildClaimKeyFromData(data);
+}
+
+// Backwards-compatible name used elsewhere in earlier versions.
 function generateClaimId(staffId) {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const stamp = String(Date.now()).slice(-6);
-    return 'CLAIM-' + String(staffId || 'UNKNOWN').replace(/[^A-Z0-9_-]/gi, '').toUpperCase() + '-' + y + m + day + '-' + stamp;
+    return buildDeterministicClaimId({ staffId: staffId });
+}
+
+function getCurrentClaimIdentityData() {
+    return {
+        staffId: (document.getElementById('staffId')?.value || sessionStorage.getItem('tutorStaffId') || '').trim().toUpperCase(),
+        course: (document.getElementById('course')?.value || document.getElementById('courseSearchInput')?.value || '').trim(),
+        program: (document.getElementById('program')?.value || '').trim(),
+        studyCentre: (document.getElementById('studyCentre')?.value || '').trim(),
+        semester: ((document.querySelector('input[name="semester"]:checked') || {}).value || '').trim(),
+        block: ((document.querySelector('input[name="block"]:checked') || {}).value || '').trim()
+    };
+}
+
+function hasClaimIdentityFields(data) {
+    return !!(data && data.staffId && data.course && data.program && data.studyCentre && data.semester && data.block);
+}
+
+function describeClaimIdentity(data) {
+    data = data || {};
+    return [data.course, data.program || data.programme, data.studyCentre || data.centre, data.semester, data.block]
+        .filter(Boolean)
+        .join(' • ');
+}
+
+let DUPLICATE_NOTICE_CLAIM_ID = '';
+let DUPLICATE_CHECK_TIMER = null;
+
+function showDuplicateNotice(existing, identityData) {
+    const box = document.getElementById('duplicateNotice');
+    const text = document.getElementById('duplicateNoticeText');
+    if (!box || !text || !existing) return;
+    DUPLICATE_NOTICE_CLAIM_ID = existing.id || existing.claimId || '';
+    const existingData = existing.data || {};
+    text.textContent = 'You have already submitted a claim for ' +
+        (describeClaimIdentity(existingData) || describeClaimIdentity(identityData) || 'this course and block') +
+        '. Please open and edit the existing claim instead of submitting a new one.';
+    box.style.display = 'block';
+}
+
+function clearDuplicateNotice() {
+    DUPLICATE_NOTICE_CLAIM_ID = '';
+    const box = document.getElementById('duplicateNotice');
+    if (box) box.style.display = 'none';
+}
+
+async function openDuplicateClaimFromNotice() {
+    if (!DUPLICATE_NOTICE_CLAIM_ID) return;
+    await loadClaimForEdit(DUPLICATE_NOTICE_CLAIM_ID);
+}
+window.openDuplicateClaimFromNotice = openDuplicateClaimFromNotice;
+
+async function findExistingClaimForSameCourse(data, currentDocId) {
+    data = data || {};
+    if (!hasClaimIdentityFields(data)) return null;
+    const fs = window.__firestore;
+    if (!fs || !fs.db) return null;
+
+    const key = buildClaimKeyFromData(data);
+    const deterministicId = buildDeterministicClaimId(data);
+    const current = String(currentDocId || CURRENT_EDIT_DOC_ID || CURRENT_EDIT_CLAIM_ID || '').trim();
+
+    // First check the deterministic document ID. This is the strong duplicate guard
+    // for all new claims created by this version.
+    try {
+        const exact = await fs.getDoc(fs.doc(fs.db, 'claims', deterministicId));
+        if (exact.exists() && exact.id !== current) {
+            const d = exact.data() || {};
+            if (String(d.claimStatus || d.status || 'Submitted').toLowerCase() !== 'cancelled') {
+                return { id: exact.id, data: d };
+            }
+        }
+    } catch (err) {
+        // Ignore and continue with the owner query. Permission/cache issues should
+        // not break the form; the final deterministic ID still prevents duplicate docs.
+        console.warn('Exact duplicate check skipped:', err);
+    }
+
+    // Then scan this tutor's own claims. This catches older migrated claims whose
+    // document IDs were generated before the deterministic ID system existed.
+    try {
+        const staffId = String(data.staffId || '').trim().toUpperCase();
+        const q = window.__currentUserUid
+            ? fs.query(fs.collection(fs.db, 'claims'), fs.where('uid', '==', window.__currentUserUid))
+            : fs.query(fs.collection(fs.db, 'claims'), fs.where('staffId', '==', staffId));
+        const snap = await fs.getDocs(q);
+        let found = null;
+        snap.forEach(docSnap => {
+            if (found) return;
+            if (docSnap.id === current) return;
+            const d = docSnap.data() || {};
+            const dStatus = String(d.claimStatus || d.status || 'Submitted').toLowerCase();
+            if (dStatus === 'cancelled') return;
+            const dKey = d.claimKey || buildClaimKeyFromData(d);
+            if (dKey === key) found = { id: docSnap.id, data: d };
+        });
+        return found;
+    } catch (err) {
+        console.warn('Duplicate claim scan skipped:', err);
+        return null;
+    }
+}
+
+async function checkDuplicateForCurrentSelection(options) {
+    options = options || {};
+    const data = getCurrentClaimIdentityData();
+    if (!hasClaimIdentityFields(data) || CURRENT_EDIT_CLAIM_ID) {
+        clearDuplicateNotice();
+        return null;
+    }
+    const existing = await findExistingClaimForSameCourse(data, CURRENT_EDIT_DOC_ID || CURRENT_EDIT_CLAIM_ID);
+    if (existing) showDuplicateNotice(existing, data);
+    else if (!options.keepNotice) clearDuplicateNotice();
+    return existing;
+}
+
+function scheduleDuplicateCheck() {
+    if (DUPLICATE_CHECK_TIMER) clearTimeout(DUPLICATE_CHECK_TIMER);
+    DUPLICATE_CHECK_TIMER = setTimeout(() => checkDuplicateForCurrentSelection().catch(console.warn), 650);
 }
 
 function setClaimsStatus(message) {
@@ -2231,9 +2436,7 @@ async function loadMyClaims() {
         snap.forEach(docSnap => claims.push({ id: docSnap.id, data: docSnap.data() || {} }));
         claims.sort((a, b) => timestampToMillis(b.data.updatedAt || b.data.createdAt) - timestampToMillis(a.data.updatedAt || a.data.createdAt));
         renderClaimsList(claims);
-        // Auto-retry claims that were saved to Firestore but did not reach Google Sheet
-        // because the tab was closed, the network dropped, or Apps Script was slow.
-        retryPendingSheetSyncs({ silent: true, candidates: claims, includeFailed: false });
+        // Google Sheet syncing is now handled by the Apps Script time trigger, not the tutor's browser.
     } catch (err) {
         console.error(err);
         setClaimsStatus('Could not load claims: ' + (err.message || err));
@@ -2253,7 +2456,7 @@ function renderClaimsList(claims) {
         const s = String((item.data || {}).sheetSyncStatus || 'pending').toLowerCase();
         return s !== 'synced';
     }).length;
-    setClaimsStatus(claims.length + ' claim(s) found.' + (pendingCount ? ' ' + pendingCount + ' pending Sheet sync(s).' : ' All Sheet copies synced.'));
+    setClaimsStatus(claims.length + ' claim(s) found.' + (pendingCount ? ' ' + pendingCount + ' waiting for automatic Sheet sync.' : ' All Sheet copies synced.'));
     claims.forEach(item => {
         const data = item.data || {};
         const div = document.createElement('div');
@@ -2267,7 +2470,7 @@ function renderClaimsList(claims) {
             formatClaimDate(data.updatedAt || data.createdAt) ? ('Updated: ' + formatClaimDate(data.updatedAt || data.createdAt)) : ''
         ].filter(Boolean).join(' • ');
         const syncStatus = sheetSyncClass(data.sheetSyncStatus);
-        const needsRetry = syncStatus === 'pending' || syncStatus === 'failed' || isStaleSyncingClaim(data);
+        const needsRetry = false; // Sheet sync is now handled automatically by Apps Script.
         div.innerHTML = '<div class="claim-main">' +
             '<div class="claim-title"></div>' +
             '<div class="claim-meta"></div>' +
@@ -2389,7 +2592,7 @@ function fillFormFromClaim(data, docId) {
     setBankFields(data.bankName || '', data.bankBranch || '', data.accountName || '', data.accountNumber || '');
     document.getElementById('remarks').value = data.remarks || '';
     clearSignatureUi();
-    setSignatureImageFromDataUrl(data.facilitatorSignature || '');
+    setSignatureImageFromDataUrl(data.facilitatorSignature || data.facilitatorSignatureUrl || '');
     recomputeTotals();
     showEditMode(CURRENT_EDIT_CLAIM_ID);
 }
@@ -2483,14 +2686,28 @@ function setSessionRows(target, items) {
 async function saveClaimToFirestore(data) {
     const fs = window.__firestore;
     if (!fs || !fs.db) throw new Error('Firestore is not ready. Please refresh and try again.');
+
+    data.staffId = (data.staffId || '').trim().toUpperCase();
     const isEdit = !!CURRENT_EDIT_CLAIM_ID;
-    const claimId = CURRENT_EDIT_CLAIM_ID || generateClaimId(data.staffId);
+    const claimKey = buildClaimKeyFromData(data);
+
+    // Stop duplicate submissions for the same tutor + course + programme + centre + semester + block.
+    const duplicate = await findExistingClaimForSameCourse(data, CURRENT_EDIT_DOC_ID || CURRENT_EDIT_CLAIM_ID);
+    if (duplicate) {
+        showDuplicateNotice(duplicate, data);
+        throw new Error('You have already submitted a claim for this course, programme, centre, semester, and block. Open the existing claim and edit it instead of submitting a new one.');
+    }
+
+    const claimId = isEdit ? CURRENT_EDIT_CLAIM_ID : buildDeterministicClaimId(data);
     const payload = Object.assign({}, data, {
         claimId: claimId,
-        staffId: (data.staffId || '').trim().toUpperCase(),
+        firestoreDocId: claimId,
+        claimKey: claimKey,
+        uniqueClaimKey: claimKey,
+        staffId: data.staffId,
         claimStatus: data.claimStatus || 'Submitted',
         uid: window.__currentUserUid || '',
-        tutorDocPath: 'tutors/' + ((data.staffId || '').trim().toUpperCase()),
+        tutorDocPath: 'tutors/' + data.staffId,
         f2fSessionItems: collectSessionItems('f2f'),
         onSessionItems: collectSessionItems('on'),
         source: 'tutor-report',
@@ -2501,10 +2718,12 @@ async function saveClaimToFirestore(data) {
     delete payload.formType;
     if (!isEdit) payload.createdAt = fs.serverTimestamp();
     await fs.setDoc(fs.doc(fs.db, 'claims', claimId), payload, { merge: true });
+    clearDuplicateNotice();
     CURRENT_EDIT_CLAIM_ID = claimId;
     CURRENT_EDIT_DOC_ID = claimId;
     data.claimId = claimId;
     data.firestoreDocId = claimId;
+    data.claimKey = claimKey;
     data.claimStatus = payload.claimStatus;
     return claimId;
 }
@@ -2593,6 +2812,8 @@ function prepareFormData() {
     data.onSessions = collectSessions('on');
     data.f2fSessionItemsJson = JSON.stringify(collectSessionItems('f2f'));
     data.onSessionItemsJson = JSON.stringify(collectSessionItems('on'));
+    data.claimKey = buildClaimKeyFromData(data);
+    data.uniqueClaimKey = data.claimKey;
     return data;
 }
 
@@ -2699,7 +2920,7 @@ async function retryOneClaimSheetSync(claimDocId, claimData, options) {
         if (!sheetData.staffId || !sheetData.course) throw new Error('Claim is missing Staff ID or course. Open it and submit again.');
         await syncClaimToGoogleSheet(sheetData, claimDocId);
         if (options.manual) {
-            showSuccessMessage('Claim Summary has been submitted successfully.');
+            showSuccessMessage('Pending claim synced to Google Sheet.');
             await loadMyClaims();
         }
         return true;
@@ -2781,24 +3002,14 @@ async function submitFormData(data) {
         data.firestoreDocId = savedClaimId;
         data.claimStatus = data.claimStatus || 'Submitted';
 
-        // Firestore is the main claim record. Once this succeeds, the tutor's
-        // claim is safely saved. The Google Sheet copy is then synced in the
-        // background because Apps Script + Drive signature upload can be slow.
-        showSuccessMessage('Claim saved. Syncing to Google Sheet in the background...');
+        // The tutor's browser now saves only to Firestore. Google Sheet syncing is
+        // handled separately by the Apps Script time trigger, so the sync can still
+        // happen even after the tutor closes this tab.
+        showSuccessMessage('Claim saved to Firestore. The Google Sheet copy will be created automatically.');
         btn.disabled = false; btn.textContent = orig;
         document.getElementById('loading').style.display = 'none';
 
-        syncClaimToGoogleSheet(Object.assign({}, data), savedClaimId)
-            .then(async () => {
-                showSuccessMessage('Claim saved and synced to Google Sheet.');
-                await loadMyClaims();
-            })
-            .catch(async (err) => {
-                await markSheetSyncStatus(savedClaimId, 'failed', { error: err.message || err });
-                showErrorMessage('Claim saved in Firestore, but Google Sheet sync failed: ' + (err.message || err) + '. Open the claim and submit again to retry the Sheet sync.');
-            });
-
-        await showSubmitSuccessPopup('Your claim has been successfully submitted and saved. The Google Sheet copy will continue syncing in the background.');
+        await showSubmitSuccessPopup('Your claim has been successfully submitted and saved. The Google Sheet copy will be created automatically by the system.');
         await loadMyClaims();
         resetForm();
     } catch (e) {
@@ -2976,6 +3187,7 @@ function resetForm() {
     document.getElementById('sigFileInput').value = '';
     document.getElementById('sigError').style.display = 'none';
     clearEditMode();
+    clearDuplicateNotice();
     applyMode();            // hide sections until mode re-picked
     recomputeTotals();
     fillTutorFromLogin();   // restore identity + programme list
