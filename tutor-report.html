@@ -722,6 +722,8 @@
         .sync-badge.failed { background: #f8d7da; color: #721c24; }
         .claim-button-row { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
         .claim-item button.retry-sync-btn { background:#f59f00; }
+        .claim-item button.download-claim-pdf-btn { background:#155724; }
+        .claim-item button.download-claim-pdf-btn:disabled { background:#9ec5a8; cursor:not-allowed; }
         .edit-notice {
             display: none; border: 1px solid #ffe082; background: #fff8e1;
             color: #5d4b00; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px;
@@ -2481,6 +2483,7 @@ function renderClaimsList(claims) {
             '</div>' +
             '<div class="claim-button-row">' +
                 (needsRetry ? '<button type="button" class="retry-sync-btn">Retry Sheet Sync</button>' : '') +
+                '<button type="button" class="download-claim-pdf-btn">Download PDF</button>' +
                 '<button type="button" class="edit-claim-btn">Edit</button>' +
             '</div>';
         div.querySelector('.claim-title').textContent = title;
@@ -2489,6 +2492,8 @@ function renderClaimsList(claims) {
         const syncBadge = div.querySelector('.sync-badge');
         syncBadge.textContent = sheetSyncText(data.sheetSyncStatus);
         syncBadge.classList.add(syncStatus);
+        const pdfBtn = div.querySelector('.download-claim-pdf-btn');
+        if (pdfBtn) pdfBtn.addEventListener('click', () => downloadSubmittedClaimPdf(item.id, pdfBtn));
         const editBtn = div.querySelector('.edit-claim-btn');
         if (editBtn) editBtn.addEventListener('click', () => loadClaimForEdit(item.id));
         const retryBtn = div.querySelector('.retry-sync-btn');
@@ -2522,6 +2527,114 @@ async function loadClaimForEdit(claimDocId) {
     }
 }
 window.loadClaimForEdit = loadClaimForEdit;
+
+function captureFormStateForClaimPdfDownload() {
+    return {
+        editClaimId: CURRENT_EDIT_CLAIM_ID,
+        editDocId: CURRENT_EDIT_DOC_ID,
+        courseSearchInput: document.getElementById('courseSearchInput')?.value || '',
+        course: document.getElementById('course')?.value || '',
+        program: document.getElementById('program')?.value || '',
+        studyCentre: document.getElementById('studyCentre')?.value || '',
+        modeOfDelivery: (document.querySelector('input[name="modeOfDelivery"]:checked') || {}).value || '',
+        semester: (document.querySelector('input[name="semester"]:checked') || {}).value || '',
+        block: (document.querySelector('input[name="block"]:checked') || {}).value || '',
+        f2fSessionItems: (typeof collectSessionItems === 'function') ? collectSessionItems('f2f') : [],
+        onSessionItems: (typeof collectSessionItems === 'function') ? collectSessionItems('on') : [],
+        travelFrom: document.getElementById('travelFrom')?.value || '',
+        travelTo: document.getElementById('travelTo')?.value || '',
+        bankName: (typeof getSelectedBankName === 'function') ? getSelectedBankName() : (document.getElementById('bankName')?.value || ''),
+        bankBranch: document.getElementById('bankBranch')?.value || '',
+        accountName: document.getElementById('accountName')?.value || '',
+        accountNumber: document.getElementById('accountNumber')?.value || '',
+        remarks: document.getElementById('remarks')?.value || '',
+        facilitatorSignature: document.getElementById('facilitatorSignature')?.value || '',
+        editNoticeVisible: document.getElementById('editNotice')?.style.display || ''
+    };
+}
+
+function restoreFormStateAfterClaimPdfDownload(state) {
+    if (!state) return;
+    CURRENT_EDIT_CLAIM_ID = state.editClaimId || '';
+    CURRENT_EDIT_DOC_ID = state.editDocId || '';
+
+    const courseSearchInput = document.getElementById('courseSearchInput');
+    if (courseSearchInput) courseSearchInput.value = state.courseSearchInput || '';
+    const course = document.getElementById('course');
+    if (course) course.value = state.course || '';
+
+    const program = document.getElementById('program');
+    ensureSelectOption(program, state.program || '');
+    if (program) program.value = state.program || '';
+
+    const centre = document.getElementById('studyCentre');
+    if (centre) centre.value = state.studyCentre || '';
+    setRadioValue('modeOfDelivery', state.modeOfDelivery || '');
+    setRadioValue('semester', state.semester || '');
+    setRadioValue('block', state.block || '');
+    applyMode();
+
+    setSessionRows('f2f', state.f2fSessionItems || []);
+    setSessionRows('on', state.onSessionItems || []);
+
+    const travelFrom = document.getElementById('travelFrom');
+    if (travelFrom) travelFrom.value = state.travelFrom || '';
+    const travelTo = document.getElementById('travelTo');
+    ensureSelectOption(travelTo, state.travelTo || '');
+    if (travelTo) travelTo.value = state.travelTo || '';
+
+    setBankFields(state.bankName || '', state.bankBranch || '', state.accountName || '', state.accountNumber || '');
+    const remarks = document.getElementById('remarks');
+    if (remarks) remarks.value = state.remarks || '';
+
+    clearSignatureUi();
+    if (state.facilitatorSignature) setSignatureImageFromDataUrl(state.facilitatorSignature);
+
+    if (CURRENT_EDIT_CLAIM_ID) showEditMode(CURRENT_EDIT_CLAIM_ID);
+    else clearEditMode();
+
+    if (typeof recomputeTotals === 'function') recomputeTotals();
+}
+
+async function downloadSubmittedClaimPdf(claimDocId, clickedButton) {
+    const fs = window.__firestore;
+    if (!fs || !fs.db) {
+        alert('Firestore is not ready yet. Refresh the page and try again.');
+        return;
+    }
+
+    const button = clickedButton || null;
+    const oldText = button ? button.textContent : '';
+    if (button) { button.disabled = true; button.textContent = 'Preparing PDF…'; }
+
+    const previousState = captureFormStateForClaimPdfDownload();
+    try {
+        setClaimsStatus('Preparing PDF for saved claim...');
+        const snap = await fs.getDoc(fs.doc(fs.db, 'claims', claimDocId));
+        if (!snap.exists()) throw new Error('Claim not found. It may have been removed.');
+
+        const data = snap.data() || {};
+        const loggedStaffId = (document.getElementById('staffId').value || '').trim().toUpperCase();
+        const loggedUid = window.__currentUserUid || '';
+        if ((data.uid && loggedUid && data.uid !== loggedUid) || (data.staffId && loggedStaffId && data.staffId !== loggedStaffId)) {
+            throw new Error('You cannot download a claim that belongs to another tutor.');
+        }
+
+        fillFormFromClaim(data, claimDocId);
+        await new Promise(resolve => setTimeout(resolve, 80));
+        if (typeof window.downloadPreviewPdf !== 'function') throw new Error('PDF generator is not available.');
+        await window.downloadPreviewPdf();
+        setClaimsStatus('PDF downloaded. Your claim list is still available above.');
+    } catch (err) {
+        console.error(err);
+        alert('Could not download PDF: ' + (err.message || err));
+        setClaimsStatus('Could not download PDF: ' + (err.message || err));
+    } finally {
+        restoreFormStateAfterClaimPdfDownload(previousState);
+        if (button) { button.disabled = false; button.textContent = oldText || 'Download PDF'; }
+    }
+}
+window.downloadSubmittedClaimPdf = downloadSubmittedClaimPdf;
 
 function setRadioValue(name, value) {
     document.querySelectorAll('input[name="' + name + '"]').forEach(r => { r.checked = (r.value === value); });
