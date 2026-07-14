@@ -388,6 +388,75 @@
         .error-message { background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; }
         .success-message { background:#d4edda; color:#155724; border:1px solid #c3e6cb; }
 
+
+        /* ===== Required submit-success popup ===== */
+        .submit-success-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 10050;
+            background: rgba(0, 0, 0, 0.58);
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+        }
+        .submit-success-modal-overlay.active { display: flex; }
+        .submit-success-modal {
+            width: min(440px, 100%);
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 26px 24px 22px;
+            text-align: center;
+            box-shadow: 0 20px 55px rgba(0, 0, 0, 0.30);
+            border-top: 7px solid #0b7a3b;
+        }
+        .submit-success-icon {
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #eaf8ef;
+            color: #0b7a3b;
+            font-size: 34px;
+            font-weight: 800;
+            margin-bottom: 12px;
+        }
+        .submit-success-modal h3 {
+            margin: 6px 0 10px;
+            color: #002147;
+            font-size: 22px;
+        }
+        .submit-success-modal p {
+            margin: 0;
+            color: #333;
+            line-height: 1.55;
+            font-size: 15px;
+        }
+        .submit-success-note {
+            margin-top: 10px !important;
+            color: #666 !important;
+            font-size: 13px !important;
+        }
+        .submit-success-close {
+            width: auto;
+            min-width: 170px;
+            margin-top: 20px;
+            padding: 12px 22px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #0056b3, #003d82);
+            color: #fff;
+            border: 0;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .submit-success-close:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 16px rgba(0, 86, 179, 0.28);
+        }
+
         @media (max-width: 768px) {
             body { padding:10px; }
             .header {
@@ -646,6 +715,13 @@
         .claim-title { font-weight: 700; color: #0a2a6b; font-size: 14px; margin-bottom: 3px; }
         .claim-meta { font-size: 12px; color: #666; line-height: 1.45; }
         .claim-badge { display: inline-block; padding: 2px 7px; border-radius: 99px; background: #e8f0ff; color: #0a2a6b; font-size: 11px; font-weight: 700; }
+        .sync-badge { display: inline-block; padding: 2px 7px; border-radius: 99px; font-size: 11px; font-weight: 700; margin-left: 5px; }
+        .sync-badge.synced { background: #d4edda; color: #155724; }
+        .sync-badge.pending { background: #fff3cd; color: #856404; }
+        .sync-badge.syncing { background: #d1ecf1; color: #0c5460; }
+        .sync-badge.failed { background: #f8d7da; color: #721c24; }
+        .claim-button-row { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+        .claim-item button.retry-sync-btn { background:#f59f00; }
         .edit-notice {
             display: none; border: 1px solid #ffe082; background: #fff8e1;
             color: #5d4b00; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px;
@@ -655,6 +731,7 @@
         @media (max-width: 560px) {
             .claim-item { grid-template-columns: 1fr; }
             .claim-item button { width: 100%; }
+            .claim-button-row { justify-content: stretch; }
         }
 
         .pdf-export .preview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
@@ -836,10 +913,11 @@
 
     <div class="claims-card" id="claimsCard">
         <h3>My Submitted Claims</h3>
-        <p>Pull up a previous claim, edit it, and submit again.</p>
+        <p>Pull up a previous claim, edit it, and submit again. The update will be saved in Firestore and synced to the Google Sheet.</p>
         <div class="claims-actions">
             <button type="button" id="newClaimBtn">+ Start New Claim</button>
             <button type="button" id="refreshClaimsBtn" class="secondary">↻ Refresh My Claims</button>
+            <button type="button" id="retryPendingSyncBtn" class="secondary">☁ Sync pending Sheet copies</button>
         </div>
         <div id="claimsStatus" class="claims-status">Your claims will appear here after your profile loads.</div>
         <div id="claimsList" class="claims-list"></div>
@@ -1062,6 +1140,16 @@
         <div id="loading" class="loading">⏳ Submitting form... Please wait.</div>
         <div id="errorMessage" class="error-message"></div>
         <div id="successMessage" class="success-message"></div>
+
+        <div id="submitSuccessModal" class="submit-success-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="submitSuccessTitle" aria-describedby="submitSuccessBody">
+            <div class="submit-success-modal">
+                <div class="submit-success-icon">✓</div>
+                <h3 id="submitSuccessTitle">Form submitted successfully</h3>
+                <p id="submitSuccessBody">Your claim has been saved successfully.</p>
+                <p class="submit-success-note">Please close this message to continue.</p>
+                <button type="button" id="submitSuccessClose" class="submit-success-close">Close and continue</button>
+            </div>
+        </div>
 
         <button type="submit" id="submitBtn">Submit Claim Summary</button>
     </form>
@@ -1433,6 +1521,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const refreshClaimsBtn = document.getElementById('refreshClaimsBtn');
     if (refreshClaimsBtn) refreshClaimsBtn.addEventListener('click', loadMyClaims);
+    const retryPendingSyncBtn = document.getElementById('retryPendingSyncBtn');
+    if (retryPendingSyncBtn) retryPendingSyncBtn.addEventListener('click', function() { retryPendingSheetSyncs({ manual: true, includeFailed: true }); });
     const newClaimBtn = document.getElementById('newClaimBtn');
     if (newClaimBtn) newClaimBtn.addEventListener('click', function() { clearEditMode(); resetForm(); });
     const cancelEditBtn = document.getElementById('cancelEditBtn');
@@ -2070,6 +2160,25 @@ function claimStatusText(status) {
     return status || 'Submitted';
 }
 
+function sheetSyncText(status) {
+    status = String(status || 'pending').toLowerCase();
+    if (status === 'synced') return 'Sheet: Synced';
+    if (status === 'syncing') return 'Sheet: Syncing';
+    if (status === 'failed') return 'Sheet: Failed';
+    return 'Sheet: Pending';
+}
+
+function sheetSyncClass(status) {
+    status = String(status || 'pending').toLowerCase();
+    return ['synced', 'syncing', 'failed', 'pending'].includes(status) ? status : 'pending';
+}
+
+function isStaleSyncingClaim(data) {
+    if (String(data.sheetSyncStatus || '').toLowerCase() !== 'syncing') return false;
+    const last = timestampToMillis(data.sheetSyncUpdatedAt || data.updatedAt || data.createdAt);
+    return !last || (Date.now() - last > 2 * 60 * 1000);
+}
+
 function timestampToMillis(value) {
     if (!value) return 0;
     if (typeof value.toMillis === 'function') return value.toMillis();
@@ -2122,6 +2231,9 @@ async function loadMyClaims() {
         snap.forEach(docSnap => claims.push({ id: docSnap.id, data: docSnap.data() || {} }));
         claims.sort((a, b) => timestampToMillis(b.data.updatedAt || b.data.createdAt) - timestampToMillis(a.data.updatedAt || a.data.createdAt));
         renderClaimsList(claims);
+        // Auto-retry claims that were saved to Firestore but did not reach Google Sheet
+        // because the tab was closed, the network dropped, or Apps Script was slow.
+        retryPendingSheetSyncs({ silent: true, candidates: claims, includeFailed: false });
     } catch (err) {
         console.error(err);
         setClaimsStatus('Could not load claims: ' + (err.message || err));
@@ -2137,7 +2249,11 @@ function renderClaimsList(claims) {
         setClaimsStatus('No submitted claims found yet.');
         return;
     }
-    setClaimsStatus(claims.length + ' claim(s) found.');
+    const pendingCount = claims.filter(item => {
+        const s = String((item.data || {}).sheetSyncStatus || 'pending').toLowerCase();
+        return s !== 'synced';
+    }).length;
+    setClaimsStatus(claims.length + ' claim(s) found.' + (pendingCount ? ' ' + pendingCount + ' pending Sheet sync(s).' : ' All Sheet copies synced.'));
     claims.forEach(item => {
         const data = item.data || {};
         const div = document.createElement('div');
@@ -2150,16 +2266,30 @@ function renderClaimsList(claims) {
             data.totalHours ? ('Total hours: ' + data.totalHours) : '',
             formatClaimDate(data.updatedAt || data.createdAt) ? ('Updated: ' + formatClaimDate(data.updatedAt || data.createdAt)) : ''
         ].filter(Boolean).join(' • ');
+        const syncStatus = sheetSyncClass(data.sheetSyncStatus);
+        const needsRetry = syncStatus === 'pending' || syncStatus === 'failed' || isStaleSyncingClaim(data);
         div.innerHTML = '<div class="claim-main">' +
             '<div class="claim-title"></div>' +
             '<div class="claim-meta"></div>' +
-            '<div style="margin-top:5px;"><span class="claim-badge"></span></div>' +
+            '<div style="margin-top:5px;">' +
+                '<span class="claim-badge"></span>' +
+                '<span class="sync-badge"></span>' +
             '</div>' +
-            '<button type="button" class="edit-claim-btn">Edit</button>';
+            '</div>' +
+            '<div class="claim-button-row">' +
+                (needsRetry ? '<button type="button" class="retry-sync-btn">Retry Sheet Sync</button>' : '') +
+                '<button type="button" class="edit-claim-btn">Edit</button>' +
+            '</div>';
         div.querySelector('.claim-title').textContent = title;
         div.querySelector('.claim-meta').textContent = meta;
         div.querySelector('.claim-badge').textContent = claimStatusText(data.claimStatus || data.status);
-        div.querySelector('.edit-claim-btn').addEventListener('click', () => loadClaimForEdit(item.id));
+        const syncBadge = div.querySelector('.sync-badge');
+        syncBadge.textContent = sheetSyncText(data.sheetSyncStatus);
+        syncBadge.classList.add(syncStatus);
+        const editBtn = div.querySelector('.edit-claim-btn');
+        if (editBtn) editBtn.addEventListener('click', () => loadClaimForEdit(item.id));
+        const retryBtn = div.querySelector('.retry-sync-btn');
+        if (retryBtn) retryBtn.addEventListener('click', () => retryOneClaimSheetSync(item.id, data, { manual: true }));
         list.appendChild(div);
     });
 }
@@ -2364,6 +2494,7 @@ async function saveClaimToFirestore(data) {
         f2fSessionItems: collectSessionItems('f2f'),
         onSessionItems: collectSessionItems('on'),
         source: 'tutor-report',
+        sheetSyncStatus: 'pending',
         updatedAt: fs.serverTimestamp()
     });
     delete payload.token;
@@ -2465,47 +2596,213 @@ function prepareFormData() {
     return data;
 }
 
+async function markSheetSyncStatus(claimId, status, details) {
+    const fs = window.__firestore;
+    if (!fs || !fs.db || !claimId) return;
+    const patch = {
+        sheetSyncStatus: status,
+        sheetSyncUpdatedAt: fs.serverTimestamp()
+    };
+    if (details && details.sheetRow) patch.sheetRow = details.sheetRow;
+    if (status === 'synced' || status === 'syncing') patch.sheetSyncError = '';
+    if (details && details.error) patch.sheetSyncError = String(details.error).slice(0, 500);
+    try {
+        await fs.updateDoc(fs.doc(fs.db, 'claims', claimId), patch);
+    } catch (err) {
+        console.warn('Could not update sheet sync status:', err);
+    }
+}
+
+function buildSheetPostBody(data) {
+    // Build the body manually so the signature's base64 string is encoded
+    // with encodeURIComponent (which encodes '+' as '%2B'), not with
+    // URLSearchParams (which leaves '+' as '+', causing Apps Script's
+    // e.parameter to decode it as a space and corrupt the image data).
+    const sig = data.facilitatorSignature || '';
+    const dataWithoutSig = Object.assign({}, data);
+    delete dataWithoutSig.facilitatorSignature;
+    let body = new URLSearchParams(dataWithoutSig).toString();
+    if (sig) body += '&facilitatorSignature=' + encodeURIComponent(sig);
+    return body;
+}
+
+async function syncClaimToGoogleSheet(data, savedClaimId) {
+    await markSheetSyncStatus(savedClaimId, 'syncing');
+    const response = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: buildSheetPostBody(data)
+    });
+    if (!response.ok) throw new Error('Server returned HTTP ' + response.status);
+    let result;
+    try { result = await response.json(); }
+    catch (parseErr) { throw new Error('Could not read server response. Check the script deployment.'); }
+    if (!(result && result.success)) {
+        throw new Error((result && (result.error || result.message)) || 'Unknown Google Sheet sync error');
+    }
+    await markSheetSyncStatus(savedClaimId, 'synced', { sheetRow: result.sheetRow });
+    return result;
+}
+
+function sessionsFromItemsForSheet(items) {
+    if (!Array.isArray(items)) return '';
+    return items.map(item => {
+        return (item.date || '?') + ' ' + (item.startDisplay || item.start || '?') + '-' + (item.endDisplay || item.end || '?');
+    }).join('; ');
+}
+
+function prepareSheetDataFromClaimDoc(claimData, claimDocId) {
+    const data = Object.assign({}, claimData || {});
+    const claimId = data.claimId || claimDocId;
+    data.formType = 'FacilitatorBlockClaim';
+    data.token = FORM_TOKEN;
+    data.action = 'updateClaim';
+    data.claimId = claimId;
+    data.firestoreDocId = data.firestoreDocId || claimDocId || claimId;
+    data.claimStatus = data.claimStatus || 'Submitted';
+    data.staffId = String(data.staffId || '').trim().toUpperCase();
+    data.tutorName = data.tutorName || '';
+    data.course = data.course || '';
+    data.program = data.program || data.programme || '';
+    data.studyCentre = data.studyCentre || '';
+    data.modeOfDelivery = data.modeOfDelivery || '';
+    data.semester = data.semester || '';
+    data.block = data.block || '';
+    data.f2fHours = data.f2fHours || '0';
+    data.onHours = data.onHours || data.onlineHours || '0';
+    data.totalHours = data.totalHours || '0';
+    data.f2fSessions = data.f2fSessions || sessionsFromItemsForSheet(data.f2fSessionItems);
+    data.onSessions = data.onSessions || data.onlineSessions || sessionsFromItemsForSheet(data.onSessionItems);
+    data.f2fSessionItemsJson = data.f2fSessionItemsJson || JSON.stringify(data.f2fSessionItems || []);
+    data.onSessionItemsJson = data.onSessionItemsJson || JSON.stringify(data.onSessionItems || []);
+    data.bankName = data.bankName || '';
+    data.bankBranch = data.bankBranch || '';
+    data.accountName = data.accountName || '';
+    data.accountNumber = data.accountNumber || '';
+    data.travelFrom = data.travelFrom || '';
+    data.travelTo = data.travelTo || '';
+    data.remarks = data.remarks || '';
+    return data;
+}
+
+async function retryOneClaimSheetSync(claimDocId, claimData, options) {
+    options = options || {};
+    const fs = window.__firestore;
+    try {
+        let data = claimData;
+        if (!data) {
+            const snap = await fs.getDoc(fs.doc(fs.db, 'claims', claimDocId));
+            if (!snap.exists()) throw new Error('Claim not found.');
+            data = snap.data() || {};
+        }
+        const sheetData = prepareSheetDataFromClaimDoc(data, claimDocId);
+        if (!sheetData.staffId || !sheetData.course) throw new Error('Claim is missing Staff ID or course. Open it and submit again.');
+        await syncClaimToGoogleSheet(sheetData, claimDocId);
+        if (options.manual) {
+            showSuccessMessage('Pending claim synced to Google Sheet.');
+            await loadMyClaims();
+        }
+        return true;
+    } catch (err) {
+        await markSheetSyncStatus(claimDocId, 'failed', { error: err.message || err });
+        if (options.manual) showErrorMessage('Could not sync this claim to Google Sheet: ' + (err.message || err));
+        return false;
+    }
+}
+
+let SHEET_SYNC_RETRY_RUNNING = false;
+async function retryPendingSheetSyncs(options) {
+    options = options || {};
+    if (SHEET_SYNC_RETRY_RUNNING) return;
+    const fs = window.__firestore;
+    if (!fs || !fs.db) return;
+    const staffId = (document.getElementById('staffId').value || sessionStorage.getItem('tutorStaffId') || '').trim().toUpperCase();
+    const uid = window.__currentUserUid || '';
+    if (!staffId && !uid) return;
+
+    SHEET_SYNC_RETRY_RUNNING = true;
+    const btn = document.getElementById('retryPendingSyncBtn');
+    const oldBtnText = btn ? btn.textContent : '';
+    if (btn && options.manual) { btn.disabled = true; btn.textContent = '☁ Syncing...'; }
+
+    try {
+        let candidates = options.candidates || null;
+        if (!candidates) {
+            const q = uid
+                ? fs.query(fs.collection(fs.db, 'claims'), fs.where('uid', '==', uid))
+                : fs.query(fs.collection(fs.db, 'claims'), fs.where('staffId', '==', staffId));
+            const snap = await fs.getDocs(q);
+            candidates = [];
+            snap.forEach(docSnap => candidates.push({ id: docSnap.id, data: docSnap.data() || {} }));
+        }
+
+        const toSync = candidates.filter(item => {
+            const data = item.data || {};
+            const s = String(data.sheetSyncStatus || 'pending').toLowerCase();
+            if (s === 'pending') return true;
+            if (s === 'syncing') return isStaleSyncingClaim(data);
+            if (s === 'failed') return !!options.includeFailed;
+            return false;
+        });
+
+        if (!toSync.length) {
+            if (options.manual) setClaimsStatus('No pending Google Sheet syncs found.');
+            return;
+        }
+
+        if (!options.silent || options.manual) setClaimsStatus('Syncing ' + toSync.length + ' pending claim(s) to Google Sheet...');
+        let ok = 0, failed = 0;
+        for (const item of toSync) {
+            const success = await retryOneClaimSheetSync(item.id, item.data, { manual: false });
+            if (success) ok++; else failed++;
+        }
+        if (options.manual) {
+            if (failed) showErrorMessage(ok + ' claim(s) synced; ' + failed + ' still failed. Check the failed claim and try again.');
+            else showSuccessMessage(ok + ' pending claim(s) synced to Google Sheet.');
+        }
+        await loadMyClaims();
+    } finally {
+        SHEET_SYNC_RETRY_RUNNING = false;
+        if (btn) { btn.disabled = false; btn.textContent = oldBtnText || '☁ Sync pending Sheet copies'; }
+    }
+}
+window.retryPendingSheetSyncs = retryPendingSheetSyncs;
+
 async function submitFormData(data) {
     const btn = document.getElementById('submitBtn');
     const orig = btn.textContent;
-    btn.disabled = true; btn.textContent = '⏳ Sending...';
+    btn.disabled = true; btn.textContent = '⏳ Saving...';
     document.getElementById('loading').style.display = 'block';
     hideMessages();
+
     try {
         const savedClaimId = await saveClaimToFirestore(data);
         data.claimId = savedClaimId;
         data.firestoreDocId = savedClaimId;
         data.claimStatus = data.claimStatus || 'Submitted';
 
-        // Build the body manually so the signature's base64 string is encoded
-        // with encodeURIComponent (which encodes '+' as '%2B'), not with
-        // URLSearchParams (which leaves '+' as '+', causing Apps Script's
-        // e.parameter to decode it as a space and corrupt the image data).
-        const sig = data.facilitatorSignature || '';
-        const dataWithoutSig = Object.assign({}, data);
-        delete dataWithoutSig.facilitatorSignature;
-        let body = new URLSearchParams(dataWithoutSig).toString();
-        if (sig) body += '&facilitatorSignature=' + encodeURIComponent(sig);
+        // Firestore is the main claim record. Once this succeeds, the tutor's
+        // claim is safely saved. The Google Sheet copy is then synced in the
+        // background because Apps Script + Drive signature upload can be slow.
+        showSuccessMessage('Claim saved. Syncing to Google Sheet in the background...');
+        btn.disabled = false; btn.textContent = orig;
+        document.getElementById('loading').style.display = 'none';
 
-        const response = await fetch(SCRIPT_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: body
-        });
-        if (!response.ok) throw new Error('Server returned HTTP ' + response.status);
-        let result;
-        try { result = await response.json(); }
-        catch (parseErr) { throw new Error('Could not read server response. Check the script deployment.'); }
-        if (result && result.success) {
-            showSuccessMessage(CURRENT_EDIT_CLAIM_ID ? 'Claim saved and synced to Google Sheet.' : 'Block claim submitted and synced to Google Sheet.');
-            await loadMyClaims();
-            setTimeout(() => resetForm(), 2000);
-        } else {
-            showErrorMessage((result && (result.error || result.message)) || 'Unknown error');
-        }
+        syncClaimToGoogleSheet(Object.assign({}, data), savedClaimId)
+            .then(async () => {
+                showSuccessMessage('Claim saved and synced to Google Sheet.');
+                await loadMyClaims();
+            })
+            .catch(async (err) => {
+                await markSheetSyncStatus(savedClaimId, 'failed', { error: err.message || err });
+                showErrorMessage('Claim saved in Firestore, but Google Sheet sync failed: ' + (err.message || err) + '. Open the claim and submit again to retry the Sheet sync.');
+            });
+
+        await showSubmitSuccessPopup('Your claim has been successfully submitted and saved. The Google Sheet copy will continue syncing in the background.');
+        await loadMyClaims();
+        resetForm();
     } catch (e) {
         showErrorMessage(e.message);
-    } finally {
         btn.disabled = false; btn.textContent = orig;
         document.getElementById('loading').style.display = 'none';
     }
@@ -2518,6 +2815,31 @@ function showSuccessMessage(customText) {
     const msg = document.getElementById('successMessage');
     msg.innerHTML = '✅ <strong>Success!</strong> ' + (customText || 'Block claim submitted.');
     msg.style.display = 'block';
+}
+
+function showSubmitSuccessPopup(message) {
+    return new Promise((resolve) => {
+        const overlay = document.getElementById('submitSuccessModal');
+        const body = document.getElementById('submitSuccessBody');
+        const closeBtn = document.getElementById('submitSuccessClose');
+        if (!overlay || !closeBtn) { resolve(); return; }
+
+        if (body) body.textContent = message || 'Your claim has been successfully submitted.';
+        overlay.classList.add('active');
+        overlay.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+
+        const closePopup = () => {
+            overlay.classList.remove('active');
+            overlay.style.display = 'none';
+            document.body.style.overflow = '';
+            closeBtn.removeEventListener('click', closePopup);
+            resolve();
+        };
+
+        closeBtn.addEventListener('click', closePopup);
+        setTimeout(() => closeBtn.focus(), 50);
+    });
 }
 function showErrorMessage(m) {
     const msg = document.getElementById('errorMessage');
