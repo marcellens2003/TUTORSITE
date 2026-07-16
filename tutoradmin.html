@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Tutor Admin — CoDE Facilitator Accounts</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { max-width: 100%; overflow-x: hidden; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: 'Rubik', Arial, sans-serif;
+    background: #0a1f5c;
+    color: #1f2937;
+    padding: 22px 14px 40px;
+    position: relative;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background-image: url("books-bg-blur.jpg");
+    background-size: cover;
+    background-position: center;
+    transform: scale(1.04);
+  }
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(10,31,92,.28));
+  }
+  .page { width: 100%; max-width: 1120px; margin: 0 auto; }
+  .topbar {
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    flex: 1 1 420px;
+    position: relative;
+    overflow: hidden;
+    padding: 20px 24px;
+    border-radius: 16px;
+    color: #fff;
+    background:
+      radial-gradient(80% 120% at 88% -10%, rgba(255,211,77,.18), rgba(255,211,77,0) 55%),
+      linear-gradient(135deg, #08183f 0%, #102a72 46%, #1d3a8f 100%);
+    box-shadow: 0 14px 36px rgba(8,24,63,.45), inset 0 0 0 1px rgba(255,211,77,.22);
+  }
+  .brand::before {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; top: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #e8b500 0%, #ffd34d 50%, #e8b500 100%);
+  }
+  .brand::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 5px;
+    background: linear-gradient(90deg, #d4362a 0%, #d4362a 18%, #e8b500 18%, #ffd34d 50%, #e8b500 82%, #d4362a 82%, #d4362a 100%);
+  }
+  h1 { margin: 0; font-size: 24px; letter-spacing: .3px; }
+  .brand p { margin: 7px 0 0; color: #ffe08a; font-weight: 500; font-size: 14px; line-height: 1.45; }
+  .top-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+  }
+  a.link-btn, button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 14px;
+    border: none;
+    border-radius: 8px;
+    background: #0056b3;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: .15s ease;
+  }
+  button { font-family: inherit; }
+  a.link-btn:hover, button:hover:not(:disabled) { background: #003d82; transform: translateY(-1px); }
+  button:disabled { background: #9ec5e8; cursor: not-allowed; transform: none; }
+  button.subtle, a.subtle { background: #f0f2f5; color: #333; border: 1px solid #d0d5dd; }
+  button.subtle:hover:not(:disabled), a.subtle:hover { background: #e1e5ea; }
+  button.danger { background: #dc3545; }
+  button.danger:hover:not(:disabled) { background: #b52a36; }
+  button.small { padding: 7px 10px; font-size: 12px; border-radius: 6px; }
+  .status, .notice {
+    display: none;
+    padding: 12px 15px;
+    border-radius: 9px;
+    margin: 12px 0 16px;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .status.loading, .notice.warn { display: block; background: #fff3cd; border: 1px solid #ffe69c; color: #806000; }
+  .status.ready, .notice.ok { display: block; background: #d4edda; border: 1px solid #b8dfc2; color: #155724; }
+  .status.fail, .notice.err { display: block; background: #f8d7da; border: 1px solid #f1bfc6; color: #721c24; }
+  .grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(310px, .95fr); gap: 16px; align-items: start; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  .card {
+    background: rgba(255,255,255,.98);
+    border: 1px solid rgba(255,255,255,.65);
+    border-radius: 14px;
+    padding: 20px 22px;
+    margin-bottom: 16px;
+    box-shadow: 0 14px 36px rgba(5,16,48,.30);
+  }
+  @media (min-width: 769px) and (hover:hover) {
+    .card { backdrop-filter: blur(2px); }
+  }
+  .needs-auth { display: none; }
+  .needs-auth.visible { display: block; }
+  h2 { margin: 0 0 12px; font-size: 18px; color: #002147; border-bottom: 2px solid #0056b3; padding-bottom: 8px; }
+  h3 { margin: 16px 0 8px; font-size: 14px; color: #0a2a6b; text-transform: uppercase; letter-spacing: .4px; }
+  .subtitle { color: #5b6573; font-size: 13px; line-height: 1.55; margin: -4px 0 14px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .row > div { flex: 1; min-width: 180px; }
+  label { display: block; font-size: 13px; font-weight: 700; color: #333; margin: 12px 0 5px; }
+  input, textarea, select {
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 14px;
+    background: #fff;
+    transition: .15s ease;
+  }
+  textarea { min-height: 82px; resize: vertical; line-height: 1.45; }
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: #0056b3;
+    box-shadow: 0 0 0 3px rgba(0,86,179,.14);
+  }
+  .hint { font-size: 12px; color: #667085; line-height: 1.55; margin-top: 5px; }
+  .inline-check {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin-top: 12px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: #475467;
+  }
+  .inline-check input { width: auto; margin-top: 2px; }
+  code { background: #eef2f7; color: #24364b; padding: 1px 5px; border-radius: 4px; font-size: .92em; }
+  .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  .toolbar input { flex: 1; min-width: 220px; }
+  .count { color: #667085; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 10px 8px; border-bottom: 1px solid #e9edf3; text-align: left; vertical-align: top; }
+  th { background: #f8fafc; color: #475467; text-transform: uppercase; letter-spacing: .35px; font-size: 11px; position: sticky; top: 0; z-index: 1; }
+  .table-wrap { overflow-x: auto; max-height: 520px; border: 1px solid #e9edf3; border-radius: 9px; }
+  .empty { text-align: center; padding: 28px 10px; color: #98a2b3; font-style: italic; }
+  .badge { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+  .badge.ok { background: #d4edda; color: #155724; }
+  .badge.warn { background: #fff3cd; color: #856404; }
+  .badge.err { background: #f8d7da; color: #721c24; }
+  .badge.neutral { background: #e9ecef; color: #475467; }
+  #log {
+    min-height: 42px;
+    max-height: 260px;
+    overflow: auto;
+    white-space: pre-wrap;
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: 12px;
+    background: #0b1220;
+    color: #d1d5db;
+    border-radius: 9px;
+    padding: 12px;
+  }
+  #log .ok { color: #86efac; }
+  #log .err { color: #fca5a5; }
+  #log .warn { color: #fde68a; }
+  .helper-box {
+    border: 1px dashed #cbd5e1;
+    background: #f8fafc;
+    border-radius: 9px;
+    padding: 12px;
+    margin-top: 12px;
+  }
+  .pill-row { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+  .pill { background:#eef2ff; color:#263c8a; border-radius:999px; padding:3px 8px; font-size:11px; font-weight:600; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="topbar">
+    <div class="brand">
+      <h1>Tutor Account Admin</h1>
+      <p>University of Cape Coast — College of Distance Education facilitator claim system</p>
+    </div>
+    <div class="top-actions">
+      <a class="link-btn subtle" href="index.html" target="_blank" rel="noopener">Open Tutor Login</a>
+      <a class="link-btn subtle" href="tutor-report.html" target="_blank" rel="noopener">Open Report Form</a>
+      <button id="logoutBtn" class="danger" style="display:none;">Sign out</button>
+    </div>
+  </div>
+
+  <div class="notice warn">
+    <strong>LOCAL USE ONLY.</strong> Keep this file on your computer and do not publish it publicly.
+    It creates tutor login accounts using the same Staff ID → login email rule used by the tutor login page:
+    <code>staff-id@tutors.ucc.local</code>.
+  </div>
+
+  <div id="status" class="status loading">Loading Firebase…</div>
+
+  <div class="card" id="loginCard">
+    <h2>Sign in to Firebase</h2>
+    <div class="subtitle">
+      Use your Firebase administrator account for the <code>monitoringucc</code> project.
+      This signs you into the admin page only. Tutor accounts are created using a separate background Firebase session.
+    </div>
+    <div class="row" style="align-items:flex-end;">
+      <div>
+        <label for="adminEmail">Admin email</label>
+        <input id="adminEmail" type="email" placeholder="you@example.com" autocomplete="username">
+      </div>
+      <div>
+        <label for="adminPass">Admin password</label>
+        <input id="adminPass" type="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div style="flex:0 0 auto;">
+        <button id="loginBtn">Sign in</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="needs-auth">
+    <div class="grid">
+      <div>
+        <div class="card">
+          <h2>Add / update one tutor</h2>
+          <div class="subtitle">
+            Use this for new facilitators and for repairing a tutor's Firestore record. If the login account already exists,
+            this page will test the password you type. If it is not the real password, it will warn you clearly instead of pretending the password was changed.
+          </div>
+
+          <div class="row">
+            <div>
+              <label for="staffId">Staff ID *</label>
+              <input id="staffId" type="text" placeholder="e.g. PGT0420" autocapitalize="characters" spellcheck="false">
+              <div class="hint" id="emailPreview">Login email will appear here.</div>
+            </div>
+            <div>
+              <label for="loginPassword">Login password</label>
+              <input id="loginPassword" type="text" placeholder="min 6 characters">
+              <div class="hint">For a new login, this becomes the password. For an existing login, it is only verified; it cannot overwrite an unknown old password.</div>
+            </div>
+          </div>
+
+          <label for="tutorName">Full name *</label>
+          <input id="tutorName" type="text" placeholder="e.g. Dr. Jane Mensah">
+
+          <label for="programs">Programmes</label>
+          <textarea id="programs" placeholder="One per line, e.g.&#10;MED Mathematics Education&#10;MPhil Information Technology Education"></textarea>
+          <div class="hint">Leave blank when editing if you want to keep existing programmes unchanged.</div>
+
+          <label for="courses">Courses</label>
+          <textarea id="courses" placeholder="One per line using: CODE | Title | Programme | Study centre&#10;Example:&#10;EMA803D | Curriculum Development in Mathematics Education | MED Mathematics Education | Accra"></textarea>
+          <div class="hint">
+            The report form expects each course to have a label, programme, and centre. This format keeps the report form dropdown working.
+          </div>
+
+          <label class="inline-check">
+            <input id="clearUidOnPasswordMismatch" type="checkbox" checked>
+            <span>
+              If the login already exists but the typed password is wrong, clear the stored UID in Firestore.
+              This helps remove UID-mismatch lockouts, but the tutor must still use their correct existing password or you must recreate the Auth user.
+            </span>
+          </label>
+
+          <div class="toolbar" style="margin-top:16px;">
+            <button id="saveTutorBtn">Save tutor / create login</button>
+            <button id="clearFormBtn" class="subtle">Clear form</button>
+          </div>
+
+          <div id="saveResult" class="helper-box" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <h2>Test a tutor login</h2>
+          <div class="subtitle">
+            This checks whether a Staff ID and password can actually sign in, then checks whether the Firestore record exists and whether the stored UID matches.
+          </div>
+          <div class="row">
+            <div>
+              <label for="testStaffId">Staff ID</label>
+              <input id="testStaffId" type="text" placeholder="e.g. PGT0420" autocapitalize="characters">
+            </div>
+            <div>
+              <label for="testPassword">Password</label>
+              <input id="testPassword" type="text" placeholder="Tutor password">
+            </div>
+            <div style="flex:0 0 auto;display:flex;align-items:flex-end;">
+              <button id="testLoginBtn">Test login</button>
+            </div>
+          </div>
+          <div id="testResult" class="helper-box" style="display:none;"></div>
+          <div class="toolbar" id="repairActions" style="display:none;margin-top:12px;">
+            <button id="syncUidBtn" class="small">Repair: store verified UID</button>
+            <button id="removeUidBtn" class="small subtle">Remove stored UID</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Change password when current password is known</h2>
+          <div class="subtitle">
+            Browser pages cannot reset an unknown Firebase Auth password for another user. This section works only when you know the current password.
+          </div>
+          <div class="row">
+            <div>
+              <label for="resetStaffId">Staff ID</label>
+              <input id="resetStaffId" type="text" placeholder="e.g. PGT0420" autocapitalize="characters">
+            </div>
+            <div>
+              <label for="currentPw">Current password</label>
+              <input id="currentPw" type="text" placeholder="Current password">
+            </div>
+            <div>
+              <label for="newPw">New password</label>
+              <input id="newPw" type="text" placeholder="Min 6 characters">
+            </div>
+          </div>
+          <div class="toolbar" style="margin-top:16px;">
+            <button id="changeKnownPwBtn">Change known password</button>
+          </div>
+          <div id="knownResetResult" class="helper-box" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <h2>Forgotten password helper</h2>
+          <div class="subtitle">
+            Because tutors sign in with synthetic emails like <code>pgt0420@tutors.ucc.local</code>, normal password-reset emails are not useful.
+            For a forgotten password, delete the Auth user in Firebase Console, then recreate the login here with a new password.
+          </div>
+          <div class="row">
+            <div>
+              <label for="consoleStaffId">Staff ID</label>
+              <input id="consoleStaffId" type="text" placeholder="e.g. PGT0420" autocapitalize="characters">
+              <div class="hint" id="consoleEmailPreview">Enter a Staff ID to generate the login email.</div>
+            </div>
+          </div>
+          <div class="toolbar" style="margin-top:14px;">
+            <button id="copyEmailBtn" class="subtle">Copy login email</button>
+            <a id="openAuthConsole" class="link-btn" target="_blank" rel="noopener"
+               href="https://console.firebase.google.com/project/monitoringucc/authentication/users">Open Firebase Auth Users</a>
+          </div>
+          <div class="hint">
+            Search the copied login email in Firebase Auth. If the password is lost, delete that Auth user, return here, and create the tutor login again with a new password.
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h2>Firestore tutors</h2>
+          <div class="subtitle">
+            These are the records the report form reads from the <code>tutors</code> collection. A login can fail if the Auth account exists but this record is missing or has a stale UID.
+          </div>
+          <div class="toolbar">
+            <input id="searchInput" type="text" placeholder="Search Staff ID, name, programme, course…">
+            <button id="refreshBtn" class="subtle small">Refresh</button>
+            <span id="countLabel" class="count">—</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Staff ID</th>
+                  <th>Name / Details</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tutorsBody">
+                <tr><td colspan="3" class="empty">Sign in to load tutor records.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Activity log</h2>
+          <div id="log"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+(function () {
+  var firebaseConfig = {
+    apiKey: "AIzaSyCzgOGc51Qr6DXnJ-zkczBtGniYNLf0jOw",
+    authDomain: "monitoringucc.firebaseapp.com",
+    projectId: "monitoringucc",
+    storageBucket: "monitoringucc.firebasestorage.app",
+    messagingSenderId: "210063574932",
+    appId: "1:210063574932:web:8ccd563312321dcd2af181"
+  };
+
+  var statusEl = document.getElementById('status');
+  var loginCard = document.getElementById('loginCard');
+  var authPanels = document.querySelectorAll('.needs-auth');
+  var logoutBtn = document.getElementById('logoutBtn');
+  var loginBtn = document.getElementById('loginBtn');
+  var logEl = document.getElementById('log');
+  var tutorsBody = document.getElementById('tutorsBody');
+  var countLabel = document.getElementById('countLabel');
+  var searchInput = document.getElementById('searchInput');
+
+  var auth, db, secondaryApp, secondaryAuth;
+  var tutors = [];
+  var lastVerifiedLogin = null;
+
+  var TUTOR_DOMAIN = 'tutors.ucc.local';
+  var AUTH_CONSOLE_URL = 'https://console.firebase.google.com/project/monitoringucc/authentication/users';
+
+  function setStatus(cls, html) {
+    statusEl.className = 'status ' + cls;
+    statusEl.innerHTML = html;
+  }
+
+  function showAuthPanels(show) {
+    for (var i = 0; i < authPanels.length; i++) {
+      authPanels[i].classList.toggle('visible', show);
+    }
+    loginCard.style.display = show ? 'none' : 'block';
+    logoutBtn.style.display = show ? 'inline-flex' : 'none';
+  }
+
+  function escapeHTML(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function log(msg, cls) {
+    var line = document.createElement('div');
+    if (cls) line.className = cls;
+    line.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function staffIdToEmail(staffId) {
+    var slug = String(staffId || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    return slug ? slug + '@' + TUTOR_DOMAIN : '';
+  }
+
+  function normalizeStaffId(v) {
+    return String(v || '').trim().toUpperCase();
+  }
+
+  function uniqueNonEmpty(arr) {
+    var seen = {};
+    var out = [];
+    arr.forEach(function (item) {
+      var v = String(item || '').trim();
+      if (v && !seen[v]) {
+        seen[v] = true;
+        out.push(v);
+      }
+    });
+    return out;
+  }
+
+  function parseProgramLines(text) {
+    return uniqueNonEmpty(String(text || '').split(/\r?\n/));
+  }
+
+  function parseCourseLines(text) {
+    return String(text || '')
+      .replace(/\r/g, '')
+      .split('\n')
+      .map(function (line) { return line.trim(); })
+      .filter(Boolean)
+      .map(function (line) {
+        var parts = line.split('|').map(function (p) { return p.trim(); });
+        var code = parts[0] || '';
+        var title = parts[1] || '';
+        var program = parts[2] || '';
+        var centre = parts[3] || '';
+
+        if (!title && code.indexOf(' - ') > -1) {
+          var split = code.split(' - ');
+          code = split.shift().trim();
+          title = split.join(' - ').trim();
+        }
+
+        return {
+          code: code,
+          title: title,
+          label: title ? (code + ' - ' + title) : code,
+          program: program,
+          centre: centre
+        };
+      })
+      .filter(function (c) { return c.code || c.label; });
+  }
+
+  function programsFromCourses(courses) {
+    return uniqueNonEmpty(courses.map(function (c) { return c.program; }));
+  }
+
+  function courseTextFromDoc(courses) {
+    if (!Array.isArray(courses)) return '';
+    return courses.map(function (c) {
+      return [
+        c.code || '',
+        c.title || '',
+        c.program || '',
+        c.centre || ''
+      ].join(' | ').replace(/\s+\|\s+\|\s*$/g, '').trim();
+    }).join('\n');
+  }
+
+  function programsTextFromDoc(programs) {
+    return Array.isArray(programs) ? programs.join('\n') : '';
+  }
+
+  function setBox(id, html, cls) {
+    var el = document.getElementById(id);
+    el.style.display = 'block';
+    el.className = 'helper-box' + (cls ? ' ' + cls : '');
+    el.innerHTML = html;
+  }
+
+  function clearBox(id) {
+    var el = document.getElementById(id);
+    el.style.display = 'none';
+    el.innerHTML = '';
+  }
+
+  function disableButton(btn, disabled, text) {
+    btn.disabled = disabled;
+    if (text != null) btn.textContent = text;
+  }
+
+  function secondarySignOut() {
+    if (secondaryAuth && secondaryAuth.currentUser) {
+      return secondaryAuth.signOut().catch(function () {});
+    }
+    return Promise.resolve();
+  }
+
+  async function provisionOrVerifyLogin(staffId, password) {
+    var email = staffIdToEmail(staffId);
+    try {
+      var cred = await secondaryAuth.createUserWithEmailAndPassword(email, password);
+      var uid = cred.user.uid;
+      await secondarySignOut();
+      return { status: 'created', uid: uid, email: email };
+    } catch (e) {
+      await secondarySignOut();
+      if (e && e.code === 'auth/email-already-in-use') {
+        try {
+          var verified = await secondaryAuth.signInWithEmailAndPassword(email, password);
+          var verifiedUid = verified.user.uid;
+          await secondarySignOut();
+          return { status: 'verified_existing', uid: verifiedUid, email: email };
+        } catch (verifyErr) {
+          await secondarySignOut();
+          if (verifyErr && (
+              verifyErr.code === 'auth/invalid-credential' ||
+              verifyErr.code === 'auth/wrong-password' ||
+              verifyErr.code === 'auth/user-not-found')) {
+            return { status: 'exists_wrong_password', uid: null, email: email, error: verifyErr };
+          }
+          throw verifyErr;
+        }
+      }
+      throw e;
+    }
+  }
+
+  async function upsertTutorDoc(staffId, fields, uid, clearUid) {
+    var docRef = db.collection('tutors').doc(staffId);
+    var data = {
+      staffId: staffId,
+      name: fields.name,
+      loginEmail: staffIdToEmail(staffId),
+      updatedAt: new Date().toISOString()
+    };
+
+    if (fields.hasOwnProperty('programs')) data.programs = fields.programs;
+    if (fields.hasOwnProperty('courses')) data.courses = fields.courses;
+    if (uid) {
+      data.uid = uid;
+      data.authVerifiedAt = new Date().toISOString();
+    }
+
+    await docRef.set(data, { merge: true });
+
+    if (clearUid) {
+      await docRef.update({
+        uid: firebase.firestore.FieldValue.delete(),
+        uidClearedAt: new Date().toISOString()
+      });
+    }
+  }
+
+  async function getTutorDoc(staffId) {
+    var snap = await db.collection('tutors').doc(staffId).get();
+    if (!snap.exists) return null;
+    var data = snap.data() || {};
+    data._id = snap.id;
+    return data;
+  }
+
+  function buildTutorFieldsFromForm(existingDoc) {
+    var name = document.getElementById('tutorName').value.trim();
+    var programText = document.getElementById('programs').value;
+    var courseText = document.getElementById('courses').value;
+    var fields = { name: name };
+
+    if (programText.trim()) {
+      fields.programs = parseProgramLines(programText);
+    }
+
+    if (courseText.trim()) {
+      var parsedCourses = parseCourseLines(courseText);
+      fields.courses = parsedCourses;
+
+      if (!programText.trim()) {
+        var derivedPrograms = programsFromCourses(parsedCourses);
+        if (derivedPrograms.length) fields.programs = derivedPrograms;
+      }
+    }
+
+    if (!name && existingDoc && existingDoc.name) fields.name = existingDoc.name;
+    return fields;
+  }
+
+  function validateTutorForm() {
+    var sid = normalizeStaffId(document.getElementById('staffId').value);
+    var pw = document.getElementById('loginPassword').value;
+    var name = document.getElementById('tutorName').value.trim();
+
+    if (!sid) return 'Enter a Staff ID.';
+    if (!name) return 'Enter the tutor full name.';
+    if (pw && pw.length < 6) return 'Password must be at least 6 characters.';
+    return '';
+  }
+
+  function updateEmailPreview() {
+    var sid = normalizeStaffId(document.getElementById('staffId').value);
+    document.getElementById('staffId').value = sid;
+    document.getElementById('emailPreview').innerHTML = sid
+      ? 'Login email: <code>' + escapeHTML(staffIdToEmail(sid)) + '</code>'
+      : 'Login email will appear here.';
+  }
+
+  async function loadTutors() {
+    tutorsBody.innerHTML = '<tr><td colspan="3" class="empty">Loading tutor records…</td></tr>';
+    countLabel.textContent = 'Loading…';
+    try {
+      var snap = await db.collection('tutors').get();
+      tutors = [];
+      snap.forEach(function (doc) {
+        var d = doc.data() || {};
+        d._id = doc.id;
+        d.staffId = d.staffId || doc.id;
+        d.name = d.name || '';
+        d.programs = Array.isArray(d.programs) ? d.programs : [];
+        d.courses = Array.isArray(d.courses) ? d.courses : [];
+        tutors.push(d);
+      });
+      tutors.sort(function (a, b) {
+        return String(a.staffId).localeCompare(String(b.staffId));
+      });
+      renderTutors();
+      log('Loaded ' + tutors.length + ' tutor records from Firestore.', 'ok');
+    } catch (e) {
+      tutorsBody.innerHTML = '<tr><td colspan="3" class="empty">Could not load tutors.</td></tr>';
+      countLabel.textContent = '—';
+      log('Could not load tutors: ' + (e.message || e), 'err');
+    }
+  }
+
+  function renderTutors() {
+    var q = (searchInput.value || '').toLowerCase().trim();
+    var rows = tutors.filter(function (t) {
+      var hay = [
+        t.staffId,
+        t.name,
+        t.loginEmail || staffIdToEmail(t.staffId),
+        (t.programs || []).join(' '),
+        (t.courses || []).map(function (c) { return (c.label || '') + ' ' + (c.program || '') + ' ' + (c.centre || ''); }).join(' ')
+      ].join(' ').toLowerCase();
+      return !q || hay.indexOf(q) > -1;
+    });
+
+    countLabel.textContent = rows.length + ' of ' + tutors.length;
+    if (!rows.length) {
+      tutorsBody.innerHTML = '<tr><td colspan="3" class="empty">No matching tutor records.</td></tr>';
+      return;
+    }
+
+    tutorsBody.innerHTML = rows.map(function (t) {
+      var email = t.loginEmail || staffIdToEmail(t.staffId);
+      var uidBadge = t.uid
+        ? '<span class="badge ok">UID stored</span>'
+        : '<span class="badge warn">No UID</span>';
+      var programs = (t.programs || []).slice(0, 3).map(function (p) {
+        return '<span class="pill">' + escapeHTML(p) + '</span>';
+      }).join('');
+      var morePrograms = (t.programs || []).length > 3 ? '<span class="pill">+' + ((t.programs || []).length - 3) + ' more</span>' : '';
+      return '<tr data-staff-id="' + escapeHTML(t.staffId) + '">' +
+        '<td><code>' + escapeHTML(t.staffId) + '</code><br><span style="font-size:11px;color:#667085;">' + escapeHTML(email) + '</span></td>' +
+        '<td><strong>' + escapeHTML(t.name || '(no name)') + '</strong><br>' +
+          uidBadge + ' <span class="badge neutral">' + (t.courses || []).length + ' courses</span>' +
+          '<div class="pill-row">' + programs + morePrograms + '</div>' +
+        '</td>' +
+        '<td><button class="small editBtn" data-staff-id="' + escapeHTML(t.staffId) + '">Edit</button> ' +
+        '<button class="small subtle fillTestBtn" data-staff-id="' + escapeHTML(t.staffId) + '">Test</button></td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function clearTutorForm() {
+    document.getElementById('staffId').value = '';
+    document.getElementById('loginPassword').value = '';
+    document.getElementById('tutorName').value = '';
+    document.getElementById('programs').value = '';
+    document.getElementById('courses').value = '';
+    document.getElementById('clearUidOnPasswordMismatch').checked = true;
+    updateEmailPreview();
+    clearBox('saveResult');
+  }
+
+  async function fillTutorForm(staffId) {
+    var sid = normalizeStaffId(staffId);
+    var doc = await getTutorDoc(sid);
+    document.getElementById('staffId').value = sid;
+    document.getElementById('loginPassword').value = '';
+    updateEmailPreview();
+
+    if (doc) {
+      document.getElementById('tutorName').value = doc.name || '';
+      document.getElementById('programs').value = programsTextFromDoc(doc.programs);
+      document.getElementById('courses').value = courseTextFromDoc(doc.courses);
+      setBox('saveResult',
+        '<strong>Loaded ' + escapeHTML(sid) + '.</strong><br>' +
+        'You can update the directory details. Enter a password only if you want to create or verify the login.',
+        '');
+    } else {
+      document.getElementById('tutorName').value = '';
+      document.getElementById('programs').value = '';
+      document.getElementById('courses').value = '';
+      setBox('saveResult', '<strong>No Firestore record found for ' + escapeHTML(sid) + '.</strong><br>Fill the details and save to add this tutor.', '');
+    }
+
+    document.getElementById('staffId').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  async function saveTutor() {
+    var btn = document.getElementById('saveTutorBtn');
+    clearBox('saveResult');
+    var err = validateTutorForm();
+    if (err) {
+      setBox('saveResult', '❌ ' + escapeHTML(err), 'err');
+      return;
+    }
+
+    var sid = normalizeStaffId(document.getElementById('staffId').value);
+    var pw = document.getElementById('loginPassword').value;
+    var existingDoc = await getTutorDoc(sid);
+    var fields = buildTutorFieldsFromForm(existingDoc);
+    var clearUid = false;
+    var authMessage = '';
+    var uidToStore = null;
+
+    disableButton(btn, true, 'Saving…');
+
+    try {
+      if (pw) {
+        var result = await provisionOrVerifyLogin(sid, pw);
+        if (result.status === 'created') {
+          uidToStore = result.uid;
+          authMessage = '✅ Login account created and password set.';
+        } else if (result.status === 'verified_existing') {
+          uidToStore = result.uid;
+          authMessage = '✅ Login account already existed, and the typed password was verified successfully.';
+        } else if (result.status === 'exists_wrong_password') {
+          clearUid = document.getElementById('clearUidOnPasswordMismatch').checked;
+          authMessage =
+            '⚠️ Login account already exists, but the password you typed is NOT the current password. ' +
+            'The password was not changed. Use the "Change password when current password is known" section, or delete the Auth user in Firebase Console and recreate it here.';
+        }
+      } else {
+        authMessage = 'ℹ️ Firestore tutor record saved. Login account was not created or verified because no password was entered.';
+      }
+
+      await upsertTutorDoc(sid, fields, uidToStore, clearUid);
+      await loadTutors();
+
+      var html = '<strong>Saved ' + escapeHTML(sid) + '.</strong><br>' +
+        escapeHTML(authMessage) + '<br>' +
+        'Login email: <code>' + escapeHTML(staffIdToEmail(sid)) + '</code>';
+      if (clearUid) {
+        html += '<br>Stored UID was cleared to prevent UID-mismatch lockout.';
+      }
+
+      setBox('saveResult', html, authMessage.indexOf('⚠️') === 0 ? 'warn' : 'ok');
+      log('Saved ' + sid + '. ' + authMessage.replace(/[✅⚠️ℹ️]/g, ''), authMessage.indexOf('⚠️') === 0 ? 'warn' : 'ok');
+
+    } catch (e) {
+      setBox('saveResult', '❌ ' + escapeHTML(e.message || e), 'err');
+      log('Save failed for ' + sid + ': ' + (e.message || e), 'err');
+    } finally {
+      disableButton(btn, false, 'Save tutor / create login');
+    }
+  }
+
+  async function testLogin() {
+    var btn = document.getElementById('testLoginBtn');
+    var sid = normalizeStaffId(document.getElementById('testStaffId').value);
+    var pw = document.getElementById('testPassword').value;
+    var email = staffIdToEmail(sid);
+    lastVerifiedLogin = null;
+    document.getElementById('repairActions').style.display = 'none';
+
+    if (!sid) { setBox('testResult', '❌ Enter a Staff ID.', 'err'); return; }
+    if (!pw) { setBox('testResult', '❌ Enter the password to test.', 'err'); return; }
+
+    disableButton(btn, true, 'Testing…');
+
+    try {
+      var cred = await secondaryAuth.signInWithEmailAndPassword(email, pw);
+      var uid = cred.user.uid;
+      await secondarySignOut();
+
+      var doc = await getTutorDoc(sid);
+      var details = '<strong>✅ Login test passed for ' + escapeHTML(sid) + '.</strong><br>' +
+        'Auth UID: <code>' + escapeHTML(uid) + '</code><br>' +
+        'Login email: <code>' + escapeHTML(email) + '</code>';
+
+      if (!doc) {
+        details += '<br><span class="badge err">No Firestore record</span> Create/update the tutor record above.';
+      } else if (doc.uid && doc.uid !== uid) {
+        details += '<br><span class="badge err">UID mismatch</span> Firestore UID is <code>' + escapeHTML(doc.uid) + '</code>. This can block login. Use the repair button below.';
+        lastVerifiedLogin = { staffId: sid, uid: uid };
+        document.getElementById('repairActions').style.display = 'flex';
+      } else if (!doc.uid) {
+        details += '<br><span class="badge warn">No UID stored</span> The tutor may still sign in, but you can store the verified UID for stricter linking.';
+        lastVerifiedLogin = { staffId: sid, uid: uid };
+        document.getElementById('repairActions').style.display = 'flex';
+      } else {
+        details += '<br><span class="badge ok">Firestore UID matches</span>';
+      }
+
+      setBox('testResult', details, 'ok');
+      log('Login test passed for ' + sid + '.', 'ok');
+
+    } catch (e) {
+      await secondarySignOut();
+      var msg = e && (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' || e.code === 'auth/user-not-found')
+        ? 'Login test failed. The Staff ID account does not exist, or the password is wrong.'
+        : (e.message || e);
+      setBox('testResult', '❌ ' + escapeHTML(msg) + '<br>Login email checked: <code>' + escapeHTML(email) + '</code>', 'err');
+      log('Login test failed for ' + sid + ': ' + msg, 'err');
+    } finally {
+      disableButton(btn, false, 'Test login');
+    }
+  }
+
+  async function syncVerifiedUid() {
+    if (!lastVerifiedLogin) return;
+    try {
+      await db.collection('tutors').doc(lastVerifiedLogin.staffId).set({
+        uid: lastVerifiedLogin.uid,
+        staffId: lastVerifiedLogin.staffId,
+        loginEmail: staffIdToEmail(lastVerifiedLogin.staffId),
+        authVerifiedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      await loadTutors();
+      setBox('testResult', '✅ Stored verified UID for <code>' + escapeHTML(lastVerifiedLogin.staffId) + '</code>.', 'ok');
+      document.getElementById('repairActions').style.display = 'none';
+      log('Stored verified UID for ' + lastVerifiedLogin.staffId + '.', 'ok');
+    } catch (e) {
+      setBox('testResult', '❌ Could not store UID: ' + escapeHTML(e.message || e), 'err');
+    }
+  }
+
+  async function removeStoredUid() {
+    if (!lastVerifiedLogin) return;
+    try {
+      await db.collection('tutors').doc(lastVerifiedLogin.staffId).set({
+        staffId: lastVerifiedLogin.staffId,
+        loginEmail: staffIdToEmail(lastVerifiedLogin.staffId),
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      await db.collection('tutors').doc(lastVerifiedLogin.staffId).update({
+        uid: firebase.firestore.FieldValue.delete(),
+        uidClearedAt: new Date().toISOString()
+      });
+      await loadTutors();
+      setBox('testResult', '✅ Removed stored UID for <code>' + escapeHTML(lastVerifiedLogin.staffId) + '</code>.', 'ok');
+      document.getElementById('repairActions').style.display = 'none';
+      log('Removed stored UID for ' + lastVerifiedLogin.staffId + '.', 'ok');
+    } catch (e) {
+      setBox('testResult', '❌ Could not remove UID: ' + escapeHTML(e.message || e), 'err');
+    }
+  }
+
+  async function changeKnownPassword() {
+    var btn = document.getElementById('changeKnownPwBtn');
+    var sid = normalizeStaffId(document.getElementById('resetStaffId').value);
+    var currentPw = document.getElementById('currentPw').value;
+    var newPw = document.getElementById('newPw').value;
+    var email = staffIdToEmail(sid);
+
+    if (!sid) { setBox('knownResetResult', '❌ Enter a Staff ID.', 'err'); return; }
+    if (!currentPw) { setBox('knownResetResult', '❌ Enter the current password.', 'err'); return; }
+    if (!newPw || newPw.length < 6) { setBox('knownResetResult', '❌ New password must be at least 6 characters.', 'err'); return; }
+
+    disableButton(btn, true, 'Changing…');
+
+    try {
+      var cred = await secondaryAuth.signInWithEmailAndPassword(email, currentPw);
+      await cred.user.updatePassword(newPw);
+      var uid = cred.user.uid;
+      await secondarySignOut();
+
+      await db.collection('tutors').doc(sid).set({
+        staffId: sid,
+        loginEmail: email,
+        uid: uid,
+        authVerifiedAt: new Date().toISOString(),
+        passwordChangedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
+      await loadTutors();
+      setBox('knownResetResult', '✅ Password changed for <code>' + escapeHTML(sid) + '</code>.<br>Login email: <code>' + escapeHTML(email) + '</code>', 'ok');
+      document.getElementById('currentPw').value = '';
+      document.getElementById('newPw').value = '';
+      log('Password changed for ' + sid + '.', 'ok');
+
+    } catch (e) {
+      await secondarySignOut();
+      var msg = e && (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password')
+        ? 'Current password is incorrect, so the password was not changed.'
+        : (e.message || e);
+      setBox('knownResetResult', '❌ ' + escapeHTML(msg), 'err');
+      log('Password change failed for ' + sid + ': ' + msg, 'err');
+    } finally {
+      disableButton(btn, false, 'Change known password');
+    }
+  }
+
+  function updateConsoleEmailPreview() {
+    var sid = normalizeStaffId(document.getElementById('consoleStaffId').value);
+    document.getElementById('consoleStaffId').value = sid;
+    var email = staffIdToEmail(sid);
+    document.getElementById('consoleEmailPreview').innerHTML = email
+      ? 'Login email: <code>' + escapeHTML(email) + '</code>'
+      : 'Enter a Staff ID to generate the login email.';
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    return Promise.resolve();
+  }
+
+  function setupEvents() {
+    loginBtn.addEventListener('click', async function () {
+      var email = document.getElementById('adminEmail').value.trim();
+      var pass = document.getElementById('adminPass').value;
+      if (!email || !pass) { log('Enter admin email and password.', 'err'); return; }
+      disableButton(loginBtn, true, 'Signing in…');
+      try {
+        await auth.signInWithEmailAndPassword(email, pass);
+        document.getElementById('adminPass').value = '';
+        log('Signed in.', 'ok');
+      } catch (e) {
+        log('Sign-in failed: ' + (e.message || e), 'err');
+      } finally {
+        disableButton(loginBtn, false, 'Sign in');
+      }
+    });
+
+    document.getElementById('adminPass').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') loginBtn.click();
+    });
+
+    logoutBtn.addEventListener('click', function () {
+      auth.signOut();
+    });
+
+    document.getElementById('staffId').addEventListener('input', updateEmailPreview);
+    document.getElementById('saveTutorBtn').addEventListener('click', saveTutor);
+    document.getElementById('clearFormBtn').addEventListener('click', clearTutorForm);
+    document.getElementById('refreshBtn').addEventListener('click', loadTutors);
+    searchInput.addEventListener('input', renderTutors);
+
+    tutorsBody.addEventListener('click', function (e) {
+      var edit = e.target.closest('.editBtn');
+      var test = e.target.closest('.fillTestBtn');
+      if (edit) {
+        fillTutorForm(edit.getAttribute('data-staff-id'));
+      } else if (test) {
+        var sid = test.getAttribute('data-staff-id');
+        document.getElementById('testStaffId').value = sid;
+        document.getElementById('testPassword').focus();
+        clearBox('testResult');
+        document.getElementById('repairActions').style.display = 'none';
+      }
+    });
+
+    document.getElementById('testLoginBtn').addEventListener('click', testLogin);
+    document.getElementById('syncUidBtn').addEventListener('click', syncVerifiedUid);
+    document.getElementById('removeUidBtn').addEventListener('click', removeStoredUid);
+    document.getElementById('changeKnownPwBtn').addEventListener('click', changeKnownPassword);
+
+    document.getElementById('consoleStaffId').addEventListener('input', updateConsoleEmailPreview);
+    document.getElementById('copyEmailBtn').addEventListener('click', async function () {
+      var sid = normalizeStaffId(document.getElementById('consoleStaffId').value);
+      var email = staffIdToEmail(sid);
+      if (!email) { log('Enter a Staff ID first.', 'err'); return; }
+      try {
+        await copyText(email);
+        log('Copied ' + email, 'ok');
+      } catch (e) {
+        log('Could not copy email. Manually copy: ' + email, 'err');
+      }
+    });
+    document.getElementById('openAuthConsole').href = AUTH_CONSOLE_URL;
+  }
+
+  function initFirebase() {
+    if (typeof firebase === 'undefined' || !firebase.initializeApp) {
+      setStatus('fail', '<strong>Firebase could not load.</strong><br>Download this file and open it from your own computer with internet access.');
+      return;
+    }
+
+    try {
+      firebase.initializeApp(firebaseConfig);
+      auth = firebase.auth();
+      db = firebase.firestore();
+
+      secondaryApp = firebase.initializeApp(firebaseConfig, 'tutorAuthWorker');
+      secondaryAuth = secondaryApp.auth();
+
+      setupEvents();
+
+      auth.onAuthStateChanged(function (user) {
+        if (user) {
+          showAuthPanels(true);
+          setStatus('ready', 'Signed in as <strong>' + escapeHTML(user.email) + '</strong>.');
+          loadTutors();
+        } else {
+          showAuthPanels(false);
+          setStatus('ready', 'Firebase loaded. Sign in to manage tutors.');
+          tutors = [];
+          tutorsBody.innerHTML = '<tr><td colspan="3" class="empty">Sign in to load tutor records.</td></tr>';
+          countLabel.textContent = '—';
+        }
+      });
+
+    } catch (e) {
+      setStatus('fail', '<strong>Firebase init failed:</strong> ' + escapeHTML(e.message || e));
+    }
+  }
+
+  initFirebase();
+})();
+</script>
+</body>
+</html>
