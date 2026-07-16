@@ -232,6 +232,16 @@
             margin-top:16px; padding:12px 14px; background:#e8f0ff; border:1px solid #b9d0ff;
             border-radius:8px; font-size:15px; color:#0a2a6b;
         }
+        .grand-total-line.over-limit {
+            background:#fff1f2; border-color:#dc3545; color:#721c24;
+        }
+        .hours-limit-warning {
+            display:none; margin-top:10px; padding:11px 13px; border:1px solid #f5c2c7;
+            background:#fff1f2; color:#721c24; border-radius:8px; font-size:13px;
+            line-height:1.5; font-weight:500;
+        }
+        .hours-limit-warning strong { color:#5a1018; }
+        #submitBtn.hours-blocked { background:#8b8b8b; cursor:not-allowed; opacity:.75; }
         input, select, textarea {
             width:100%; padding:11px; margin-top:6px; border:1px solid #ccc;
             border-radius:6px; font-size:15px; transition: border 0.3s;
@@ -1103,7 +1113,10 @@
             <input type="hidden" id="onHours" name="onHours">
         </div>
 
-        <div class="grand-total-line">Grand total teaching hours: <strong id="grandTotal">0.00</strong></div>
+        <div class="grand-total-line" id="grandTotalLine">Grand total teaching hours: <strong id="grandTotal">0.00</strong></div>
+        <div id="hoursLimitWarning" class="hours-limit-warning" role="alert">
+            <strong>Hours limit exceeded:</strong> Total teaching hours cannot exceed 24. Please review the session times before submitting.
+        </div>
         <input type="hidden" id="totalHours" name="totalHours">
 
         <!-- ============ BANK DETAILS ============ -->
@@ -1507,6 +1520,30 @@ function sumSection(target) {
     return total;
 }
 
+const MAX_CLAIM_HOURS = 24;
+
+function updateHoursLimitWarning(totalHoursValue) {
+    const total = Number(totalHoursValue || 0);
+    const overLimit = total > MAX_CLAIM_HOURS + 0.0001;
+    const warning = document.getElementById('hoursLimitWarning');
+    const totalLine = document.getElementById('grandTotalLine');
+    const submitBtn = document.getElementById('submitBtn');
+
+    if (warning) {
+        warning.style.display = overLimit ? 'block' : 'none';
+        warning.innerHTML = '<strong>Hours limit exceeded:</strong> Total teaching hours cannot exceed ' +
+            MAX_CLAIM_HOURS + '. Current total is ' + total.toFixed(2) +
+            ' hours. Please review the session times before submitting.';
+    }
+    if (totalLine) totalLine.classList.toggle('over-limit', overLimit);
+    if (submitBtn) {
+        submitBtn.classList.toggle('hours-blocked', overLimit);
+        submitBtn.title = overLimit ? 'Total teaching hours cannot exceed ' + MAX_CLAIM_HOURS + ' hours.' : '';
+        if (!submitBtn.dataset.saving) submitBtn.disabled = overLimit;
+    }
+    return !overLimit;
+}
+
 function recomputeTotals() {
     const mode = (document.querySelector('input[name="modeOfDelivery"]:checked') || {}).value;
     let f2f = 0, on = 0;
@@ -1519,6 +1556,7 @@ function recomputeTotals() {
     const grand = f2f + on;
     document.getElementById('grandTotal').innerHTML = grand.toFixed(2) + ' <span class="hm">(' + hmLabel(grand) + ')</span>';
     document.getElementById('totalHours').value = grand.toFixed(2);
+    updateHoursLimitWarning(grand);
 }
 
 // Show/hide sections based on mode. Blended -> both; Purely Online -> online only.
@@ -2905,6 +2943,11 @@ function validateForm() {
     recomputeTotals();
     const grand = parseFloat(document.getElementById('totalHours').value || '0');
     if (mode && grand <= 0) { alert('Add at least one teaching session with valid start/end times.'); ok = false; }
+    if (mode && grand > MAX_CLAIM_HOURS) {
+        updateHoursLimitWarning(grand);
+        alert('Total teaching hours cannot exceed ' + MAX_CLAIM_HOURS + '. Current total is ' + grand.toFixed(2) + ' hours. Please correct the session times before submitting.');
+        ok = false;
+    }
     return ok;
 }
 
@@ -3122,6 +3165,7 @@ window.retryPendingSheetSyncs = retryPendingSheetSyncs;
 async function submitFormData(data) {
     const btn = document.getElementById('submitBtn');
     const orig = btn.textContent;
+    btn.dataset.saving = '1';
     btn.disabled = true; btn.textContent = '⏳ Saving...';
     document.getElementById('loading').style.display = 'block';
     hideMessages();
@@ -3136,7 +3180,9 @@ async function submitFormData(data) {
         // handled separately by the Apps Script time trigger, so the sync can still
         // happen even after the tutor closes this tab.
         showSuccessMessage('Claim saved to Firestore. The Google Sheet copy will be created automatically.');
+        delete btn.dataset.saving;
         btn.disabled = false; btn.textContent = orig;
+        updateHoursLimitWarning(parseFloat(document.getElementById('totalHours').value || '0'));
         document.getElementById('loading').style.display = 'none';
 
         await showSubmitSuccessPopup('Your claim has been successfully submitted and saved. The Google Sheet copy will be created automatically by the system.');
@@ -3144,7 +3190,9 @@ async function submitFormData(data) {
         resetForm();
     } catch (e) {
         showErrorMessage(e.message);
+        delete btn.dataset.saving;
         btn.disabled = false; btn.textContent = orig;
+        updateHoursLimitWarning(parseFloat(document.getElementById('totalHours').value || '0'));
         document.getElementById('loading').style.display = 'none';
     }
 }
