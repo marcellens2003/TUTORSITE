@@ -1949,7 +1949,7 @@ function showPreview() {
 
     document.getElementById('previewBody').innerHTML = html;
     document.getElementById('confirmSubmitBtn').disabled = false;
-    document.getElementById('confirmSubmitBtn').textContent = '✅ Confirm & Submit';
+    document.getElementById('confirmSubmitBtn').textContent = '✅ Submit & Download PDF';
     document.getElementById('previewOverlay').classList.add('open');
     document.getElementById('previewBody').scrollTop = 0;
 }
@@ -2247,11 +2247,62 @@ function closePreview() {
 }
 
 async function confirmSubmit() {
+    // Legacy fallback: kept in case an older cached button calls this function.
+    await submitAndDownloadFromPreview();
+}
+
+async function submitAndDownloadFromPreview() {
     const btn = document.getElementById('confirmSubmitBtn');
-    btn.disabled = true;
-    btn.textContent = '⏳ Submitting…';
-    closePreview();
-    await submitFormData(prepareFormData());
+    const oldText = btn ? btn.textContent : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = '⏳ Submitting…';
+    }
+    hideMessages();
+
+    try {
+        if (!validateForm()) {
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = oldText || '✅ Submit & Download PDF';
+            }
+            return;
+        }
+
+        const data = prepareFormData();
+        document.getElementById('loading').style.display = 'block';
+
+        const savedClaimId = await saveClaimToFirestore(data);
+        data.claimId = savedClaimId;
+        data.firestoreDocId = savedClaimId;
+        data.claimStatus = data.claimStatus || 'Submitted';
+
+        // Claim is now safely saved. The Google Sheet copy will be handled by the Apps Script trigger.
+        document.getElementById('loading').style.display = 'none';
+        showSuccessMessage('Claim saved to Firestore. Preparing your PDF download now.');
+
+        if (btn) btn.textContent = '⬇️ Preparing PDF…';
+        try {
+            await window.downloadPreviewPdf();
+        } catch (pdfErr) {
+            alert('Your claim has been submitted, but the PDF download failed: ' + (pdfErr.message || pdfErr));
+        }
+
+        closePreview();
+        await showSubmitSuccessPopup('Your claim has been successfully submitted and your PDF download has started. The Google Sheet copy will be created automatically by the system.');
+        await loadMyClaims();
+        resetForm();
+    } catch (e) {
+        document.getElementById('loading').style.display = 'none';
+        showErrorMessage(e.message || e);
+        closePreview();
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = oldText || '✅ Submit & Download PDF';
+        }
+        updateHoursLimitWarning(parseFloat(document.getElementById('totalHours').value || '0'));
+    }
 }
 
 // Close on backdrop click
@@ -3385,9 +3436,8 @@ function resetForm() {
     </div>
     <div class="preview-body" id="previewBody"></div>
     <div class="preview-footer">
-      <button class="btn-download" id="downloadPreviewPdfBtn" onclick="downloadPreviewPdf()">⬇️ Download PDF</button>
       <button class="btn-edit" onclick="closePreview()">✏️ Edit</button>
-      <button class="btn-confirm" id="confirmSubmitBtn" onclick="confirmSubmit()">✅ Confirm &amp; Submit</button>
+      <button class="btn-confirm" id="confirmSubmitBtn" onclick="submitAndDownloadFromPreview()">✅ Submit &amp; Download PDF</button>
     </div>
   </div>
 </div>
