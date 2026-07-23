@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claims PDF Admin Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: 'Rubik', Arial, sans-serif;
+    background: linear-gradient(135deg, #06183f 0%, #0b2d76 50%, #123c94 100%);
+    color: #1f2937;
+    padding: 22px 14px 40px;
+  }
+  .page { width: 100%; max-width: 1220px; margin: 0 auto; }
+  .topbar { display:flex; gap:14px; justify-content:space-between; align-items:stretch; flex-wrap:wrap; margin-bottom:16px; }
+  .brand {
+    flex:1 1 520px; position:relative; overflow:hidden; padding:20px 24px; border-radius:16px; color:#fff;
+    background: radial-gradient(90% 140% at 88% -10%, rgba(255,211,77,.18), rgba(255,211,77,0) 55%), linear-gradient(135deg,#08183f,#102a72 52%,#1d3a8f);
+    box-shadow:0 14px 36px rgba(5,16,48,.35), inset 0 0 0 1px rgba(255,211,77,.22);
+  }
+  .brand:before { content:""; position:absolute; left:0;right:0;top:0; height:4px; background:linear-gradient(90deg,#d4362a,#e8b500,#ffd34d,#e8b500,#d4362a); }
+  .brand h1 { margin:0; font-size:24px; letter-spacing:.2px; }
+  .brand p { margin:7px 0 0; color:#ffe08a; font-weight:500; font-size:14px; line-height:1.45; }
+  .top-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+  .admin-pill {
+    display:flex; flex-direction:column; justify-content:center; gap:2px; min-width:190px; max-width:310px;
+    padding:8px 11px; border-radius:10px; background:rgba(255,255,255,.94); border:1px solid rgba(255,211,77,.45);
+    color:#002147; box-shadow:0 8px 18px rgba(5,16,48,.18);
+  }
+  .admin-pill .admin-label { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.45px; color:#64748b; }
+  .admin-pill .admin-name { font-size:13px; font-weight:800; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .admin-pill .admin-email { font-size:11px; color:#475569; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  button, a.link-btn {
+    display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:10px 14px; border:none; border-radius:9px;
+    background:#0056b3; color:#fff; font:inherit; font-size:14px; font-weight:700; text-decoration:none; cursor:pointer; transition:.15s ease;
+  }
+  button:hover:not(:disabled), a.link-btn:hover { background:#003d82; transform:translateY(-1px); }
+  button:disabled { background:#9db8d5; cursor:not-allowed; transform:none; }
+  .subtle { background:#f1f5f9 !important; color:#1f2937 !important; border:1px solid #cbd5e1 !important; }
+  .danger { background:#dc3545 !important; }
+  .success { background:#198754 !important; }
+  .small { padding:7px 10px; font-size:12px; border-radius:7px; }
+  .card { background:rgba(255,255,255,.985); border:1px solid rgba(255,255,255,.65); border-radius:15px; padding:20px 22px; margin-bottom:16px; box-shadow:0 14px 36px rgba(5,16,48,.25); }
+  h2 { margin:0 0 12px; font-size:18px; color:#002147; border-bottom:2px solid #0056b3; padding-bottom:8px; }
+  .subtitle { color:#5b6573; font-size:13px; line-height:1.55; margin:-4px 0 14px; }
+  .status { display:none; padding:12px 15px; border-radius:9px; margin:12px 0 16px; font-size:13px; line-height:1.55; }
+  .status.ready { display:block; background:#d4edda; border:1px solid #b8dfc2; color:#155724; }
+  .status.warn { display:block; background:#fff3cd; border:1px solid #ffe69c; color:#806000; }
+  .status.fail { display:block; background:#f8d7da; border:1px solid #f1bfc6; color:#721c24; }
+  .grid { display:grid; grid-template-columns: 1.1fr .9fr; gap:16px; align-items:start; }
+  @media (max-width: 920px) { .grid { grid-template-columns:1fr; } }
+  .row { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
+  .row > div { flex:1; min-width:170px; }
+  label { display:block; font-size:13px; font-weight:700; color:#333; margin:10px 0 5px; }
+  input, select {
+    width:100%; padding:11px 12px; border:1px solid #cbd5e1; border-radius:8px; font:inherit; font-size:14px; background:#fff;
+  }
+  input:focus, select:focus { outline:none; border-color:#0056b3; box-shadow:0 0 0 3px rgba(0,86,179,.14); }
+  .toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:12px; }
+  .count { font-size:13px; font-weight:700; color:#455468; }
+  .table-wrap { overflow:auto; border:1px solid #e5e7eb; border-radius:12px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { padding:10px 9px; border-bottom:1px solid #e5e7eb; text-align:left; vertical-align:top; }
+  th { position:sticky; top:0; background:#f8fafc; color:#002147; z-index:1; }
+  tr:hover td { background:#f8fbff; }
+  .empty { text-align:center; color:#667085; padding:24px; }
+  .claim-title { font-weight:800; color:#002147; line-height:1.35; }
+  .claim-meta { color:#667085; font-size:12px; margin-top:4px; line-height:1.45; }
+  .badge { display:inline-flex; align-items:center; padding:3px 8px; border-radius:999px; font-size:11px; font-weight:800; margin:2px 4px 2px 0; background:#e8f1ff; color:#0b4aa2; }
+  .badge.synced { background:#d1e7dd; color:#0f5132; }
+  .badge.pending { background:#fff3cd; color:#664d03; }
+  .badge.failed { background:#f8d7da; color:#842029; }
+  .preview-box { border:1px dashed #cbd5e1; border-radius:12px; padding:14px; min-height:130px; background:#fbfdff; }
+  .muted { color:#667085; font-size:13px; line-height:1.55; }
+  .hidden { display:none !important; }
+
+  /* Printable claim design */
+  #printArea { display:none; }
+  .pdfPage { width: 210mm; min-height: 297mm; padding: 13mm 13mm 12mm; background:#fff; color:#111827; font-family: Arial, sans-serif; page-break-after: always; }
+  .pdfHeader { border:2px solid #002147; border-bottom:0; padding:10px 12px; display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+  .pdfHeader h1 { margin:0; font-size:18px; color:#002147; text-transform:uppercase; letter-spacing:.2px; }
+  .pdfHeader .school { font-size:12px; color:#4b5563; margin-top:3px; font-weight:bold; }
+  .pdfClaimId { text-align:right; font-size:10px; color:#4b5563; line-height:1.45; }
+  .pdfBand { background:#002147; color:#fff; padding:7px 12px; font-weight:bold; text-align:center; font-size:13px; letter-spacing:.3px; }
+  .pdfSection { border:1px solid #d1d5db; margin-top:9px; }
+  .pdfSectionTitle { background:#eef4ff; color:#002147; font-weight:bold; font-size:12px; padding:6px 8px; border-bottom:1px solid #cbd5e1; text-transform:uppercase; }
+  .pdfGrid { display:grid; grid-template-columns: 1fr 1fr; }
+  .pdfCell { padding:7px 8px; border-right:1px solid #e5e7eb; border-bottom:1px solid #e5e7eb; min-height:31px; }
+  .pdfCell:nth-child(2n) { border-right:0; }
+  .pdfLabel { display:block; color:#6b7280; font-size:9px; text-transform:uppercase; letter-spacing:.35px; margin-bottom:2px; }
+  .pdfValue { font-size:11.5px; font-weight:bold; color:#111827; line-height:1.35; }
+  .pdfTable { width:100%; border-collapse:collapse; font-size:10.5px; }
+  .pdfTable th { background:#f3f4f6; color:#111827; font-weight:bold; text-transform:uppercase; font-size:9.5px; }
+  .pdfTable th, .pdfTable td { border:1px solid #d1d5db; padding:5px 6px; }
+  .pdfTotalBox { margin-top:10px; display:flex; justify-content:flex-end; }
+  .pdfTotalBox div { border:2px solid #002147; background:#eef4ff; padding:8px 12px; font-size:14px; font-weight:bold; color:#002147; }
+  .signatureWrap { display:flex; gap:12px; align-items:flex-start; }
+  .signatureBox { flex:1; min-height:74px; border:1px dashed #9ca3af; padding:7px; display:flex; align-items:center; justify-content:center; }
+  .signatureBox img { max-height:72px; max-width:100%; object-fit:contain; }
+  .footerLine { margin-top:10px; font-size:9px; color:#6b7280; text-align:center; border-top:1px solid #d1d5db; padding-top:6px; }
+  @media print {
+    @page { size: A4; margin: 0; }
+    body { background:#fff; padding:0; }
+    body > .page { display:none !important; }
+    #printArea { display:block !important; }
+    .pdfPage { box-shadow:none; margin:0; page-break-after:always; }
+    .pdfPage:last-child { page-break-after:auto; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="topbar">
+    <div class="brand">
+      <h1>Claims PDF Admin Dashboard</h1>
+      <p>View, filter, and generate tutor-style facilitator claim PDFs from Firestore.</p>
+    </div>
+    <div class="top-actions">
+      <div id="currentAdminBox" class="admin-pill hidden">
+        <div class="admin-label">Current admin</div>
+        <div id="currentAdminName" class="admin-name">—</div>
+        <div id="currentAdminEmail" class="admin-email">—</div>
+      </div>
+      <a class="link-btn subtle" href="tutor-admin.html" target="_blank" rel="noopener">Tutor Admin</a>
+      <a class="link-btn subtle" href="tutor-report.html" target="_blank" rel="noopener">Report Form</a>
+      <button id="logoutBtn" class="danger hidden">Sign out</button>
+    </div>
+  </div>
+
+  <div id="status" class="status warn">Loading Firebase…</div>
+
+  <div class="card" id="loginCard">
+    <h2>Admin sign in</h2>
+    <div class="subtitle">Use your Firebase administrator account for the <code>monitoringucc</code> project. This dashboard reads the <code>claims</code> collection.</div>
+    <div class="row">
+      <div>
+        <label for="adminEmail">Admin email</label>
+        <input id="adminEmail" type="email" placeholder="you@example.com" autocomplete="username">
+      </div>
+      <div>
+        <label for="adminPass">Password</label>
+        <input id="adminPass" type="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div style="flex:0 0 auto;">
+        <button id="loginBtn">Sign in</button>
+      </div>
+    </div>
+    <p class="muted" id="uidHelp" style="margin-top:12px;"></p>
+  </div>
+
+  <div id="dashboard" class="hidden">
+    <div class="grid">
+      <div>
+        <div class="card">
+          <h2>Claims</h2>
+          <div class="subtitle">Search by tutor name, Staff ID, course, programme, centre, block, or claim ID. Use <strong>Print visible</strong> after filtering for a tutor.</div>
+          <div class="row">
+            <div style="flex:2; min-width:260px;">
+              <label for="searchInput">Search</label>
+              <input id="searchInput" type="text" placeholder="e.g. PGT0350, ENG803, Kumasi, Block 1…">
+            </div>
+            <div>
+              <label for="blockFilter">Block</label>
+              <select id="blockFilter">
+                <option value="">All blocks</option>
+                <option>Block 1</option>
+                <option>Block 2</option>
+                <option>Block 3</option>
+              </select>
+            </div>
+            <div>
+              <label for="syncFilter">Sheet status</label>
+              <select id="syncFilter">
+                <option value="">All</option>
+                <option value="pending">Pending</option>
+                <option value="synced">Synced</option>
+                <option value="failed">Failed</option>
+                <option value="syncing">Syncing</option>
+              </select>
+            </div>
+          </div>
+          <div class="toolbar">
+            <button id="loadBtn">Load / refresh claims</button>
+            <button id="printVisibleBtn" class="success">Download visible PDFs</button>
+            <button id="zipAllBtn" class="success">Download all PDFs ZIP</button>
+            <button id="clearFiltersBtn" class="subtle">Clear filters</button>
+            <span id="countLabel" class="count">—</span>
+          </div>
+          <div class="table-wrap" style="margin-top:12px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tutor / Course</th>
+                  <th>Details</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="claimsBody">
+                <tr><td colspan="3" class="empty">Sign in and load claims.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h2>Selected claim preview</h2>
+          <div id="previewBox" class="preview-box muted">Select a claim to preview it here before downloading the tutor-style PDF.</div>
+          <div class="toolbar">
+            <button id="printSelectedBtn" disabled>Download selected PDF</button>
+            <button id="copyClaimIdBtn" class="subtle" disabled>Copy claim ID</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Admin access note</h2>
+          <div class="subtitle">
+            If you see <strong>Missing or insufficient permissions</strong>, add this admin account's UID to Firestore under <code>admins/{uid}</code>, then update your rules to allow admins to read and delete claims.
+          </div>
+          <div class="preview-box">
+            <div class="muted">Current admin UID:</div>
+            <div id="adminUid" style="font-weight:800; color:#002147; word-break:break-all; margin-top:6px;">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="printArea"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+(function () {
+  var firebaseConfig = {
+    apiKey: "AIzaSyCzgOGc51Qr6DXnJ-zkczBtGniYNLf0jOw",
+    authDomain: "monitoringucc.firebaseapp.com",
+    projectId: "monitoringucc",
+    storageBucket: "monitoringucc.firebasestorage.app",
+    messagingSenderId: "210063574932",
+    appId: "1:210063574932:web:8ccd563312321dcd2af181"
+  };
+
+  // Apps Script web app used to delete the matching Google Sheet row.
+  // This should be the same deployed /exec URL used by tutor-report.html.
+  var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyJk2xPi1GjW858JJZEKh3J783facWjEKzyIFvQMapeOLZPf6cM0mgVlrv-R0qf0M6G/exec';
+
+  var auth, db;
+  var claims = [];
+  var filtered = [];
+  var selected = null;
+
+  var statusEl = document.getElementById('status');
+  var loginCard = document.getElementById('loginCard');
+  var dashboard = document.getElementById('dashboard');
+  var logoutBtn = document.getElementById('logoutBtn');
+  var currentAdminBox = document.getElementById('currentAdminBox');
+  var currentAdminName = document.getElementById('currentAdminName');
+  var currentAdminEmail = document.getElementById('currentAdminEmail');
+  var claimsBody = document.getElementById('claimsBody');
+  var countLabel = document.getElementById('countLabel');
+  var previewBox = document.getElementById('previewBox');
+  var printSelectedBtn = document.getElementById('printSelectedBtn');
+  var copyClaimIdBtn = document.getElementById('copyClaimIdBtn');
+
+  function setStatus(cls, html) {
+    statusEl.className = 'status ' + cls;
+    statusEl.innerHTML = html;
+  }
+  function showDashboard(show) {
+    dashboard.classList.toggle('hidden', !show);
+    loginCard.classList.toggle('hidden', show);
+    logoutBtn.classList.toggle('hidden', !show);
+    currentAdminBox.classList.toggle('hidden', !show);
+    if (!show) {
+      currentAdminName.textContent = '—';
+      currentAdminEmail.textContent = '—';
+    }
+  }
+  function escapeHTML(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+  }
+  async function loadCurrentAdminProfile(user) {
+    var profile = { name: '', email: user.email || '', role: '' };
+    try {
+      var doc = await db.collection('admins').doc(user.uid).get();
+      if (doc.exists) {
+        var data = doc.data() || {};
+        profile.name = clean(data.name || data.fullName || data.displayName || data.adminName || '');
+        profile.email = clean(data.email || data.adminEmail || user.email || '');
+        profile.role = clean(data.role || data.title || '');
+      }
+    } catch (e) {
+      console.warn('Could not read admin profile document:', e);
+    }
+    if (!profile.name) profile.name = clean(user.displayName || user.email || user.uid);
+    if (!profile.email) profile.email = clean(user.email || '');
+    currentAdminName.textContent = profile.name + (profile.role ? ' · ' + profile.role : '');
+    currentAdminEmail.textContent = profile.email || ('UID: ' + user.uid);
+    return profile;
+  }
+
+  function clean(s) { return String(s == null ? '' : s).trim(); }
+  function lower(s) { return clean(s).toLowerCase(); }
+  function formatTs(value) {
+    if (!value) return '';
+    try {
+      if (typeof value.toDate === 'function') return value.toDate().toLocaleString();
+      if (value.seconds) return new Date(value.seconds * 1000).toLocaleString();
+      var d = new Date(value);
+      return isNaN(d.getTime()) ? '' : d.toLocaleString();
+    } catch(e) { return ''; }
+  }
+  function tsMillis(value) {
+    if (!value) return 0;
+    if (typeof value.toDate === 'function') return value.toDate().getTime();
+    if (value.seconds) return value.seconds * 1000;
+    var t = Date.parse(value); return isNaN(t) ? 0 : t;
+  }
+  function field(d, names) {
+    for (var i=0; i<names.length; i++) {
+      var v = d[names[i]];
+      if (v !== undefined && v !== null && String(v).trim() !== '') return v;
+    }
+    return '';
+  }
+
+  function getSignatureSource(d) {
+    var names = [
+      'facilitatorSignature', 'facilitatorSignatureUrl', 'signature', 'signatureUrl',
+      'signatureDataUrl', 'facilitatorSignatureImage', 'facilitatorSignatureDataUrl',
+      'Facilitator Signature', 'FacilitatorSignature', 'Signature'
+    ];
+    var sig = clean(field(d, names));
+    if (!sig) return '';
+    // Support values copied from Google Sheets formulas like =IMAGE("https://...")
+    var formulaMatch = sig.match(/=IMAGE\(["']([^"']+)["']/i);
+    if (formulaMatch) sig = formulaMatch[1];
+    return sig;
+  }
+  function sheetStatus(d) { return lower(field(d, ['sheetSyncStatus'])) || 'pending'; }
+  function claimStatus(d) { return clean(field(d, ['claimStatus','status'])) || 'Submitted'; }
+  function courseCode(course) { return clean(course).split('|')[0].trim().split(/\s+/)[0] || clean(course); }
+  function splitCourseTitle(course) {
+    var raw = clean(course);
+    if (!raw) return { code:'', title:'' };
+    var parts = raw.split('|').map(function(x){ return clean(x); }).filter(Boolean);
+    if (parts.length >= 2) return { code:parts[0], title:parts.slice(1).join(' | ') };
+    var code = courseCode(raw);
+    return { code: code, title: raw.replace(code, '').trim() || raw };
+  }
+  function parseSessionItems(d, kind) {
+    var arr = kind === 'f2f' ? d.f2fSessionItems : d.onSessionItems;
+    var json = kind === 'f2f' ? d.f2fSessionItemsJson : d.onSessionItemsJson;
+    var text = kind === 'f2f' ? d.f2fSessions : d.onSessions;
+    if (Array.isArray(arr)) return arr;
+    if (json) {
+      try { var parsed = JSON.parse(json); if (Array.isArray(parsed)) return parsed; } catch(e) {}
+    }
+    if (text) {
+      return String(text).split(';').map(function(x){ return { date: clean(x), startDisplay:'', endDisplay:'', hours:'' }; }).filter(function(x){ return x.date; });
+    }
+    return [];
+  }
+  function claimSearchText(item) {
+    var d = item.data || {};
+    return [item.id, d.claimId, d.staffId, d.tutorName, d.course, d.program, d.programme, d.studyCentre, d.modeOfDelivery, d.semester, d.block, d.totalHours, d.remarks, d.sheetSyncStatus, d.claimStatus]
+      .map(clean).join(' ').toLowerCase();
+  }
+  function statusBadge(s) {
+    var c = 'badge ' + (lower(s) === 'synced' ? 'synced' : (lower(s) === 'failed' ? 'failed' : 'pending'));
+    return '<span class="' + c + '">' + escapeHTML(s || 'pending') + '</span>';
+  }
+
+  async function loadClaims() {
+    claimsBody.innerHTML = '<tr><td colspan="3" class="empty">Loading claims from Firestore…</td></tr>';
+    countLabel.textContent = 'Loading…';
+    try {
+      var snap = await db.collection('claims').get();
+      claims = [];
+      snap.forEach(function(doc){ claims.push({ id: doc.id, data: doc.data() || {} }); });
+      claims.sort(function(a,b){ return tsMillis(b.data.updatedAt || b.data.createdAt) - tsMillis(a.data.updatedAt || a.data.createdAt); });
+      applyFilters();
+      setStatus('ready', 'Claims loaded successfully.');
+    } catch (e) {
+      console.error(e);
+      claimsBody.innerHTML = '<tr><td colspan="3" class="empty">Could not load claims.</td></tr>';
+      setStatus('fail', '<strong>Could not load claims:</strong> ' + escapeHTML(e.message || e) + '<br>Check Firestore rules for admin read access.');
+    }
+  }
+
+  function applyFilters() {
+    var q = lower(document.getElementById('searchInput').value);
+    var block = lower(document.getElementById('blockFilter').value);
+    var sync = lower(document.getElementById('syncFilter').value);
+    filtered = claims.filter(function(item){
+      var d = item.data || {};
+      if (q && claimSearchText(item).indexOf(q) === -1) return false;
+      if (block && lower(d.block) !== block) return false;
+      if (sync && sheetStatus(d) !== sync) return false;
+      return true;
+    });
+    renderClaims();
+  }
+
+  function renderClaims() {
+    if (!filtered.length) {
+      claimsBody.innerHTML = '<tr><td colspan="3" class="empty">No claims match the current filters.</td></tr>';
+      countLabel.textContent = '0 claims';
+      return;
+    }
+    countLabel.textContent = filtered.length + ' visible of ' + claims.length + ' total';
+    claimsBody.innerHTML = filtered.map(function(item, idx){
+      var d = item.data || {};
+      var course = clean(d.course) || 'Untitled course';
+      var tutor = clean(d.tutorName) || 'Unknown tutor';
+      var staff = clean(d.staffId) || 'No Staff ID';
+      var meta = [d.program || d.programme, d.studyCentre, d.semester, d.block].filter(Boolean).join(' • ');
+      var details = [
+        '<span class="badge">' + escapeHTML(claimStatus(d)) + '</span>',
+        statusBadge(sheetStatus(d)),
+        d.totalHours ? '<span class="badge">' + escapeHTML(d.totalHours) + ' hrs</span>' : '',
+        '<div class="claim-meta">' + escapeHTML(d.claimId || item.id) + '</div>',
+        '<div class="claim-meta">Updated: ' + escapeHTML(formatTs(d.updatedAt || d.createdAt) || '—') + '</div>'
+      ].filter(Boolean).join('');
+      return '<tr data-index="' + idx + '">' +
+        '<td><div class="claim-title">' + escapeHTML(tutor) + ' — ' + escapeHTML(staff) + '</div><div class="claim-meta">' + escapeHTML(course) + '</div></td>' +
+        '<td><div class="claim-meta">' + escapeHTML(meta || '—') + '</div>' + details + '</td>' +
+        '<td><button class="small viewBtn" data-index="' + idx + '">Preview</button> <button class="small success printBtn" data-index="' + idx + '">Download PDF</button> <button class="small danger deleteBtn" data-index="' + idx + '">Delete</button></td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  function makePreview(item) {
+    var d = item.data || {};
+    var course = splitCourseTitle(d.course);
+    var sig = getSignatureSource(d);
+    previewBox.innerHTML =
+      '<div class="claim-title">' + escapeHTML(d.tutorName || '') + ' — ' + escapeHTML(d.staffId || '') + '</div>' +
+      '<div class="claim-meta">' + escapeHTML(course.code + (course.title ? ' — ' + course.title : '')) + '</div>' +
+      '<div style="margin-top:8px;">' +
+        '<span class="badge">' + escapeHTML(d.semester || '') + '</span>' +
+        '<span class="badge">' + escapeHTML(d.block || '') + '</span>' +
+        '<span class="badge">Total: ' + escapeHTML(d.totalHours || '0') + ' hrs</span>' +
+        statusBadge(sheetStatus(d)) +
+      '</div>' +
+      '<div class="claim-meta" style="margin-top:8px;">' + escapeHTML(d.program || d.programme || '') + ' • ' + escapeHTML(d.studyCentre || '') + '</div>' +
+      (sig ? '<div style="margin-top:10px;"><img src="' + escapeHTML(sig) + '" alt="Signature" style="max-width:240px; max-height:90px; border:1px solid #e5e7eb; border-radius:8px; padding:6px; background:#fff;"></div>' : '<div class="muted" style="margin-top:10px;">No signature image found in claim.</div>');
+  }
+
+  function selectClaim(item) {
+    selected = item;
+    makePreview(item);
+    printSelectedBtn.disabled = false;
+    copyClaimIdBtn.disabled = false;
+  }
+
+  function pdfCell(label, value) {
+    return '<div class="pdfCell"><span class="pdfLabel">' + escapeHTML(label) + '</span><div class="pdfValue">' + escapeHTML(value || '—') + '</div></div>';
+  }
+  function sessionRows(items) {
+    if (!items.length) return '<tr><td colspan="5" style="text-align:center;color:#6b7280;">No sessions recorded</td></tr>';
+    return items.map(function(it, i){
+      return '<tr><td>' + (i+1) + '</td><td>' + escapeHTML(it.date || '—') + '</td><td>' + escapeHTML(it.startDisplay || it.start || '—') + '</td><td>' + escapeHTML(it.endDisplay || it.end || '—') + '</td><td>' + escapeHTML(it.hoursLabel || it.hours || '—') + '</td></tr>';
+    }).join('');
+  }
+  // ===== Tutor-style PDF generator =====
+  // This uses the same manual PDF approach as the tutor form so the output
+  // matches the tutor PDF better than the browser print layout.
+  function safeFilePart(value) {
+    return String(value || '').trim().replace(/[^a-z0-9_-]+/gi, '-').replace(/^-+|-+$/g, '') || 'claim';
+  }
+  function ascii(value) {
+    return clean(value).normalize('NFKD').replace(/[^\x20-\x7E]/g, '');
+  }
+  function pdfEscape(value) {
+    return ascii(value).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+  }
+  function rgb(c) {
+    return (c[0]/255).toFixed(3)+' '+(c[1]/255).toFixed(3)+' '+(c[2]/255).toFixed(3);
+  }
+  function strBytes(s) {
+    var a = new Uint8Array(s.length);
+    for (var i=0;i<s.length;i++) a[i]=s.charCodeAt(i)&255;
+    return a;
+  }
+  function concatParts(parts) {
+    var len=0; parts.forEach(function(p){ len += p.length; });
+    var out=new Uint8Array(len); var pos=0;
+    parts.forEach(function(p){ out.set(p,pos); pos += p.length; });
+    return out;
+  }
+  function base64ToBytes(base64) {
+    base64 = String(base64 || '').replace(/\s/g, '').replace(/ /g, '+');
+    var bin = atob(base64);
+    var bytes = new Uint8Array(bin.length);
+    for (var i=0; i<bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+  }
+  function loadImage(src) {
+    return new Promise(function(resolve, reject){
+      var img = new Image();
+      img.onload = function(){ resolve(img); };
+      img.onerror = function(){ reject(new Error('Signature image could not be loaded.')); };
+      if (!String(src || '').match(/^data:/i)) img.crossOrigin = 'anonymous';
+      img.src = src;
+    });
+  }
+  async function signatureToJpeg(sig) {
+    sig = clean(sig);
+    if (!sig) return null;
+    var m = sig.match(/^data:image\/(jpeg|jpg);base64,(.+)$/i);
+    if (m) {
+      var img1 = await loadImage(sig).catch(function(){ return null; });
+      return {
+        bytes: base64ToBytes(m[2]),
+        width: (img1 && img1.naturalWidth) || 500,
+        height: (img1 && img1.naturalHeight) || 180
+      };
+    }
+    // Convert PNG/data URL or accessible URL to JPEG. Google Drive URLs may fail
+    // because of browser CORS; current Firestore submissions normally store JPEG data URLs.
+    try {
+      var img = await loadImage(sig);
+      var canvas = document.createElement('canvas');
+      var w = img.naturalWidth || img.width || 500;
+      var h = img.naturalHeight || img.height || 180;
+      var max = 700;
+      if (w > h && w > max) { h = Math.round(h * max / w); w = max; }
+      else if (h > max) { w = Math.round(w * max / h); h = max; }
+      canvas.width = w; canvas.height = h;
+      var ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0,0,w,h);
+      ctx.drawImage(img,0,0,w,h);
+      var jpeg = canvas.toDataURL('image/jpeg', 0.9);
+      var mm = jpeg.match(/^data:image\/jpeg;base64,(.+)$/i);
+      if (!mm) return null;
+      return { bytes: base64ToBytes(mm[1]), width:w, height:h };
+    } catch(e) {
+      console.warn('Could not embed signature in PDF:', e);
+      return null;
+    }
+  }
+  function normalizeSessionRows(d, kind) {
+    return parseSessionItems(d, kind).map(function(it, i){
+      return {
+        no: i + 1,
+        date: clean(it.date || it.sessionDate || it.Date) || '-',
+        start: clean(it.startDisplay || it.start || it.startTime || it.Start) || '-',
+        end: clean(it.endDisplay || it.end || it.endTime || it.End) || '-',
+        hrs: clean(it.hoursLabel || it.hours || it.duration || it.Hours) || '-'
+      };
+    });
+  }
+  function pdfClaimData(item) {
+    var d = item.data || {};
+    var c = splitCourseTitle(d.course || d.courseTitle || '');
+    return {
+      claimId: clean(d.claimId || item.id),
+      staffId: clean(d.staffId),
+      tutorName: clean(d.tutorName),
+      course: clean(c.code + (c.title ? ' | ' + c.title : '')),
+      program: clean(d.program || d.programme),
+      studyCentre: clean(d.studyCentre),
+      mode: clean(d.modeOfDelivery),
+      semester: clean(d.semester),
+      block: clean(d.block),
+      f2fTotal: clean(d.f2fHours || '0'),
+      onTotal: clean(d.onHours || d.onlineHours || '0'),
+      grandTotal: clean(d.totalHours || '0'),
+      travelFrom: clean(d.travelFrom),
+      travelTo: clean(d.travelTo),
+      bankName: clean(d.bankName),
+      bankBranch: clean(d.bankBranch),
+      accountName: clean(d.accountName),
+      accountNumber: clean(d.accountNumber),
+      ghanaCardNumber: clean(d.ghanaCardNumber || d.ghanaCard),
+      remarks: clean(d.remarks),
+      signature: getSignatureSource(d),
+      f2fRows: normalizeSessionRows(d, 'f2f'),
+      onRows: normalizeSessionRows(d, 'on'),
+      printed: new Date().toLocaleString()
+    };
+  }
+
+  async function buildTutorStylePdf(items) {
+    var pageW = 595.28, pageH = 841.89;
+    var margin = 42, footerH = 38, headerH = 88;
+    var blue = [0,33,71], blue2 = [0,86,179], gold = [232,181,0], red = [212,54,42];
+    var paleBlue = [235,242,252], paleGold = [255,248,225], lightLine = [218,226,238];
+    var textColor = [25,25,25], muted = [95,95,95], white = [255,255,255], soft = [248,250,253];
+    var pages = [];
+    var y = pageH - margin;
+    var imageList = [];
+    var imageByPage = {};
+
+    function current() { return pages[pages.length - 1]; }
+    function putText(str, x, yy, size, font, color, target) {
+      (target || current()).push('BT /'+(font || 'F1')+' '+size+' Tf '+rgb(color || textColor)+' rg 1 0 0 1 '+x.toFixed(2)+' '+yy.toFixed(2)+' Tm ('+pdfEscape(str)+') Tj ET');
+    }
+    function newPage() {
+      var cmds = [];
+      pages.push(cmds);
+      cmds.push('q '+rgb(blue)+' rg 0 '+(pageH-headerH).toFixed(2)+' '+pageW+' '+headerH+' re f Q');
+      cmds.push('q '+rgb(gold)+' rg 0 '+(pageH-headerH).toFixed(2)+' '+pageW+' 4 re f Q');
+      cmds.push('q '+rgb(red)+' rg 0 '+(pageH-headerH-4).toFixed(2)+' '+(pageW*0.18).toFixed(2)+' 4 re f Q');
+      cmds.push('q '+rgb(gold)+' rg '+(pageW*0.18).toFixed(2)+' '+(pageH-headerH-4).toFixed(2)+' '+(pageW*0.64).toFixed(2)+' 4 re f Q');
+      cmds.push('q '+rgb(red)+' rg '+(pageW*0.82).toFixed(2)+' '+(pageH-headerH-4).toFixed(2)+' '+(pageW*0.18).toFixed(2)+' 4 re f Q');
+      putText('UNIVERSITY OF CAPE COAST (UCC)', margin, pageH-35, 15, 'F2', white, cmds);
+      putText('College of Distance Education (CoDE)', margin, pageH-55, 10, 'F1', [255,224,138], cmds);
+      putText('FACILITATOR CLAIM SUMMARY', margin, pageH-75, 12, 'F2', white, cmds);
+      y = pageH - headerH - 28;
+    }
+    function ensure(h) { if (y - h < footerH + 18) newPage(); }
+    function rect(x, yb, w, h, fill, stroke) {
+      if (fill) current().push('q '+rgb(fill)+' rg '+x.toFixed(2)+' '+yb.toFixed(2)+' '+w.toFixed(2)+' '+h.toFixed(2)+' re f Q');
+      if (stroke) current().push('q '+rgb(stroke)+' RG 0.8 w '+x.toFixed(2)+' '+yb.toFixed(2)+' '+w.toFixed(2)+' '+h.toFixed(2)+' re S Q');
+    }
+    function wrap(str, size, width) {
+      str = ascii(str);
+      if (!str) return ['-'];
+      var maxChars = Math.max(12, Math.floor(width / (size * 0.50)));
+      var words = str.split(' ');
+      var out = [], line = '';
+      words.forEach(function(w){
+        var candidate = line ? line + ' ' + w : w;
+        if (candidate.length > maxChars && line) { out.push(line); line = w; }
+        else line = candidate;
+      });
+      if (line) out.push(line);
+      return out;
+    }
+    function section(title) {
+      ensure(35);
+      y -= 4;
+      rect(margin, y-22, pageW-margin*2, 24, paleBlue, null);
+      current().push('q '+rgb(blue2)+' rg '+margin.toFixed(2)+' '+(y-22).toFixed(2)+' 5 24 re f Q');
+      putText(title.toUpperCase(), margin+12, y-15, 10, 'F2', blue2);
+      y -= 34;
+    }
+    function field(label, value, x, w) {
+      var lines = wrap(value || '-', 9, w - 18).slice(0, 4);
+      var h = 38 + Math.max(0, lines.length-1)*11;
+      rect(x, y-h, w, h, soft, lightLine);
+      putText(label.toUpperCase(), x+9, y-14, 7, 'F2', muted);
+      var ty = y-29;
+      lines.forEach(function(l){ putText(l, x+9, ty, 9, 'F1', textColor); ty -= 11; });
+      return h;
+    }
+    function fieldGrid(items, columns) {
+      var gap = 10;
+      var colW = (pageW - margin*2 - gap*(columns-1)) / columns;
+      for (var i=0; i<items.length; i+=columns) {
+        var row = items.slice(i, i+columns);
+        var heights = row.map(function(it){ return 38 + Math.max(0, wrap(it.value || '-', 9, colW-18).slice(0,4).length-1)*11; });
+        var rowH = Math.max.apply(null, heights);
+        ensure(rowH + 8);
+        row.forEach(function(it, idx){ field(it.label, it.value, margin + idx*(colW+gap), colW); });
+        y -= rowH + 8;
+      }
+    }
+    function fullField(label, value) {
+      var w = pageW - margin*2;
+      var lines = wrap(value || '-', 9, w-18).slice(0, 6);
+      var h = 38 + Math.max(0, lines.length-1)*11;
+      ensure(h+8);
+      rect(margin, y-h, w, h, soft, lightLine);
+      putText(label.toUpperCase(), margin+9, y-14, 7, 'F2', muted);
+      var ty = y-29;
+      lines.forEach(function(l){ putText(l, margin+9, ty, 9, 'F1', textColor); ty -= 11; });
+      y -= h + 8;
+    }
+    function totalBox(label, value) {
+      ensure(36);
+      rect(margin, y-32, pageW-margin*2, 32, paleGold, [230,210,150]);
+      putText(label.toUpperCase(), margin+10, y-20, 8, 'F2', [93,75,0]);
+      putText(value || '-', pageW - margin - 120, y-20, 12, 'F2', blue);
+      y -= 42;
+    }
+    function sessionTable(title, rows, totalLabel, totalValue) {
+      section(title);
+      var x = margin, w = pageW-margin*2;
+      var col = [38, 138, 105, 105, w-386];
+      var hHead = 22, hRow = 24;
+      ensure(hHead + hRow + 10);
+      rect(x, y-hHead, w, hHead, blue, null);
+      var labels = ['#','Date','Start','End','Hours'];
+      var cx = x;
+      labels.forEach(function(l,i){ putText(l, cx+6, y-15, 8, 'F2', white); cx += col[i]; });
+      y -= hHead;
+      if (!rows.length) {
+        ensure(28);
+        rect(x, y-26, w, 26, [252,252,252], lightLine);
+        putText('No sessions recorded.', x+8, y-17, 9, 'F1', muted);
+        y -= 26;
+      } else {
+        rows.forEach(function(r, idx){
+          ensure(hRow + 8);
+          rect(x, y-hRow, w, hRow, idx % 2 ? [255,255,255] : [248,250,253], lightLine);
+          var vals = [String(r.no), r.date, r.start, r.end, r.hrs];
+          var xx = x;
+          vals.forEach(function(v,i){ putText(v || '-', xx+6, y-16, 8.5, i===4?'F2':'F1', textColor); xx += col[i]; });
+          y -= hRow;
+        });
+      }
+      y -= 8;
+      totalBox(totalLabel, totalValue);
+    }
+    async function signatureBlock(sigSource) {
+      section('Signature');
+      ensure(92);
+      rect(margin, y-82, pageW-margin*2, 82, [255,255,255], lightLine);
+      putText('FACILITATOR SIGNATURE', margin+10, y-15, 7, 'F2', muted);
+      var sigImage = await signatureToJpeg(sigSource);
+      if (sigImage) {
+        var imgName = 'SigImg' + (imageList.length + 1);
+        var pageIndex = pages.length - 1;
+        imageList.push({ name: imgName, image: sigImage });
+        if (!imageByPage[pageIndex]) imageByPage[pageIndex] = [];
+        imageByPage[pageIndex].push(imgName);
+        var maxW = 220, maxH = 56;
+        var scale = Math.min(maxW / sigImage.width, maxH / sigImage.height);
+        var iw = sigImage.width * scale, ih = sigImage.height * scale;
+        current().push('q '+iw.toFixed(2)+' 0 0 '+ih.toFixed(2)+' '+(margin+12).toFixed(2)+' '+(y-72).toFixed(2)+' cm /'+imgName+' Do Q');
+        putText('Signature image uploaded', margin+250, y-48, 9, 'F1', muted);
+      } else if (sigSource) {
+        putText('Signature exists in the claim, but the browser could not embed it in this PDF.', margin+12, y-47, 9, 'F1', muted);
+      } else {
+        putText('No signature uploaded.', margin+12, y-47, 9, 'F1', muted);
+      }
+      y -= 92;
+    }
+
+    for (var idx=0; idx<items.length; idx++) {
+      if (idx > 0 || pages.length === 0) newPage();
+      var data = pdfClaimData(items[idx]);
+      section('Facilitator Details');
+      fieldGrid([
+        {label:'Staff ID', value:data.staffId}, {label:'Name of Facilitator', value:data.tutorName}
+      ], 2);
+      section('Course & Claim Details');
+      fullField('Course Code & Title', data.course);
+      fieldGrid([
+        {label:'Programme', value:data.program}, {label:'Study Centre', value:data.studyCentre},
+        {label:'Mode of Delivery', value:data.mode}, {label:'Semester', value:data.semester},
+        {label:'Block of Teaching', value:data.block}, {label:'Generated', value:data.printed},
+        {label:'Claim ID', value:data.claimId}, {label:'Source', value:'Admin dashboard'}
+      ], 2);
+      if (data.mode === 'Blended') {
+        sessionTable('Face-to-Face Sessions', data.f2fRows, 'Total Face-to-Face Hours', data.f2fTotal);
+        if (data.travelFrom || data.travelTo) {
+          section('Facilitator Movement');
+          fieldGrid([{label:'Commuting From', value:data.travelFrom}, {label:'To', value:data.travelTo}], 2);
+        }
+        sessionTable('Online Sessions', data.onRows, 'Total Online Hours', data.onTotal);
+      } else {
+        sessionTable('Online Sessions', data.onRows, 'Total Online Hours', data.onTotal);
+      }
+      totalBox('Grand Total Teaching Hours', data.grandTotal);
+      if (data.bankName || data.bankBranch || data.accountName || data.accountNumber || data.ghanaCardNumber) {
+        section('Bank Details');
+        fieldGrid([
+          {label:'Bank', value:data.bankName}, {label:'Branch', value:data.bankBranch},
+          {label:'Account Name', value:data.accountName}, {label:'Account Number', value:data.accountNumber},
+          {label:'Ghana Card Number', value:data.ghanaCardNumber}
+        ], 2);
+      }
+      if (data.remarks) {
+        section('Remarks');
+        fullField('Remarks', data.remarks);
+      }
+      await signatureBlock(data.signature);
+    }
+
+    pages.forEach(function(cmds, i){
+      cmds.push('q '+rgb(lightLine)+' RG 0.7 w '+margin+' 36 m '+(pageW-margin)+' 36 l S Q');
+      putText('CoDE Facilitator Claim Summary', margin, 22, 8, 'F1', muted, cmds);
+      putText('Page '+(i+1)+' of '+pages.length, pageW-margin-55, 22, 8, 'F1', muted, cmds);
+    });
+
+    var objects = [];
+    function addObj(parts) { objects.push(Array.isArray(parts) ? parts : [strBytes(parts)]); return objects.length; }
+    addObj('<< /Type /Catalog /Pages 2 0 R >>');
+    addObj('');
+    addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+    addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
+    var imageObjIds = {};
+    imageList.forEach(function(entry){
+      imageObjIds[entry.name] = addObj([
+        strBytes('<< /Type /XObject /Subtype /Image /Width '+Math.round(entry.image.width)+' /Height '+Math.round(entry.image.height)+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+entry.image.bytes.length+' >>\nstream\n'),
+        entry.image.bytes,
+        strBytes('\nendstream')
+      ]);
+    });
+    var pageObjIds = [];
+    pages.forEach(function(cmds, pageIdx){
+      var stream = cmds.join('\n');
+      var contentId = addObj('<< /Length '+stream.length+' >>\nstream\n'+stream+'\nendstream');
+      var names = imageByPage[pageIdx] || [];
+      var xObj = '';
+      if (names.length) xObj = ' /XObject << ' + names.map(function(n){ return '/' + n + ' ' + imageObjIds[n] + ' 0 R'; }).join(' ') + ' >>';
+      var pageId = addObj('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+pageW+' '+pageH+'] /Resources << /Font << /F1 3 0 R /F2 4 0 R >>'+xObj+' >> /Contents '+contentId+' 0 R >>');
+      pageObjIds.push(pageId);
+    });
+    objects[1] = [strBytes('<< /Type /Pages /Kids ['+pageObjIds.map(function(id){ return id+' 0 R'; }).join(' ')+'] /Count '+pageObjIds.length+' >>')];
+    var parts = [strBytes('%PDF-1.4\n')];
+    var offset = parts[0].length;
+    var offsets = [0];
+    objects.forEach(function(bodyParts, idx){
+      offsets.push(offset);
+      var head = strBytes((idx+1)+' 0 obj\n');
+      var body = concatParts(bodyParts);
+      var tail = strBytes('\nendobj\n');
+      parts.push(head, body, tail);
+      offset += head.length + body.length + tail.length;
+    });
+    var xrefStart = offset;
+    var xref = 'xref\n0 '+(objects.length+1)+'\n0000000000 65535 f \n';
+    for (var i=1; i<=objects.length; i++) xref += String(offsets[i]).padStart(10,'0')+' 00000 n \n';
+    xref += 'trailer\n<< /Size '+(objects.length+1)+' /Root 1 0 R >>\nstartxref\n'+xrefStart+'\n%%EOF';
+    parts.push(strBytes(xref));
+    return concatParts(parts);
+  }
+
+  async function printClaims(items) {
+    if (!items || !items.length) { alert('No claims to print.'); return; }
+    var old = statusEl.innerHTML;
+    setStatus('ready', 'Preparing tutor-style PDF…');
+    try {
+      var pdfBytes = await buildTutorStylePdf(items);
+      var blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      var url = URL.createObjectURL(blob);
+      var name = items.length === 1
+        ? safeFilePart((items[0].data || {}).staffId) + '-' + safeFilePart((items[0].data || {}).course).slice(0,50) + '-claim.pdf'
+        : 'visible-facilitator-claims.pdf';
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+      setStatus('ready', 'PDF created. Open the downloaded file to print or save.');
+    } catch (e) {
+      console.error(e);
+      setStatus('fail', '<strong>PDF failed:</strong> ' + escapeHTML(e.message || e));
+      alert('PDF failed: ' + (e.message || e));
+    }
+  }
+
+
+  async function downloadClaimsZip(items) {
+    if (!items || !items.length) { alert('No claims available to zip.'); return; }
+    if (!window.JSZip) {
+      alert('ZIP library could not load. Check your internet connection and reload the page.');
+      return;
+    }
+
+    var confirmed = true;
+    if (items.length > 100) {
+      confirmed = confirm('This will generate ' + items.length + ' separate PDF files and may take a while. Continue?');
+    }
+    if (!confirmed) return;
+
+    var zip = new JSZip();
+    var usedNames = {};
+    setStatus('ready', 'Preparing ZIP: 0 of ' + items.length + ' PDFs…');
+
+    try {
+      for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        var d = item.data || {};
+        var baseName = [
+          safeFilePart(d.staffId || 'staff'),
+          safeFilePart(d.tutorName || 'tutor'),
+          safeFilePart(d.course || 'course').slice(0, 45),
+          safeFilePart(d.block || 'block'),
+          safeFilePart(d.claimId || item.id || String(i + 1)).slice(0, 35)
+        ].filter(Boolean).join('-') || ('claim-' + (i + 1));
+
+        var fileName = baseName + '.pdf';
+        if (usedNames[fileName]) {
+          usedNames[fileName] += 1;
+          fileName = baseName + '-' + usedNames[fileName] + '.pdf';
+        } else {
+          usedNames[fileName] = 1;
+        }
+
+        var pdfBytes = await buildTutorStylePdf([item]);
+        zip.file(fileName, pdfBytes);
+        setStatus('ready', 'Preparing ZIP: ' + (i + 1) + ' of ' + items.length + ' PDFs…');
+        await new Promise(function(resolve){ setTimeout(resolve, 0); });
+      }
+
+      setStatus('ready', 'Compressing ZIP file…');
+      var blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'all-facilitator-claim-pdfs.zip';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 3000);
+      setStatus('ready', 'ZIP created with ' + items.length + ' PDF files.');
+    } catch (e) {
+      console.error(e);
+      setStatus('fail', '<strong>ZIP failed:</strong> ' + escapeHTML(e.message || e));
+      alert('ZIP failed: ' + (e.message || e));
+    }
+  }
+
+  function buildAdminPostBody(data) {
+    return new URLSearchParams(data).toString();
+  }
+
+  async function deleteClaimFromGoogleSheet(item) {
+    var d = item.data || {};
+    var payload = {
+      action: 'deleteClaimFromSheet',
+      claimId: d.claimId || item.id || '',
+      firestoreDocId: item.id || '',
+      staffId: d.staffId || '',
+      tutorName: d.tutorName || '',
+      course: d.course || ''
+    };
+
+    var response = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: buildAdminPostBody(payload)
+    });
+
+    if (!response.ok) throw new Error('Apps Script returned HTTP ' + response.status);
+
+    var result;
+    try { result = await response.json(); }
+    catch (err) { throw new Error('Could not read Apps Script response. Check the deployed web app URL.'); }
+
+    if (!(result && result.success)) {
+      throw new Error((result && (result.error || result.message)) || 'Google Sheet delete failed.');
+    }
+    return result;
+  }
+
+  async function deleteClaim(item) {
+    if (!item || !item.id) return;
+    var d = item.data || {};
+    var label = [d.tutorName || 'Unknown tutor', d.staffId || '', d.course || '', d.block || ''].filter(Boolean).join(' | ');
+    var claimId = d.claimId || item.id;
+
+    var firstConfirm = confirm(
+      'Delete this claim from Firestore AND Google Sheet?\n\n' +
+      label + '\nClaim ID: ' + claimId + '\n\n' +
+      'This removes it from the admin dashboard, from the tutor\'s submitted claims list, and from the Google Sheet row matched by Claim ID.'
+    );
+    if (!firstConfirm) return;
+
+    var typed = prompt('To confirm deletion from Firestore and Google Sheet, type DELETE');
+    if (typed !== 'DELETE') {
+      setStatus('warn', 'Delete cancelled. You must type DELETE exactly.');
+      return;
+    }
+
+    try {
+      setStatus('warn', 'Deleting matching Google Sheet row…');
+      var sheetResult = await deleteClaimFromGoogleSheet(item);
+
+      setStatus('warn', 'Deleting claim from Firestore…');
+      await db.collection('claims').doc(item.id).delete();
+
+      claims = claims.filter(function(x){ return x.id !== item.id; });
+      filtered = filtered.filter(function(x){ return x.id !== item.id; });
+      if (selected && selected.id === item.id) {
+        selected = null;
+        previewBox.textContent = 'Select a claim to preview it here before downloading the tutor-style PDF.';
+        printSelectedBtn.disabled = true;
+        copyClaimIdBtn.disabled = true;
+      }
+      renderClaims();
+
+      var deletedRows = Number(sheetResult.deletedRows || (sheetResult.deleted ? 1 : 0));
+      var extra = deletedRows > 0 ? (' Google Sheet rows deleted: ' + deletedRows + '.') : ' No matching Google Sheet row was found, but the Firestore claim was deleted.';
+      setStatus('ready', 'Claim deleted successfully.' + extra);
+    } catch (e) {
+      console.error(e);
+      setStatus('fail', '<strong>Delete failed:</strong> ' + escapeHTML(e.message || e) + '<br>Nothing was removed from Firestore if the Google Sheet deletion failed first.');
+      alert('Delete failed: ' + (e.message || e));
+    }
+  }
+
+
+
+  function setupEvents() {
+    document.getElementById('loginBtn').addEventListener('click', async function(){
+      var email = clean(document.getElementById('adminEmail').value);
+      var pass = document.getElementById('adminPass').value;
+      if (!email || !pass) { alert('Enter admin email and password.'); return; }
+      try { await auth.signInWithEmailAndPassword(email, pass); document.getElementById('adminPass').value = ''; }
+      catch(e) { setStatus('fail', '<strong>Sign-in failed:</strong> ' + escapeHTML(e.message || e)); }
+    });
+    document.getElementById('adminPass').addEventListener('keydown', function(e){ if (e.key === 'Enter') document.getElementById('loginBtn').click(); });
+    logoutBtn.addEventListener('click', function(){ auth.signOut(); });
+    document.getElementById('loadBtn').addEventListener('click', loadClaims);
+    document.getElementById('searchInput').addEventListener('input', applyFilters);
+    document.getElementById('blockFilter').addEventListener('change', applyFilters);
+    document.getElementById('syncFilter').addEventListener('change', applyFilters);
+    document.getElementById('clearFiltersBtn').addEventListener('click', function(){
+      document.getElementById('searchInput').value = '';
+      document.getElementById('blockFilter').value = '';
+      document.getElementById('syncFilter').value = '';
+      applyFilters();
+    });
+    document.getElementById('printVisibleBtn').addEventListener('click', function(){ printClaims(filtered); });
+    document.getElementById('zipAllBtn').addEventListener('click', function(){ downloadClaimsZip(claims); });
+    printSelectedBtn.addEventListener('click', function(){ if (selected) printClaims([selected]); });
+    copyClaimIdBtn.addEventListener('click', async function(){
+      if (!selected) return;
+      var text = selected.data.claimId || selected.id;
+      try { await navigator.clipboard.writeText(text); alert('Claim ID copied.'); }
+      catch(e) { prompt('Copy Claim ID:', text); }
+    });
+    claimsBody.addEventListener('click', function(e){
+      var view = e.target.closest('.viewBtn');
+      var print = e.target.closest('.printBtn');
+      var del = e.target.closest('.deleteBtn');
+      if (view || print || del) {
+        var item = filtered[Number((view || print || del).getAttribute('data-index'))];
+        if (!item) return;
+        if (del) {
+          deleteClaim(item);
+          return;
+        }
+        selectClaim(item);
+        if (print) printClaims([item]);
+      }
+    });
+  }
+
+  function init() {
+    if (!window.firebase) {
+      setStatus('fail', 'Firebase could not load. Check your internet connection.');
+      return;
+    }
+    try {
+      firebase.initializeApp(firebaseConfig);
+      auth = firebase.auth();
+      db = firebase.firestore();
+      setupEvents();
+      auth.onAuthStateChanged(async function(user){
+        if (user) {
+          showDashboard(true);
+          document.getElementById('adminUid').textContent = user.uid;
+          document.getElementById('uidHelp').textContent = '';
+          var adminProfile = await loadCurrentAdminProfile(user);
+          setStatus('ready', 'Signed in as ' + escapeHTML(adminProfile.name) + (adminProfile.email ? ' (' + escapeHTML(adminProfile.email) + ')' : '') + '.');
+          loadClaims();
+        } else {
+          showDashboard(false);
+          selected = null;
+          previewBox.textContent = 'Select a claim to preview it here before downloading the tutor-style PDF.';
+          printSelectedBtn.disabled = true;
+          copyClaimIdBtn.disabled = true;
+          setStatus('ready', 'Firebase loaded. Sign in to print claim PDFs.');
+        }
+      });
+    } catch(e) { setStatus('fail', 'Firebase init failed: ' + escapeHTML(e.message || e)); }
+  }
+  init();
+})();
+</script>
+</body>
+</html>
