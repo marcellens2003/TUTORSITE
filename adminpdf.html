@@ -80,6 +80,21 @@
   .muted { color:#667085; font-size:13px; line-height:1.55; }
   .hidden { display:none !important; }
 
+  textarea {
+    width:100%; min-height:86px; padding:11px 12px; border:1px solid #cbd5e1; border-radius:8px;
+    font:inherit; font-size:13px; background:#fff; resize:vertical; line-height:1.45;
+  }
+  textarea:focus { outline:none; border-color:#0056b3; box-shadow:0 0 0 3px rgba(0,86,179,.14); }
+  .edit-card { position:sticky; top:12px; }
+  .edit-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 12px; }
+  .edit-grid .full { grid-column:1 / -1; }
+  .edit-hint { background:#fff8df; border:1px solid #ffe69c; color:#6b5200; border-radius:9px; padding:10px 12px; font-size:12px; line-height:1.45; margin:8px 0 12px; }
+  .edit-session-note { color:#667085; font-size:12px; line-height:1.45; margin:4px 0 8px; }
+  .edit-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .edit-total { font-weight:800; color:#002147; background:#eef4ff; border:1px solid #cbdaf4; padding:8px 10px; border-radius:8px; margin-top:8px; }
+  @media (max-width: 720px) { .edit-grid { grid-template-columns:1fr; } .edit-card { position:static; } }
+
+
   /* Printable claim design */
   #printArea { display:none; }
   .pdfPage { width: 210mm; min-height: 297mm; padding: 13mm 13mm 12mm; background:#fff; color:#111827; font-family: Arial, sans-serif; page-break-after: always; }
@@ -215,8 +230,47 @@
           <div id="previewBox" class="preview-box muted">Select a claim to preview it here before downloading the tutor-style PDF.</div>
           <div class="toolbar">
             <button id="printSelectedBtn" disabled>Download selected PDF</button>
+            <button id="editSelectedBtn" class="subtle" disabled>Edit selected claim</button>
             <button id="copyClaimIdBtn" class="subtle" disabled>Copy claim ID</button>
           </div>
+        </div>
+
+        <div class="card edit-card" id="editCard">
+          <h2>Edit selected claim</h2>
+          <div class="subtitle">Edit a submitted claim. Saving will update Firestore first, then mark the claim for Google Sheet re-sync.</div>
+          <div id="editEmpty" class="preview-box muted">Select a claim, then click <strong>Edit selected claim</strong> or the row <strong>Edit</strong> button.</div>
+          <form id="editForm" class="hidden">
+            <div class="edit-hint">Session rows use this format: <strong>Date | Start | End | Hours</strong>. Put one session per line.</div>
+            <div class="edit-grid">
+              <div class="full"><label for="editClaimId">Claim ID</label><input id="editClaimId" type="text" disabled></div>
+              <div><label for="editClaimStatus">Claim status</label><select id="editClaimStatus"><option>Submitted</option><option>Returned for Correction</option><option>Approved</option><option>Paid</option><option>Locked</option></select></div>
+              <div><label for="editSheetStatus">Sheet status</label><input id="editSheetStatus" type="text" disabled></div>
+              <div><label for="editStaffId">Staff ID</label><input id="editStaffId" type="text"></div>
+              <div><label for="editTutorName">Tutor Name</label><input id="editTutorName" type="text"></div>
+              <div class="full"><label for="editCourse">Course</label><input id="editCourse" type="text" placeholder="CODE | Course title"></div>
+              <div><label for="editProgram">Programme</label><input id="editProgram" type="text"></div>
+              <div><label for="editStudyCentre">Study Centre</label><input id="editStudyCentre" type="text"></div>
+              <div><label for="editMode">Mode of Delivery</label><input id="editMode" type="text" placeholder="Online or Blended"></div>
+              <div><label for="editSemester">Semester</label><input id="editSemester" type="text"></div>
+              <div><label for="editBlock">Block</label><input id="editBlock" type="text"></div>
+              <div><label for="editTravelFrom">Travel From</label><input id="editTravelFrom" type="text"></div>
+              <div><label for="editTravelTo">Travel To</label><input id="editTravelTo" type="text"></div>
+              <div><label for="editBankName">Bank Name</label><input id="editBankName" type="text"></div>
+              <div><label for="editBankBranch">Bank Branch</label><input id="editBankBranch" type="text"></div>
+              <div><label for="editAccountName">Account Name</label><input id="editAccountName" type="text"></div>
+              <div><label for="editAccountNumber">Account Number</label><input id="editAccountNumber" type="text"></div>
+              <div class="full"><label for="editGhanaCardNumber">Ghana Card Number</label><input id="editGhanaCardNumber" type="text"></div>
+              <div class="full"><label for="editF2fSessions">Face-to-face sessions</label><div class="edit-session-note">Example: 1 Jul 2026 | 8:00 AM | 10:00 AM | 2.00</div><textarea id="editF2fSessions"></textarea></div>
+              <div class="full"><label for="editOnlineSessions">Online sessions</label><div class="edit-session-note">Example: 1 Jul 2026 | 7:00 PM | 9:00 PM | 2.00</div><textarea id="editOnlineSessions"></textarea></div>
+              <div class="full"><label for="editRemarks">Remarks</label><textarea id="editRemarks"></textarea></div>
+            </div>
+            <div id="editTotalPreview" class="edit-total">Total hours: 0.00</div>
+            <div class="edit-actions">
+              <button type="submit" class="success" id="saveEditBtn">Save changes</button>
+              <button type="button" class="subtle" id="cancelEditBtn">Close editor</button>
+              <button type="button" id="downloadEditedPdfBtn">Download PDF</button>
+            </div>
+          </form>
         </div>
 
         <div class="card">
@@ -271,7 +325,10 @@
   var countLabel = document.getElementById('countLabel');
   var previewBox = document.getElementById('previewBox');
   var printSelectedBtn = document.getElementById('printSelectedBtn');
+  var editSelectedBtn = document.getElementById('editSelectedBtn');
   var copyClaimIdBtn = document.getElementById('copyClaimIdBtn');
+  var editEmpty = document.getElementById('editEmpty');
+  var editForm = document.getElementById('editForm');
 
   function setStatus(cls, html) {
     statusEl.className = 'status ' + cls;
@@ -438,7 +495,7 @@
       return '<tr data-index="' + idx + '">' +
         '<td><div class="claim-title">' + escapeHTML(tutor) + ' — ' + escapeHTML(staff) + '</div><div class="claim-meta">' + escapeHTML(course) + '</div></td>' +
         '<td><div class="claim-meta">' + escapeHTML(meta || '—') + '</div>' + details + '</td>' +
-        '<td><button class="small viewBtn" data-index="' + idx + '">Preview</button> <button class="small success printBtn" data-index="' + idx + '">Download PDF</button> <button class="small danger deleteBtn" data-index="' + idx + '">Delete</button></td>' +
+        '<td><button class="small viewBtn" data-index="' + idx + '">Preview</button> <button class="small editBtn" data-index="' + idx + '">Edit</button> <button class="small success printBtn" data-index="' + idx + '">Download PDF</button> <button class="small danger deleteBtn" data-index="' + idx + '">Delete</button></td>' +
         '</tr>';
     }).join('');
   }
@@ -464,7 +521,183 @@
     selected = item;
     makePreview(item);
     printSelectedBtn.disabled = false;
+    editSelectedBtn.disabled = false;
     copyClaimIdBtn.disabled = false;
+  }
+
+
+  function setEditValue(id, value) {
+    var el = document.getElementById(id);
+    if (el) el.value = value == null ? '' : String(value);
+  }
+  function getEditValue(id) {
+    var el = document.getElementById(id);
+    return el ? clean(el.value) : '';
+  }
+  function sessionItemsToText(items) {
+    if (!Array.isArray(items) || !items.length) return '';
+    return items.map(function(it){
+      it = it || {};
+      return [
+        clean(it.date || it.sessionDate || it.Date),
+        clean(it.startDisplay || it.start || it.startTime || it.Start),
+        clean(it.endDisplay || it.end || it.endTime || it.End),
+        clean(it.hoursLabel || it.hours || it.duration || it.Hours)
+      ].filter(function(v, idx){ return idx < 3 || v; }).join(' | ');
+    }).join('\n');
+  }
+  function parseEditSessionText(text) {
+    text = String(text || '').trim();
+    if (!text) return [];
+    return text.split(/\r?\n/).map(function(line){
+      line = clean(line);
+      if (!line) return null;
+      var parts = line.indexOf('|') >= 0 ? line.split('|') : (line.indexOf('\t') >= 0 ? line.split('\t') : line.split(','));
+      parts = parts.map(clean);
+      var hoursRaw = parts[3] || '';
+      var hoursNum = parseFloat(String(hoursRaw).replace(/[^0-9.\-]/g, ''));
+      if (isNaN(hoursNum)) hoursNum = 0;
+      return {
+        date: parts[0] || '',
+        start: parts[1] || '',
+        startDisplay: parts[1] || '',
+        end: parts[2] || '',
+        endDisplay: parts[2] || '',
+        hours: hoursNum,
+        hoursLabel: hoursNum ? hoursNum.toFixed(2) : (hoursRaw || '')
+      };
+    }).filter(Boolean);
+  }
+  function sessionTotalHours(items) {
+    return (items || []).reduce(function(sum, it){
+      var n = parseFloat(String((it && (it.hours || it.hoursLabel)) || '').replace(/[^0-9.\-]/g, ''));
+      return sum + (isNaN(n) ? 0 : n);
+    }, 0);
+  }
+  function normalizeClaimPart(value) {
+    return clean(value).toUpperCase().replace(/&/g, 'AND').replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'NA';
+  }
+  function buildAdminClaimKeyFromPatch(data) {
+    return [
+      normalizeClaimPart(data.staffId),
+      normalizeClaimPart(courseCode(data.course)),
+      normalizeClaimPart(data.program || data.programme),
+      normalizeClaimPart(data.studyCentre),
+      normalizeClaimPart(data.semester),
+      normalizeClaimPart(data.block)
+    ].join('__');
+  }
+  function updateEditTotalPreview() {
+    var f2f = parseEditSessionText(getEditValue('editF2fSessions'));
+    var online = parseEditSessionText(getEditValue('editOnlineSessions'));
+    var total = sessionTotalHours(f2f) + sessionTotalHours(online);
+    var box = document.getElementById('editTotalPreview');
+    if (box) box.textContent = 'Total hours: ' + total.toFixed(2);
+    return { f2f:f2f, online:online, total:total };
+  }
+  function openEditPanel(item) {
+    if (!item) return;
+    selected = item;
+    selectClaim(item);
+    var d = item.data || {};
+    setEditValue('editClaimId', d.claimId || item.id || '');
+    setEditValue('editClaimStatus', claimStatus(d));
+    setEditValue('editSheetStatus', sheetStatus(d));
+    setEditValue('editStaffId', d.staffId || '');
+    setEditValue('editTutorName', d.tutorName || '');
+    setEditValue('editCourse', d.course || '');
+    setEditValue('editProgram', d.program || d.programme || '');
+    setEditValue('editStudyCentre', d.studyCentre || '');
+    setEditValue('editMode', d.modeOfDelivery || '');
+    setEditValue('editSemester', d.semester || '');
+    setEditValue('editBlock', d.block || '');
+    setEditValue('editTravelFrom', d.travelFrom || '');
+    setEditValue('editTravelTo', d.travelTo || '');
+    setEditValue('editBankName', d.bankName || '');
+    setEditValue('editBankBranch', d.bankBranch || '');
+    setEditValue('editAccountName', d.accountName || '');
+    setEditValue('editAccountNumber', d.accountNumber || '');
+    setEditValue('editGhanaCardNumber', d.ghanaCardNumber || d.ghanaCard || '');
+    setEditValue('editF2fSessions', sessionItemsToText(parseSessionItems(d, 'f2f')));
+    setEditValue('editOnlineSessions', sessionItemsToText(parseSessionItems(d, 'on')));
+    setEditValue('editRemarks', d.remarks || '');
+    updateEditTotalPreview();
+    editEmpty.classList.add('hidden');
+    editForm.classList.remove('hidden');
+    document.getElementById('editCard').scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+  function closeEditPanel() {
+    editForm.classList.add('hidden');
+    editEmpty.classList.remove('hidden');
+  }
+  async function saveEditedClaim() {
+    if (!selected || !selected.id) throw new Error('No claim selected.');
+    var totals = updateEditTotalPreview();
+    if (totals.total > 24) {
+      throw new Error('Total hours exceed 24. Please correct the sessions before saving.');
+    }
+    var program = getEditValue('editProgram');
+    var claimId = selected.data.claimId || selected.id;
+    var nowText = new Date().toISOString();
+    var f2fHours = sessionTotalHours(totals.f2f).toFixed(2);
+    var onlineHours = sessionTotalHours(totals.online).toFixed(2);
+    var status = getEditValue('editClaimStatus') || 'Submitted';
+    var patch = {
+      claimId: claimId,
+      firestoreDocId: selected.id,
+      staffId: getEditValue('editStaffId').toUpperCase(),
+      tutorName: getEditValue('editTutorName'),
+      course: getEditValue('editCourse'),
+      program: program,
+      programme: program,
+      studyCentre: getEditValue('editStudyCentre'),
+      modeOfDelivery: getEditValue('editMode'),
+      semester: getEditValue('editSemester'),
+      block: getEditValue('editBlock'),
+      travelFrom: getEditValue('editTravelFrom'),
+      travelTo: getEditValue('editTravelTo'),
+      bankName: getEditValue('editBankName'),
+      bankBranch: getEditValue('editBankBranch'),
+      accountName: getEditValue('editAccountName'),
+      accountNumber: getEditValue('editAccountNumber'),
+      ghanaCardNumber: getEditValue('editGhanaCardNumber'),
+      remarks: getEditValue('editRemarks'),
+      claimStatus: status,
+      status: status,
+      f2fSessionItems: totals.f2f,
+      f2fSessionItemsJson: JSON.stringify(totals.f2f),
+      f2fSessions: sessionItemsToText(totals.f2f),
+      f2fHours: f2fHours,
+      onSessionItems: totals.online,
+      onSessionItemsJson: JSON.stringify(totals.online),
+      onSessions: sessionItemsToText(totals.online),
+      onHours: onlineHours,
+      onlineHours: onlineHours,
+      totalHours: totals.total.toFixed(2),
+      claimKey: '',
+      uniqueClaimKey: '',
+      sheetSyncStatus: 'pending',
+      sheetSyncMessage: 'Admin edited claim; waiting for Google Sheet sync.',
+      sheetSyncError: '',
+      updatedByAdminUid: auth.currentUser ? auth.currentUser.uid : '',
+      updatedByAdminEmail: auth.currentUser ? (auth.currentUser.email || '') : '',
+      adminEditedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    patch.claimKey = buildAdminClaimKeyFromPatch(patch);
+    patch.uniqueClaimKey = patch.claimKey;
+
+    setStatus('warn', 'Saving claim changes to Firestore…');
+    await db.collection('claims').doc(selected.id).set(patch, { merge:true });
+
+    var localPatch = Object.assign({}, patch, { updatedAt: nowText, adminEditedAt: nowText });
+    Object.assign(selected.data, localPatch);
+    claims = claims.map(function(x){ return x.id === selected.id ? selected : x; });
+    applyFilters();
+    var refreshed = claims.find(function(x){ return x.id === selected.id; }) || selected;
+    selectClaim(refreshed);
+    openEditPanel(refreshed);
+    setStatus('ready', 'Claim updated. Sheet status is now pending, so the Apps Script sync will update the Google Sheet row by Claim ID.');
   }
 
   function pdfCell(label, value) {
@@ -756,8 +989,7 @@
       fieldGrid([
         {label:'Programme', value:data.program}, {label:'Study Centre', value:data.studyCentre},
         {label:'Mode of Delivery', value:data.mode}, {label:'Semester', value:data.semester},
-        {label:'Block of Teaching', value:data.block}, {label:'Generated', value:data.printed},
-        {label:'Claim ID', value:data.claimId}, {label:'Source', value:'Admin dashboard'}
+        {label:'Block of Teaching', value:data.block}, {label:'Generated', value:data.printed}
       ], 2);
       if (data.mode === 'Blended') {
         sessionTable('Face-to-Face Sessions', data.f2fRows, 'Total Face-to-Face Hours', data.f2fTotal);
@@ -988,7 +1220,9 @@
         selected = null;
         previewBox.textContent = 'Select a claim to preview it here before downloading the tutor-style PDF.';
         printSelectedBtn.disabled = true;
+        editSelectedBtn.disabled = true;
         copyClaimIdBtn.disabled = true;
+        closeEditPanel();
       }
       renderClaims();
 
@@ -1027,6 +1261,20 @@
     document.getElementById('printVisibleBtn').addEventListener('click', function(){ printClaims(filtered); });
     document.getElementById('zipAllBtn').addEventListener('click', function(){ downloadClaimsZip(claims); });
     printSelectedBtn.addEventListener('click', function(){ if (selected) printClaims([selected]); });
+    editSelectedBtn.addEventListener('click', function(){ if (selected) openEditPanel(selected); });
+    document.getElementById('cancelEditBtn').addEventListener('click', closeEditPanel);
+    document.getElementById('downloadEditedPdfBtn').addEventListener('click', function(){ if (selected) printClaims([selected]); });
+    document.getElementById('editF2fSessions').addEventListener('input', updateEditTotalPreview);
+    document.getElementById('editOnlineSessions').addEventListener('input', updateEditTotalPreview);
+    editForm.addEventListener('submit', async function(e){
+      e.preventDefault();
+      try { await saveEditedClaim(); }
+      catch (err) {
+        console.error(err);
+        setStatus('fail', '<strong>Edit failed:</strong> ' + escapeHTML(err.message || err));
+        alert('Edit failed: ' + (err.message || err));
+      }
+    });
     copyClaimIdBtn.addEventListener('click', async function(){
       if (!selected) return;
       var text = selected.data.claimId || selected.id;
@@ -1035,16 +1283,18 @@
     });
     claimsBody.addEventListener('click', function(e){
       var view = e.target.closest('.viewBtn');
+      var edit = e.target.closest('.editBtn');
       var print = e.target.closest('.printBtn');
       var del = e.target.closest('.deleteBtn');
-      if (view || print || del) {
-        var item = filtered[Number((view || print || del).getAttribute('data-index'))];
+      if (view || edit || print || del) {
+        var item = filtered[Number((view || edit || print || del).getAttribute('data-index'))];
         if (!item) return;
         if (del) {
           deleteClaim(item);
           return;
         }
         selectClaim(item);
+        if (edit) openEditPanel(item);
         if (print) printClaims([item]);
       }
     });
