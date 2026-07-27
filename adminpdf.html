@@ -386,6 +386,20 @@
     if (value.seconds) return value.seconds * 1000;
     var t = Date.parse(value); return isNaN(t) ? 0 : t;
   }
+  function claimCreatedMillis(item) {
+    var d = (item && item.data) || {};
+    // Use the original submission time for ordering so edited claims do not jump
+    // to the top/bottom. New submissions are placed after older submissions.
+    return tsMillis(d.createdAt || d.submittedAt || d.timestamp || d.Timestamp || d.created || d.updatedAt);
+  }
+  function compareClaimsOldestFirst(a, b) {
+    var ta = claimCreatedMillis(a);
+    var tb = claimCreatedMillis(b);
+    if (ta !== tb) return ta - tb;
+    var ka = clean((a.data || {}).claimId || a.id).toLowerCase();
+    var kb = clean((b.data || {}).claimId || b.id).toLowerCase();
+    return ka < kb ? -1 : (ka > kb ? 1 : 0);
+  }
   function field(d, names) {
     for (var i=0; i<names.length; i++) {
       var v = d[names[i]];
@@ -448,7 +462,9 @@
       var snap = await db.collection('claims').get();
       claims = [];
       snap.forEach(function(doc){ claims.push({ id: doc.id, data: doc.data() || {} }); });
-      claims.sort(function(a,b){ return tsMillis(b.data.updatedAt || b.data.createdAt) - tsMillis(a.data.updatedAt || a.data.createdAt); });
+      // Oldest submissions first. This keeps previously downloaded combined PDFs
+      // in the same order, while newly submitted claims appear at the bottom.
+      claims.sort(compareClaimsOldestFirst);
       applyFilters();
       setStatus('ready', 'Claims loaded successfully.');
     } catch (e) {
@@ -490,7 +506,7 @@
         statusBadge(sheetStatus(d)),
         d.totalHours ? '<span class="badge">' + escapeHTML(d.totalHours) + ' hrs</span>' : '',
         '<div class="claim-meta">' + escapeHTML(d.claimId || item.id) + '</div>',
-        '<div class="claim-meta">Updated: ' + escapeHTML(formatTs(d.updatedAt || d.createdAt) || '—') + '</div>'
+        '<div class="claim-meta">Submitted: ' + escapeHTML(formatTs(d.createdAt || d.submittedAt || d.updatedAt) || '—') + '</div>'
       ].filter(Boolean).join('');
       return '<tr data-index="' + idx + '">' +
         '<td><div class="claim-title">' + escapeHTML(tutor) + ' — ' + escapeHTML(staff) + '</div><div class="claim-meta">' + escapeHTML(course) + '</div></td>' +
