@@ -250,6 +250,36 @@
     <div class="grid">
       <div>
         <div class="card">
+          <h2>Active block for tutors</h2>
+          <div class="subtitle">
+            Choose the block that tutors should currently see on the claim form. Tutors will not choose the block themselves.
+          </div>
+
+          <div class="row">
+            <div>
+              <label for="activeBlockSelect">Current active block</label>
+              <select id="activeBlockSelect">
+                <option value="">Select active block</option>
+                <option value="Block 1">Block 1</option>
+                <option value="Block 2">Block 2</option>
+                <option value="Block 3">Block 3</option>
+              </select>
+              <div class="hint">This controls the courses shown to all tutors on tutor-report.html.</div>
+            </div>
+            <div>
+              <label>Saved active block</label>
+              <div id="activeBlockCurrent" class="helper-box" style="margin-top:0;min-height:44px;">Loading…</div>
+            </div>
+          </div>
+
+          <div class="toolbar" style="margin-top:16px;">
+            <button id="saveActiveBlockBtn">Save active block</button>
+            <button id="refreshActiveBlockBtn" class="subtle">Refresh</button>
+          </div>
+          <div id="activeBlockResult" class="helper-box" style="display:none;"></div>
+        </div>
+
+        <div class="card">
           <h2>Add / update one tutor</h2>
           <div class="subtitle">
             Use this for new facilitators and for repairing a tutor's Firestore record. If the login account already exists,
@@ -277,9 +307,9 @@
           <div class="hint">Leave blank when editing if you want to keep existing programmes unchanged.</div>
 
           <label for="courses">Courses</label>
-          <textarea id="courses" placeholder="One per line using: CODE | Title | Programme | Study centre&#10;Example:&#10;EMA803D | Curriculum Development in Mathematics Education | MED Mathematics Education | Accra"></textarea>
+          <textarea id="courses" placeholder="One per line using: CODE | Title | Programme | Study centre | Block&#10;Example:&#10;EMA803D | Curriculum Development in Mathematics Education | MED Mathematics Education | Accra | Block 1"></textarea>
           <div class="hint">
-            The report form expects each course to have a label, programme, and centre. This format keeps the report form dropdown working.
+            The report form uses the active block selected above. Each course assignment must still include Block 1, Block 2, or Block 3 so it can be shown only in the correct block.
           </div>
 
           <label class="inline-check">
@@ -296,6 +326,55 @@
           </div>
 
           <div id="saveResult" class="helper-box" style="display:none;"></div>
+        </div>
+
+
+
+        <div class="card">
+          <h2>Bulk add / update tutors from Excel</h2>
+          <div class="subtitle">
+            Copy rows from Excel and paste them here. The page will group multiple course rows under the same Staff ID automatically.
+          </div>
+
+          <div class="helper-box">
+            <strong>Recommended column order:</strong><br>
+            <code>Staff ID</code> | <code>Full Name</code> | <code>Course Code</code> | <code>Course Title</code> | <code>Programme</code> | <code>Study Centre</code> | <code>Block</code> | <code>Password</code>
+            <div class="hint">Block is required for each course assignment. Password is optional. When blank, the default password below will be used.</div>
+          </div>
+
+          <label for="bulkPaste">Paste tutor/course rows from Excel</label>
+          <textarea id="bulkPaste" style="min-height:170px;" placeholder="Staff ID&#9;Full Name&#9;Course Code&#9;Course Title&#9;Programme&#9;Study Centre&#9;Block&#9;Password&#10;PGT0350&#9;Isaac Gyaase Yeboah&#9;ENG803&#9;Semantics&#9;MED Curriculum & Teaching&#9;Kumasi&#9;Block 1&#9;"></textarea>
+
+          <div class="row">
+            <div>
+              <label for="bulkDefaultPassword">Default password</label>
+              <input id="bulkDefaultPassword" type="text" value="123456" placeholder="e.g. 123456">
+              <div class="hint">Used when the pasted row has no password column/value.</div>
+            </div>
+            <div>
+              <label for="bulkCourseMode">Course update mode</label>
+              <select id="bulkCourseMode">
+                <option value="merge">Add new courses and keep existing ones</option>
+                <option value="replace" selected>Replace existing courses for imported tutors</option>
+              </select>
+              <div class="hint">Recommended for block updates: Replace existing courses so old course records without blocks are removed.</div>
+            </div>
+          </div>
+
+          <label class="inline-check">
+            <input id="bulkCreateLogin" type="checkbox">
+            <span>Create or verify tutor login accounts while importing.</span>
+          </label>
+          <div class="hint">Recommended: leave this unticked for large uploads. Firebase can temporarily block too many login checks. Existing tutor logins will still work; this import will only update their course/block records.</div>
+
+          <div class="toolbar" style="margin-top:16px;">
+            <button id="bulkPreviewBtn">Preview bulk import</button>
+            <button id="bulkImportBtn" disabled>Import all previewed tutors</button>
+            <button id="bulkClearBtn" class="subtle">Clear bulk box</button>
+          </div>
+
+          <div id="bulkResult" class="helper-box" style="display:none;"></div>
+          <div id="bulkPreview" class="table-wrap" style="display:none;max-height:360px;margin-top:12px;"></div>
         </div>
 
         <div class="card">
@@ -510,6 +589,7 @@
         var title = parts[1] || '';
         var program = parts[2] || '';
         var centre = parts[3] || '';
+        var block = parts[4] || '';
 
         if (!title && code.indexOf(' - ') > -1) {
           var split = code.split(' - ');
@@ -522,7 +602,8 @@
           title: title,
           label: title ? (code + ' - ' + title) : code,
           program: program,
-          centre: centre
+          centre: centre,
+          block: normalizeBlockForBulk(block)
         };
       })
       .filter(function (c) { return c.code || c.label; });
@@ -539,7 +620,8 @@
         c.code || '',
         c.title || '',
         c.program || '',
-        c.centre || ''
+        c.centre || '',
+        c.block || ''
       ].join(' | ').replace(/\s+\|\s+\|\s*$/g, '').trim();
     }).join('\n');
   }
@@ -715,7 +797,7 @@
         t.name,
         t.loginEmail || staffIdToEmail(t.staffId),
         (t.programs || []).join(' '),
-        (t.courses || []).map(function (c) { return (c.label || '') + ' ' + (c.program || '') + ' ' + (c.centre || ''); }).join(' ')
+        (t.courses || []).map(function (c) { return (c.label || '') + ' ' + (c.program || '') + ' ' + (c.centre || '') + ' ' + (c.block || ''); }).join(' ')
       ].join(' ').toLowerCase();
       return !q || hay.indexOf(q) > -1;
     });
@@ -1002,6 +1084,403 @@
     return Promise.resolve();
   }
 
+
+
+  var bulkPreviewGroups = [];
+
+  function splitBulkLine(line) {
+    if (line.indexOf('\t') > -1) return line.split('\t');
+    if ((line.match(/,/g) || []).length >= 4) {
+      var out = [];
+      var cur = '';
+      var inQuotes = false;
+      for (var i = 0; i < line.length; i++) {
+        var ch = line.charAt(i);
+        if (ch === '"') {
+          if (inQuotes && line.charAt(i + 1) === '"') {
+            cur += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (ch === ',' && !inQuotes) {
+          out.push(cur);
+          cur = '';
+        } else {
+          cur += ch;
+        }
+      }
+      out.push(cur);
+      return out;
+    }
+    return line.split('|');
+  }
+
+  function cleanBulkCell(v) {
+    return String(v == null ? '' : v).replace(/^"|"$/g, '').trim();
+  }
+
+  function normalizeBlockForBulk(value) {
+    var raw = String(value || '').trim();
+    var lower = raw.toLowerCase();
+    if (!raw) return '';
+    if (/\b1\b|one/.test(lower)) return 'Block 1';
+    if (/\b2\b|two/.test(lower)) return 'Block 2';
+    if (/\b3\b|three/.test(lower)) return 'Block 3';
+    return raw;
+  }
+
+  function normalHeader(v) {
+    return String(v || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  }
+
+  function detectBulkColumns(firstCells) {
+    var map = { staffId: 0, name: 1, code: 2, title: 3, program: 4, centre: 5, block: 6, password: 7 };
+    var joined = firstCells.map(normalHeader).join(' | ');
+    var looksHeader = /staff|index|full name|course code|programme|program|centre|center|block|password/.test(joined);
+    if (!looksHeader) return { hasHeader: false, map: map };
+
+    map = {};
+    firstCells.forEach(function (cell, idx) {
+      var h = normalHeader(cell);
+      if (!h) return;
+      if ((/staff/.test(h) && /id/.test(h)) || h === 'id' || /index/.test(h)) map.staffId = idx;
+      else if (/full name/.test(h) || h === 'name' || /tutor name/.test(h) || /facilitator/.test(h)) map.name = idx;
+      else if (/course code/.test(h) || h === 'code') map.code = idx;
+      else if (/course title/.test(h) || /course name/.test(h) || h === 'title') map.title = idx;
+      else if (/programme/.test(h) || /program/.test(h)) map.program = idx;
+      else if (/study centre/.test(h) || /study center/.test(h) || h === 'centre' || h === 'center') map.centre = idx;
+      else if (/block/.test(h)) map.block = idx;
+      else if (/password/.test(h)) map.password = idx;
+      else if (h === 'course' && map.code == null) map.code = idx;
+    });
+
+    if (map.staffId == null) map.staffId = 0;
+    if (map.name == null) map.name = 1;
+    if (map.code == null) map.code = 2;
+    if (map.title == null) map.title = 3;
+    if (map.program == null) map.program = 4;
+    if (map.centre == null) map.centre = 5;
+    if (map.block == null) map.block = 6;
+    return { hasHeader: true, map: map };
+  }
+
+  function normalizeCourseForBulk(code, title, program, centre, block) {
+    code = String(code || '').trim();
+    title = String(title || '').trim();
+    program = String(program || '').trim();
+    centre = String(centre || '').trim();
+    block = normalizeBlockForBulk(block);
+
+    if (!title && code.indexOf(' - ') > -1) {
+      var split = code.split(' - ');
+      code = split.shift().trim();
+      title = split.join(' - ').trim();
+    }
+
+    return {
+      code: code,
+      title: title,
+      label: title ? (code + ' - ' + title) : code,
+      program: program,
+      centre: centre,
+      block: block
+    };
+  }
+
+  function courseKey(c) {
+    return [c.code || '', c.title || '', c.label || '', c.program || '', c.centre || '', c.block || '']
+      .join('|').toLowerCase().replace(/\s+/g, ' ').trim();
+  }
+
+  function mergeCourseArrays(existing, imported) {
+    var seen = {};
+    var out = [];
+    function add(c) {
+      if (!c || !(c.code || c.label)) return;
+      var key = courseKey(c);
+      if (!seen[key]) {
+        seen[key] = true;
+        out.push({
+          code: c.code || '',
+          title: c.title || '',
+          label: c.label || (c.title ? ((c.code || '') + ' - ' + c.title) : (c.code || '')),
+          program: c.program || '',
+          centre: c.centre || '',
+          block: normalizeBlockForBulk(c.block || '')
+        });
+      }
+    }
+    (Array.isArray(existing) ? existing : []).forEach(add);
+    (Array.isArray(imported) ? imported : []).forEach(add);
+    return out;
+  }
+
+  function parseBulkTutors() {
+    var text = document.getElementById('bulkPaste').value || '';
+    var lines = text.replace(/\r/g, '').split('\n').filter(function (line) { return line.trim(); });
+    var result = { groups: [], errors: [], warnings: [], rows: 0, courseRows: 0 };
+    if (!lines.length) {
+      result.errors.push('Paste rows from Excel first.');
+      return result;
+    }
+
+    var first = splitBulkLine(lines[0]).map(cleanBulkCell);
+    var detected = detectBulkColumns(first);
+    var start = detected.hasHeader ? 1 : 0;
+    var map = detected.map;
+    var groups = {};
+    var order = [];
+    var lastStaffId = '';
+    var lastName = '';
+
+    for (var i = start; i < lines.length; i++) {
+      var cells = splitBulkLine(lines[i]).map(cleanBulkCell);
+      var sid = normalizeStaffId(cells[map.staffId] || '') || lastStaffId;
+      var name = cleanBulkCell(cells[map.name] || '') || lastName;
+      var code = cleanBulkCell(cells[map.code] || '');
+      var title = cleanBulkCell(cells[map.title] || '');
+      var program = cleanBulkCell(cells[map.program] || '');
+      var centre = cleanBulkCell(cells[map.centre] || '');
+      var block = map.block == null ? '' : normalizeBlockForBulk(cleanBulkCell(cells[map.block] || ''));
+      var password = map.password == null ? '' : cleanBulkCell(cells[map.password] || '');
+
+      if (!sid) {
+        result.warnings.push('Row ' + (i + 1) + ' skipped: missing Staff ID.');
+        continue;
+      }
+      if (!name) {
+        result.warnings.push('Row ' + (i + 1) + ' skipped: missing name for ' + sid + '.');
+        continue;
+      }
+
+      lastStaffId = sid;
+      lastName = name;
+
+      if (!groups[sid]) {
+        groups[sid] = { staffId: sid, name: name, password: password, courses: [], programs: [] };
+        order.push(sid);
+      } else {
+        if (name && groups[sid].name !== name) groups[sid].name = name;
+        if (password) groups[sid].password = password;
+      }
+
+      if (program) groups[sid].programs.push(program);
+
+      if (code || title) {
+        var course = normalizeCourseForBulk(code, title, program, centre, block);
+        groups[sid].courses.push(course);
+        result.courseRows++;
+        if (!course.code) result.warnings.push('Row ' + (i + 1) + ' has a course title but no course code.');
+        if (!course.program) result.warnings.push('Row ' + (i + 1) + ' has no programme for ' + sid + '.');
+        if (!course.centre) result.warnings.push('Row ' + (i + 1) + ' has no study centre for ' + sid + '.');
+        if (!course.block) result.warnings.push('Row ' + (i + 1) + ' has no block for ' + sid + '. This course will not appear on the tutor form until a block is added.');
+      }
+      result.rows++;
+    }
+
+    result.groups = order.map(function (sid) {
+      var g = groups[sid];
+      g.programs = uniqueNonEmpty(g.programs.concat(programsFromCourses(g.courses)));
+      g.courses = mergeCourseArrays([], g.courses);
+      return g;
+    });
+
+    if (!result.groups.length) result.errors.push('No valid tutor rows found.');
+    return result;
+  }
+
+  function renderBulkPreview() {
+    var parsed = parseBulkTutors();
+    bulkPreviewGroups = parsed.groups;
+    var bulkPreview = document.getElementById('bulkPreview');
+    var bulkImportBtn = document.getElementById('bulkImportBtn');
+
+    var summary = '<strong>Preview:</strong> ' + parsed.groups.length + ' unique tutors, ' + parsed.courseRows + ' course rows.';
+    if (parsed.errors.length) summary += '<br><span style="color:#b42318;">' + escapeHTML(parsed.errors.join(' ')) + '</span>';
+    if (parsed.warnings.length) summary += '<br><span style="color:#856404;">Warnings: ' + escapeHTML(parsed.warnings.slice(0, 12).join(' | ')) + (parsed.warnings.length > 12 ? ' | +' + (parsed.warnings.length - 12) + ' more' : '') + '</span>';
+    setBox('bulkResult', summary, parsed.errors.length ? 'err' : (parsed.warnings.length ? 'warn' : 'ok'));
+
+    if (!parsed.groups.length) {
+      bulkPreview.style.display = 'none';
+      bulkImportBtn.disabled = true;
+      return;
+    }
+
+    bulkPreview.innerHTML = '<table><thead><tr><th>Staff ID</th><th>Name</th><th>Courses</th><th>Programmes</th></tr></thead><tbody>' +
+      parsed.groups.map(function (g) {
+        return '<tr>' +
+          '<td><code>' + escapeHTML(g.staffId) + '</code><br><span style="font-size:11px;color:#667085;">' + escapeHTML(staffIdToEmail(g.staffId)) + '</span></td>' +
+          '<td>' + escapeHTML(g.name) + '</td>' +
+          '<td>' + (g.courses.length ? g.courses.map(function (c) { return escapeHTML((c.code || '') + (c.title ? ' - ' + c.title : '') + (c.centre ? ' @ ' + c.centre : '') + (c.block ? ' [' + c.block + ']' : ' [No block]')); }).join('<br>') : '<span class="badge warn">No courses</span>') + '</td>' +
+          '<td>' + (g.programs.length ? g.programs.map(function (p) { return '<span class="pill">' + escapeHTML(p) + '</span>'; }).join(' ') : '<span class="badge warn">None</span>') + '</td>' +
+        '</tr>';
+      }).join('') + '</tbody></table>';
+    bulkPreview.style.display = 'block';
+    bulkImportBtn.disabled = !!parsed.errors.length;
+  }
+
+  async function importBulkTutors() {
+    var btn = document.getElementById('bulkImportBtn');
+    if (!bulkPreviewGroups.length) renderBulkPreview();
+    if (!bulkPreviewGroups.length) return;
+
+    var defaultPw = document.getElementById('bulkDefaultPassword').value || '';
+    var createLogins = document.getElementById('bulkCreateLogin').checked;
+    var mode = document.getElementById('bulkCourseMode').value;
+    if (createLogins && defaultPw.length < 6) {
+      setBox('bulkResult', '❌ Default password must be at least 6 characters.', 'err');
+      return;
+    }
+
+    disableButton(btn, true, 'Importing…');
+    var created = 0;
+    var verified = 0;
+    var firestoreSaved = 0;
+    var warnings = 0;
+    var failed = 0;
+    var messages = [];
+    var authRateLimited = false;
+
+    for (var i = 0; i < bulkPreviewGroups.length; i++) {
+      var g = bulkPreviewGroups[i];
+      var sid = g.staffId;
+      var uidToStore = null;
+      var authNote = '';
+      try {
+        var password = g.password || defaultPw;
+        if (createLogins && !authRateLimited) {
+          try {
+            var authResult = await provisionOrVerifyLogin(sid, password);
+            if (authResult.status === 'created') { created++; authNote = 'login created'; }
+            else if (authResult.status === 'verified_existing') { verified++; authNote = 'existing login verified'; }
+            else if (authResult.status === 'exists_wrong_password') { warnings++; authNote = 'login exists but password was not verified'; }
+            uidToStore = authResult.uid || null;
+          } catch (authErr) {
+            warnings++;
+            var authErrText = (authErr && (authErr.code || authErr.message)) ? ((authErr.code || '') + ' ' + (authErr.message || '')).trim() : String(authErr);
+            authNote = 'login step failed: ' + authErrText;
+            if (authErrText.indexOf('too-many-requests') > -1) {
+              authRateLimited = true;
+              authNote = 'login checks paused: Firebase rate limit reached; Firestore course update continued';
+              log('Firebase has temporarily blocked login checks. The import will continue updating Firestore only for the remaining tutors.', 'warn');
+            }
+          }
+        } else if (createLogins && authRateLimited) {
+          authNote = 'login skipped after Firebase rate limit; Firestore updated';
+        } else {
+          authNote = 'login not touched';
+        }
+
+        var existing = await getTutorDoc(sid);
+        var finalCourses = g.courses;
+        var finalPrograms = g.programs;
+        if (mode === 'merge' && existing) {
+          finalCourses = mergeCourseArrays(existing.courses, g.courses);
+          finalPrograms = uniqueNonEmpty((existing.programs || []).concat(g.programs).concat(programsFromCourses(finalCourses)));
+        }
+
+        await upsertTutorDoc(sid, {
+          name: g.name,
+          programs: finalPrograms,
+          courses: finalCourses
+        }, uidToStore, false);
+        firestoreSaved++;
+        log('Bulk saved ' + sid + ' (' + authNote + ').', authNote.indexOf('failed') > -1 || authNote.indexOf('not verified') > -1 ? 'warn' : 'ok');
+      } catch (e) {
+        failed++;
+        messages.push(sid + ': ' + (e.message || e));
+        log('Bulk import failed for ' + sid + ': ' + (e.message || e), 'err');
+      }
+    }
+
+    await loadTutors();
+    var html = '<strong>Bulk import complete.</strong><br>' +
+      'Firestore records saved: <strong>' + firestoreSaved + '</strong><br>' +
+      'Logins created: <strong>' + created + '</strong><br>' +
+      'Existing logins verified: <strong>' + verified + '</strong><br>' +
+      'Warnings: <strong>' + warnings + '</strong><br>' +
+      'Failed: <strong>' + failed + '</strong>';
+    if (authRateLimited) {
+      html += '<br><br><strong>Note:</strong> Firebase rate-limited login checks, so the page continued as course/block update only. This is okay for existing tutors whose login accounts already exist.';
+    }
+    if (messages.length) html += '<br><br>' + escapeHTML(messages.slice(0, 10).join('\n'));
+    setBox('bulkResult', html, failed ? 'err' : (warnings ? 'warn' : 'ok'));
+    disableButton(btn, false, 'Import all previewed tutors');
+  }
+
+  function clearBulkImport() {
+    document.getElementById('bulkPaste').value = '';
+    document.getElementById('bulkPreview').style.display = 'none';
+    document.getElementById('bulkPreview').innerHTML = '';
+    document.getElementById('bulkImportBtn').disabled = true;
+    bulkPreviewGroups = [];
+    clearBox('bulkResult');
+  }
+
+  function normalizeActiveBlock(value) {
+    var raw = String(value || '').trim().toLowerCase();
+    if (!raw) return '';
+    if (/\b1\b|one/.test(raw)) return 'Block 1';
+    if (/\b2\b|two/.test(raw)) return 'Block 2';
+    if (/\b3\b|three/.test(raw)) return 'Block 3';
+    if (raw === 'block 1' || raw === 'block one') return 'Block 1';
+    if (raw === 'block 2' || raw === 'block two') return 'Block 2';
+    if (raw === 'block 3' || raw === 'block three') return 'Block 3';
+    return String(value || '').trim();
+  }
+
+  async function loadActiveBlockSetting() {
+    var currentBox = document.getElementById('activeBlockCurrent');
+    var select = document.getElementById('activeBlockSelect');
+    if (!db || !currentBox) return;
+    currentBox.innerHTML = 'Loading…';
+    try {
+      var doc = await db.collection('settings').doc('activeBlock').get();
+      var data = doc.exists ? (doc.data() || {}) : {};
+      var block = normalizeActiveBlock(data.activeBlock || data.block || '');
+      if (select) select.value = block;
+      if (block) {
+        currentBox.innerHTML = '<strong>' + escapeHTML(block) + '</strong><br><span class="hint">Tutors will only see courses assigned to ' + escapeHTML(block) + '.</span>';
+      } else {
+        currentBox.innerHTML = '<span class="badge warn">Not set</span><br><span class="hint">Tutors will not be able to select courses until you save an active block.</span>';
+      }
+      return block;
+    } catch (e) {
+      currentBox.innerHTML = '<span class="badge err">Could not load</span><br><span class="hint">' + escapeHTML(e.message || e) + '</span>';
+      log('Could not load active block: ' + (e.message || e), 'err');
+      return '';
+    }
+  }
+
+  async function saveActiveBlockSetting() {
+    var btn = document.getElementById('saveActiveBlockBtn');
+    var select = document.getElementById('activeBlockSelect');
+    var block = normalizeActiveBlock(select ? select.value : '');
+    if (!block) {
+      setBox('activeBlockResult', '❌ Select Block 1, Block 2, or Block 3 first.', 'err');
+      return;
+    }
+    disableButton(btn, true, 'Saving…');
+    try {
+      await db.collection('settings').doc('activeBlock').set({
+        activeBlock: block,
+        block: block,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedByUid: auth.currentUser ? auth.currentUser.uid : '',
+        updatedByEmail: auth.currentUser ? auth.currentUser.email : ''
+      }, { merge: true });
+      setBox('activeBlockResult', '✅ Active block saved as <strong>' + escapeHTML(block) + '</strong>. Tutors will see only courses assigned to this block.', 'ok');
+      log('Active block set to ' + block, 'ok');
+      await loadActiveBlockSetting();
+    } catch (e) {
+      setBox('activeBlockResult', '❌ Could not save active block: ' + escapeHTML(e.message || e), 'err');
+      log('Could not save active block: ' + (e.message || e), 'err');
+    } finally {
+      disableButton(btn, false, 'Save active block');
+    }
+  }
+
   function setupEvents() {
     loginBtn.addEventListener('click', async function () {
       var email = document.getElementById('adminEmail').value.trim();
@@ -1027,9 +1506,14 @@
       auth.signOut();
     });
 
+    document.getElementById('saveActiveBlockBtn').addEventListener('click', saveActiveBlockSetting);
+    document.getElementById('refreshActiveBlockBtn').addEventListener('click', loadActiveBlockSetting);
     document.getElementById('staffId').addEventListener('input', updateEmailPreview);
     document.getElementById('saveTutorBtn').addEventListener('click', saveTutor);
     document.getElementById('clearFormBtn').addEventListener('click', clearTutorForm);
+    document.getElementById('bulkPreviewBtn').addEventListener('click', renderBulkPreview);
+    document.getElementById('bulkImportBtn').addEventListener('click', importBulkTutors);
+    document.getElementById('bulkClearBtn').addEventListener('click', clearBulkImport);
     document.getElementById('refreshBtn').addEventListener('click', loadTutors);
     searchInput.addEventListener('input', renderTutors);
 
@@ -1087,6 +1571,7 @@
         if (user) {
           showAuthPanels(true);
           setStatus('ready', 'Signed in as <strong>' + escapeHTML(user.email) + '</strong>.');
+          loadActiveBlockSetting();
           loadTutors();
         } else {
           showAuthPanels(false);
@@ -1094,6 +1579,8 @@
           tutors = [];
           tutorsBody.innerHTML = '<tr><td colspan="3" class="empty">Sign in to load tutor records.</td></tr>';
           countLabel.textContent = '—';
+          var activeBox = document.getElementById('activeBlockCurrent');
+          if (activeBox) activeBox.innerHTML = 'Sign in to load active block.';
         }
       });
 
