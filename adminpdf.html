@@ -846,133 +846,144 @@
   }
 
   async function buildTutorStylePdf(items) {
+    // One-page compact claim summary.
+    // Bank details, Ghana Card and Semester are intentionally excluded.
+    // Each claim is rendered on exactly one A4 page. Multiple selected claims become one page per claim.
     var pageW = 595.28, pageH = 841.89;
-    var margin = 42, footerH = 38, headerH = 88;
+    var margin = 30;
     var blue = [0,33,71], blue2 = [0,86,179], gold = [232,181,0], red = [212,54,42];
-    var paleBlue = [235,242,252], paleGold = [255,248,225], lightLine = [218,226,238];
-    var textColor = [25,25,25], muted = [95,95,95], white = [255,255,255], soft = [248,250,253];
+    var lightLine = [218,226,238], soft = [248,250,253], paleBlue = [235,242,252], paleGold = [255,248,225];
+    var textColor = [25,25,25], muted = [95,95,95], white = [255,255,255];
     var pages = [];
-    var y = pageH - margin;
     var imageList = [];
     var imageByPage = {};
+    var y = 0;
 
     function current() { return pages[pages.length - 1]; }
     function putText(str, x, yy, size, font, color, target) {
       (target || current()).push('BT /'+(font || 'F1')+' '+size+' Tf '+rgb(color || textColor)+' rg 1 0 0 1 '+x.toFixed(2)+' '+yy.toFixed(2)+' Tm ('+pdfEscape(str)+') Tj ET');
     }
-    function newPage() {
-      var cmds = [];
-      pages.push(cmds);
-      cmds.push('q '+rgb(blue)+' rg 0 '+(pageH-headerH).toFixed(2)+' '+pageW+' '+headerH+' re f Q');
-      cmds.push('q '+rgb(gold)+' rg 0 '+(pageH-headerH).toFixed(2)+' '+pageW+' 4 re f Q');
-      cmds.push('q '+rgb(red)+' rg 0 '+(pageH-headerH-4).toFixed(2)+' '+(pageW*0.18).toFixed(2)+' 4 re f Q');
-      cmds.push('q '+rgb(gold)+' rg '+(pageW*0.18).toFixed(2)+' '+(pageH-headerH-4).toFixed(2)+' '+(pageW*0.64).toFixed(2)+' 4 re f Q');
-      cmds.push('q '+rgb(red)+' rg '+(pageW*0.82).toFixed(2)+' '+(pageH-headerH-4).toFixed(2)+' '+(pageW*0.18).toFixed(2)+' 4 re f Q');
-      putText('UNIVERSITY OF CAPE COAST (UCC)', margin, pageH-35, 15, 'F2', white, cmds);
-      putText('College of Distance Education (CoDE)', margin, pageH-55, 10, 'F1', [255,224,138], cmds);
-      putText('FACILITATOR CLAIM SUMMARY', margin, pageH-75, 12, 'F2', white, cmds);
-      y = pageH - headerH - 28;
-    }
-    function ensure(h) { if (y - h < footerH + 18) newPage(); }
     function rect(x, yb, w, h, fill, stroke) {
       if (fill) current().push('q '+rgb(fill)+' rg '+x.toFixed(2)+' '+yb.toFixed(2)+' '+w.toFixed(2)+' '+h.toFixed(2)+' re f Q');
-      if (stroke) current().push('q '+rgb(stroke)+' RG 0.8 w '+x.toFixed(2)+' '+yb.toFixed(2)+' '+w.toFixed(2)+' '+h.toFixed(2)+' re S Q');
+      if (stroke) current().push('q '+rgb(stroke)+' RG 0.7 w '+x.toFixed(2)+' '+yb.toFixed(2)+' '+w.toFixed(2)+' '+h.toFixed(2)+' re S Q');
+    }
+    function line(x1,y1,x2,y2,color,w) {
+      current().push('q '+rgb(color || lightLine)+' RG '+(w || 0.7)+' w '+x1.toFixed(2)+' '+y1.toFixed(2)+' m '+x2.toFixed(2)+' '+y2.toFixed(2)+' l S Q');
     }
     function wrap(str, size, width) {
       str = ascii(str);
       if (!str) return ['-'];
-      var maxChars = Math.max(12, Math.floor(width / (size * 0.50)));
-      var words = str.split(' ');
-      var out = [], line = '';
+      var maxChars = Math.max(8, Math.floor(width / (size * 0.48)));
+      var words = str.split(' '), out = [], lineText = '';
       words.forEach(function(w){
-        var candidate = line ? line + ' ' + w : w;
-        if (candidate.length > maxChars && line) { out.push(line); line = w; }
-        else line = candidate;
+        var candidate = lineText ? lineText + ' ' + w : w;
+        if (candidate.length > maxChars && lineText) { out.push(lineText); lineText = w; }
+        else lineText = candidate;
       });
-      if (line) out.push(line);
+      if (lineText) out.push(lineText);
       return out;
     }
-    function section(title) {
-      ensure(35);
-      y -= 4;
-      rect(margin, y-22, pageW-margin*2, 24, paleBlue, null);
-      current().push('q '+rgb(blue2)+' rg '+margin.toFixed(2)+' '+(y-22).toFixed(2)+' 5 24 re f Q');
-      putText(title.toUpperCase(), margin+12, y-15, 10, 'F2', blue2);
-      y -= 34;
+    function header(data) {
+      var cmds = [];
+      pages.push(cmds);
+      cmds.push('q '+rgb(blue)+' rg 0 760 '+pageW+' 82 re f Q');
+      cmds.push('q '+rgb(gold)+' rg 0 756 '+pageW+' 4 re f Q');
+      cmds.push('q '+rgb(red)+' rg 0 752 '+(pageW*0.18).toFixed(2)+' 4 re f Q');
+      cmds.push('q '+rgb(gold)+' rg '+(pageW*0.18).toFixed(2)+' 752 '+(pageW*0.64).toFixed(2)+' 4 re f Q');
+      cmds.push('q '+rgb(red)+' rg '+(pageW*0.82).toFixed(2)+' 752 '+(pageW*0.18).toFixed(2)+' 4 re f Q');
+      putText('UNIVERSITY OF CAPE COAST', margin, 812, 14, 'F2', white, cmds);
+      putText('College of Distance Education (CoDE)', margin, 794, 9, 'F1', [255,224,138], cmds);
+      putText('FACILITATOR CLAIM SUMMARY', margin, 773, 13, 'F2', white, cmds);
+      var submitted = clean(data.submittedDate || '');
+      putText(submitted ? ('Submitted: ' + submitted) : ('Generated: ' + data.printed), pageW - margin - 170, 773, 8, 'F1', [235,242,252], cmds);
+      y = 732;
     }
-    function field(label, value, x, w) {
-      var lines = wrap(value || '-', 9, w - 18).slice(0, 4);
-      var h = 38 + Math.max(0, lines.length-1)*11;
-      rect(x, y-h, w, h, soft, lightLine);
-      putText(label.toUpperCase(), x+9, y-14, 7, 'F2', muted);
-      var ty = y-29;
-      lines.forEach(function(l){ putText(l, x+9, ty, 9, 'F1', textColor); ty -= 11; });
-      return h;
+    function labelValue(label, value, x, yy, w, h) {
+      rect(x, yy-h, w, h, soft, lightLine);
+      putText(label.toUpperCase(), x+8, yy-12, 6.5, 'F2', muted);
+      var lines = wrap(value || '-', 8.2, w-16).slice(0, 2);
+      var ty = yy-25;
+      lines.forEach(function(l){ putText(l, x+8, ty, 8.2, 'F1', textColor); ty -= 9.5; });
     }
-    function fieldGrid(items, columns) {
-      var gap = 10;
-      var colW = (pageW - margin*2 - gap*(columns-1)) / columns;
-      for (var i=0; i<items.length; i+=columns) {
-        var row = items.slice(i, i+columns);
-        var heights = row.map(function(it){ return 38 + Math.max(0, wrap(it.value || '-', 9, colW-18).slice(0,4).length-1)*11; });
-        var rowH = Math.max.apply(null, heights);
-        ensure(rowH + 8);
-        row.forEach(function(it, idx){ field(it.label, it.value, margin + idx*(colW+gap), colW); });
-        y -= rowH + 8;
-      }
+    function twoColumnDetails(data) {
+      var gap = 8;
+      var w = (pageW - margin*2 - gap) / 2;
+      labelValue('Name of Facilitator', data.tutorName, margin, y, w, 38);
+      labelValue('Staff ID', data.staffId, margin+w+gap, y, w, 38);
+      y -= 46;
+      labelValue('Course Code & Title', data.course, margin, y, pageW-margin*2, 42);
+      y -= 50;
+      labelValue('Programme', data.program, margin, y, w, 38);
+      labelValue('Study Centre', data.studyCentre, margin+w+gap, y, w, 38);
+      y -= 46;
+      labelValue('Mode of Delivery', data.mode, margin, y, w, 34);
+      labelValue('Block', data.block, margin+w+gap, y, w, 34);
+      y -= 44;
     }
-    function fullField(label, value) {
-      var w = pageW - margin*2;
-      var lines = wrap(value || '-', 9, w-18).slice(0, 6);
-      var h = 38 + Math.max(0, lines.length-1)*11;
-      ensure(h+8);
-      rect(margin, y-h, w, h, soft, lightLine);
-      putText(label.toUpperCase(), margin+9, y-14, 7, 'F2', muted);
-      var ty = y-29;
-      lines.forEach(function(l){ putText(l, margin+9, ty, 9, 'F1', textColor); ty -= 11; });
-      y -= h + 8;
+    function tableCell(txt, x, yy, w, size, bold, color) {
+      var lines = wrap(txt || '-', size, w-8).slice(0, 2);
+      var ty = yy - 14;
+      lines.forEach(function(l){ putText(l, x+4, ty, size, bold ? 'F2' : 'F1', color || textColor); ty -= 8; });
     }
-    function totalBox(label, value) {
-      ensure(36);
-      rect(margin, y-32, pageW-margin*2, 32, paleGold, [230,210,150]);
-      putText(label.toUpperCase(), margin+10, y-20, 8, 'F2', [93,75,0]);
-      putText(value || '-', pageW - margin - 120, y-20, 12, 'F2', blue);
-      y -= 42;
+    function combinedSessionRows(data) {
+      var rows = [];
+      data.f2fRows.forEach(function(r){ rows.push({mode:'F2F', date:r.date, start:r.start, end:r.end, hrs:r.hrs}); });
+      data.onRows.forEach(function(r){ rows.push({mode:'Online', date:r.date, start:r.start, end:r.end, hrs:r.hrs}); });
+      return rows.slice(0, 8);
     }
-    function sessionTable(title, rows, totalLabel, totalValue) {
-      section(title);
-      var x = margin, w = pageW-margin*2;
-      var col = [38, 138, 105, 105, w-386];
-      var hHead = 22, hRow = 24;
-      ensure(hHead + hRow + 10);
+    function sessionsTable(data) {
+      var rows = combinedSessionRows(data);
+      var x = margin, w = pageW - margin*2;
+      rect(x, y-22, w, 22, paleBlue, null);
+      current().push('q '+rgb(blue2)+' rg '+x.toFixed(2)+' '+(y-22).toFixed(2)+' 5 22 re f Q');
+      putText('TEACHING SESSIONS', x+12, y-14, 9, 'F2', blue2);
+      y -= 30;
+      var col = [28, 58, 108, 95, 95, 70]; // #, mode, date, start, end, hours
+      var hHead = 20, hRow = 25;
       rect(x, y-hHead, w, hHead, blue, null);
-      var labels = ['#','Date','Start','End','Hours'];
+      var labels = ['#','Mode','Date','Start','End','Hours'];
       var cx = x;
-      labels.forEach(function(l,i){ putText(l, cx+6, y-15, 8, 'F2', white); cx += col[i]; });
+      labels.forEach(function(l,i){ putText(l, cx+4, y-13, 7.5, 'F2', white); cx += col[i]; });
       y -= hHead;
       if (!rows.length) {
-        ensure(28);
-        rect(x, y-26, w, 26, [252,252,252], lightLine);
-        putText('No sessions recorded.', x+8, y-17, 9, 'F1', muted);
+        rect(x, y-26, w, 26, [255,255,255], lightLine);
+        putText('No sessions recorded.', x+8, y-17, 8.5, 'F1', muted);
         y -= 26;
       } else {
-        rows.forEach(function(r, idx){
-          ensure(hRow + 8);
-          rect(x, y-hRow, w, hRow, idx % 2 ? [255,255,255] : [248,250,253], lightLine);
-          var vals = [String(r.no), r.date, r.start, r.end, r.hrs];
+        rows.forEach(function(r, i){
+          rect(x, y-hRow, w, hRow, i % 2 ? [255,255,255] : [248,250,253], lightLine);
+          var vals = [String(i+1), r.mode, r.date, r.start, r.end, r.hrs];
           var xx = x;
-          vals.forEach(function(v,i){ putText(v || '-', xx+6, y-16, 8.5, i===4?'F2':'F1', textColor); xx += col[i]; });
+          vals.forEach(function(v,j){ tableCell(v, xx, y, col[j], j===5 ? 8.2 : 7.8, j===5, textColor); xx += col[j]; });
           y -= hRow;
         });
       }
       y -= 8;
-      totalBox(totalLabel, totalValue);
+      var totalW = pageW - margin*2;
+      rect(margin, y-34, totalW, 34, paleGold, [230,210,150]);
+      putText('TOTAL TEACHING HOURS', margin+10, y-13, 7.5, 'F2', [93,75,0]);
+      var smallTotals = [];
+      if (Number(data.f2fTotal || 0)) smallTotals.push('F2F: ' + data.f2fTotal);
+      if (Number(data.onTotal || 0)) smallTotals.push('Online: ' + data.onTotal);
+      if (smallTotals.length) putText(smallTotals.join('   |   '), margin+10, y-26, 8, 'F1', [93,75,0]);
+      putText(data.grandTotal || '-', pageW - margin - 95, y-21, 13, 'F2', blue);
+      y -= 44;
     }
-    async function signatureBlock(sigSource) {
-      section('Signature');
-      ensure(92);
-      rect(margin, y-82, pageW-margin*2, 82, [255,255,255], lightLine);
-      putText('FACILITATOR SIGNATURE', margin+10, y-15, 7, 'F2', muted);
+    function remarksBlock(data) {
+      var text = clean(data.remarks || '');
+      if (!text) return;
+      rect(margin, y-42, pageW-margin*2, 42, [255,255,255], lightLine);
+      putText('REMARKS', margin+8, y-12, 6.8, 'F2', muted);
+      var lines = wrap(text, 8, pageW-margin*2-16).slice(0, 2);
+      var ty = y-25;
+      lines.forEach(function(l){ putText(l, margin+8, ty, 8, 'F1', textColor); ty -= 9; });
+      y -= 50;
+    }
+    async function signatureFooter(sigSource) {
+      var sigY = 110;
+      line(margin, sigY+92, pageW-margin, sigY+92, lightLine, 0.7);
+      putText('FACILITATOR SIGNATURE', margin, sigY+73, 7, 'F2', muted);
+      rect(margin, sigY+7, 230, 58, [255,255,255], lightLine);
       var sigImage = await signatureToJpeg(sigSource);
       if (sigImage) {
         var imgName = 'SigImg' + (imageList.length + 1);
@@ -980,61 +991,32 @@
         imageList.push({ name: imgName, image: sigImage });
         if (!imageByPage[pageIndex]) imageByPage[pageIndex] = [];
         imageByPage[pageIndex].push(imgName);
-        var maxW = 220, maxH = 56;
+        var maxW = 210, maxH = 48;
         var scale = Math.min(maxW / sigImage.width, maxH / sigImage.height);
         var iw = sigImage.width * scale, ih = sigImage.height * scale;
-        current().push('q '+iw.toFixed(2)+' 0 0 '+ih.toFixed(2)+' '+(margin+12).toFixed(2)+' '+(y-72).toFixed(2)+' cm /'+imgName+' Do Q');
-        putText('Signature image uploaded', margin+250, y-48, 9, 'F1', muted);
+        current().push('q '+iw.toFixed(2)+' 0 0 '+ih.toFixed(2)+' '+(margin+10).toFixed(2)+' '+(sigY+12).toFixed(2)+' cm /'+imgName+' Do Q');
       } else if (sigSource) {
-        putText('Signature exists in the claim, but the browser could not embed it in this PDF.', margin+12, y-47, 9, 'F1', muted);
+        putText('Signature saved, but could not be embedded.', margin+10, sigY+37, 8, 'F1', muted);
       } else {
-        putText('No signature uploaded.', margin+12, y-47, 9, 'F1', muted);
+        putText('No signature uploaded.', margin+10, sigY+37, 8, 'F1', muted);
       }
-      y -= 92;
+      putText('This claim was generated from the CoDE Facilitator Claims System.', margin+260, sigY+50, 8, 'F1', muted);
+      putText('Generated: ' + new Date().toLocaleString(), margin+260, sigY+34, 8, 'F1', muted);
     }
 
     for (var idx=0; idx<items.length; idx++) {
-      if (idx > 0 || pages.length === 0) newPage();
+      var raw = items[idx].data || {};
       var data = pdfClaimData(items[idx]);
-      section('Facilitator Details');
-      fieldGrid([
-        {label:'Staff ID', value:data.staffId}, {label:'Name of Facilitator', value:data.tutorName}
-      ], 2);
-      section('Course & Claim Details');
-      fullField('Course Code & Title', data.course);
-      fieldGrid([
-        {label:'Programme', value:data.program}, {label:'Study Centre', value:data.studyCentre},
-        {label:'Mode of Delivery', value:data.mode}, {label:'Semester', value:data.semester},
-        {label:'Block of Teaching', value:data.block}, {label:'Generated', value:data.printed}
-      ], 2);
-      if (data.mode === 'Blended') {
-        sessionTable('Face-to-Face Sessions', data.f2fRows, 'Total Face-to-Face Hours', data.f2fTotal);
-        if (data.travelFrom || data.travelTo) {
-          section('Facilitator Movement');
-          fieldGrid([{label:'Commuting From', value:data.travelFrom}, {label:'To', value:data.travelTo}], 2);
-        }
-        sessionTable('Online Sessions', data.onRows, 'Total Online Hours', data.onTotal);
-      } else {
-        sessionTable('Online Sessions', data.onRows, 'Total Online Hours', data.onTotal);
-      }
-      totalBox('Grand Total Teaching Hours', data.grandTotal);
-      if (data.bankName || data.bankBranch || data.accountName || data.accountNumber || data.ghanaCardNumber) {
-        section('Bank Details');
-        fieldGrid([
-          {label:'Bank', value:data.bankName}, {label:'Branch', value:data.bankBranch},
-          {label:'Account Name', value:data.accountName}, {label:'Account Number', value:data.accountNumber},
-          {label:'Ghana Card Number', value:data.ghanaCardNumber}
-        ], 2);
-      }
-      if (data.remarks) {
-        section('Remarks');
-        fullField('Remarks', data.remarks);
-      }
-      await signatureBlock(data.signature);
+      data.submittedDate = formatTs(raw.createdAt || raw.submittedAt || raw.timestamp || raw.updatedAt) || '';
+      header(data);
+      twoColumnDetails(data);
+      sessionsTable(data);
+      remarksBlock(data);
+      await signatureFooter(data.signature);
     }
 
     pages.forEach(function(cmds, i){
-      cmds.push('q '+rgb(lightLine)+' RG 0.7 w '+margin+' 36 m '+(pageW-margin)+' 36 l S Q');
+      line(margin, 36, pageW-margin, 36, lightLine, 0.7);
       putText('CoDE Facilitator Claim Summary', margin, 22, 8, 'F1', muted, cmds);
       putText('Page '+(i+1)+' of '+pages.length, pageW-margin-55, 22, 8, 'F1', muted, cmds);
     });
