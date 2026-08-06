@@ -1085,29 +1085,25 @@
 
             <!-- ============ FACILITATOR MOVEMENT ============ -->
             <div class="field-label" style="margin-top:18px;">FACILITATOR MOVEMENT</div>
+            <div class="hint">Your travel route is assigned by the administrator. Distance values are not displayed on this form.</div>
             <div class="row-2">
                 <div>
-                    <div class="sub-label">Commuting from</div>
-                    <input type="text" id="travelFrom" name="travelFrom" placeholder="e.g. Accra">
+                    <div class="sub-label">Travelling from</div>
+                    <select id="travelFrom" name="travelFrom" disabled>
+                        <option value="" selected>Not assigned</option>
+                    </select>
                 </div>
                 <div>
-                    <div class="sub-label">To (study centre)</div>
-                    <select id="travelTo" name="travelTo">
-                        <option value="" disabled selected>Select study centre</option>
-                        <option value="Accra (Papafio Hills, Adjiringano)">Accra (Papafio Hills, Adjiringano)</option>
-                        <option value="Tema (Fountain Head University Campus)">Tema (Fountain Head University Campus)</option>
-                        <option value="Kumasi (St. Louis College of Education, Suame)">Kumasi (St. Louis College of Education, Suame)</option>
-                        <option value="Cape Coast (CoDE, UCC)">Cape Coast (CoDE, UCC)</option>
-                        <option value="Tamale College of Education (TATCO)">Tamale College of Education (TATCO)</option>
-                        <option value="Sekondi-Takoradi (Holy Child College of Education)">Sekondi-Takoradi (Holy Child College of Education)</option>
-                        <option value="Sunyani (Dreamfield International School)">Sunyani (Dreamfield International School)</option>
-                        <option value="Koforidua">Koforidua</option>
-                        <option value="Ho">Ho</option>
-                        <option value="Bolgatanga (John Bosco College of Education)">Bolgatanga (John Bosco College of Education)</option>
-                        <option value="Nadoli (Mccoy College of Education)">Nadoli (Mccoy College of Education)</option>
+                    <div class="sub-label">Travelling to</div>
+                    <select id="travelTo" name="travelTo" disabled>
+                        <option value="" selected>Not assigned</option>
                     </select>
                 </div>
             </div>
+            <input type="hidden" id="travelDistanceIn" name="travelDistanceIn">
+            <input type="hidden" id="travelDistanceOut" name="travelDistanceOut">
+            <input type="hidden" id="travelTotalDistance" name="travelTotalDistance">
+            <div id="travelDistanceSummary" class="travel-summary-box empty" style="display:none;"></div>
         </div>
 
         <!-- ============ BLENDED: ONLINE SECTION ============ -->
@@ -1491,6 +1487,41 @@ function courseLabelValue(c) {
     return title ? (code + ' - ' + title) : code;
 }
 
+function normalizeCourseDeliveryMode(value) {
+    const raw = String(value || '').trim();
+    const lower = raw.toLowerCase();
+    if (!raw) return '';
+    if (lower.includes('online') && !lower.includes('blend') && !lower.includes('face')) return 'Purely Online';
+    if (lower.includes('face') || lower.includes('f2f') || lower.includes('blend')) return 'Blended';
+    return raw;
+}
+
+function selectedCourseAssignment() {
+    const label = document.getElementById('course')?.value || '';
+    if (!label) return null;
+    return filteredTutorCourseAssignments().find(c => c.label === label) || null;
+}
+
+function applyAssignedModeAndTravel(courseAssignment) {
+    const mode = normalizeCourseDeliveryMode(courseAssignment && (courseAssignment.mode || courseAssignment.deliveryMode || courseAssignment.modeOfDelivery || courseAssignment.teachingMode));
+    const radios = document.querySelectorAll('input[name="modeOfDelivery"]');
+    if (mode) {
+        setRadioValue('modeOfDelivery', mode);
+        radios.forEach(r => { r.disabled = true; });
+    } else {
+        radios.forEach(r => { r.disabled = false; });
+    }
+
+    const travelFrom = courseAssignment && (courseAssignment.travelFrom || courseAssignment.from || courseAssignment.origin || '') || '';
+    const travelTo = courseAssignment && (courseAssignment.travelTo || courseAssignment.to || courseAssignment.destination || '') || '';
+    const route = findTravelRoute(travelFrom, travelTo);
+    const distanceIn = courseAssignment && (courseAssignment.travelDistanceIn || courseAssignment.distanceIn || courseAssignment.distanceInKm || '') || (route ? route.distanceIn : '');
+    const distanceOut = courseAssignment && (courseAssignment.travelDistanceOut || courseAssignment.distanceOut || courseAssignment.distanceOutKm || '') || (route ? route.distanceOut : '');
+    const totalDistance = courseAssignment && (courseAssignment.travelTotalDistance || courseAssignment.totalDistanceTravelled || courseAssignment.totalDistance || courseAssignment.travelDistanceTotal || '') || (route ? route.total : '');
+    setTravelFields(travelFrom, travelTo, distanceIn, distanceOut, totalDistance);
+    applyMode();
+}
+
 function filteredTutorCourseAssignments() {
     if (!CURRENT_TUTOR || !Array.isArray(CURRENT_TUTOR.courses)) return [];
     const selectedBlock = normalizeBlockLabel(selectedTeachingBlock());
@@ -1517,6 +1548,9 @@ function clearSelectedCourse() {
     if (hidden) hidden.value = '';
     const centre = document.getElementById('studyCentre');
     if (centre) centre.value = '';
+    setTravelFields('', '', '', '', '');
+    document.querySelectorAll('input[name="modeOfDelivery"]').forEach(r => { r.disabled = false; r.checked = false; });
+    applyMode();
 }
 
 function updateCourseAvailability() {
@@ -1575,6 +1609,7 @@ function onCourseSelected(label) {
     const centreValue = match.centre || match.studyCentre || match.studyCenter || '';
     if (programValue) document.getElementById('program').value = programValue;
     if (centreValue) document.getElementById('studyCentre').value = centreValue;
+    applyAssignedModeAndTravel(match);
     scheduleDuplicateCheck();
 }
 
@@ -1820,6 +1855,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    initTravelDropdowns();
     initSignatureUpload();
 
     const refreshClaimsBtn = document.getElementById('refreshClaimsBtn');
@@ -2021,6 +2057,171 @@ function buildSessionTable(target) {
 
 // Return a real selected bank name only. Never use select.textContent, because that
 // contains every bank option when no bank has been selected.
+
+const TRAVEL_ROUTES = [
+    { from: 'Abetifi', to: 'Kumasi', distanceIn: 130, distanceOut: 130, total: 260 },
+    { from: 'Accra', to: 'Koforidua', distanceIn: 80, distanceOut: 80, total: 160 },
+    { from: 'Accra', to: 'Kumasi', distanceIn: 250, distanceOut: 250, total: 500 },
+    { from: 'Cape Coast', to: 'Accra', distanceIn: 180, distanceOut: 180, total: 360 },
+    { from: 'Cape Coast', to: 'Tema', distanceIn: 205, distanceOut: 205, total: 410 },
+    { from: 'Cape Coast', to: 'Kumasi', distanceIn: 230, distanceOut: 230, total: 460 },
+    { from: 'Cape Coast', to: 'Sunyani', distanceIn: 353, distanceOut: 353, total: 706 },
+    { from: 'Cape Coast', to: 'Takoradi', distanceIn: 90, distanceOut: 90, total: 180 },
+    { from: 'Cape Coast', to: 'Koforidua', distanceIn: 220, distanceOut: 220, total: 440 },
+    { from: 'Cape Coast', to: 'Ho', distanceIn: 320, distanceOut: 320, total: 640 },
+    { from: 'Cape Coast', to: 'Winneba', distanceIn: 90, distanceOut: 90, total: 180 },
+    { from: 'Cape Coast', to: 'Bolga', distanceIn: 763, distanceOut: 763, total: 1526 },
+    { from: 'Cape Coast', to: 'Wa', distanceIn: 345, distanceOut: 345, total: 690 },
+    { from: 'Cape Coast', to: 'Tamale', distanceIn: 64, distanceOut: 64, total: 128 },
+    { from: 'Kasoa', to: 'Accra', distanceIn: 34.7, distanceOut: 34.7, total: 69.4 },
+    { from: 'Winneba', to: 'Sunyani', distanceIn: 450, distanceOut: 450, total: 900 },
+    { from: 'Winneba', to: 'Kumasi', distanceIn: 320, distanceOut: 320, total: 640 },
+    { from: 'Ejisu', to: 'Kumasi', distanceIn: 30, distanceOut: 30, total: 60 },
+    { from: 'Berekum', to: 'Sunyani', distanceIn: 45, distanceOut: 45, total: 90 },
+    { from: 'Kpandai', to: 'Tamale', distanceIn: 214, distanceOut: 214, total: 428 },
+    { from: 'Mampong', to: 'Kumasi', distanceIn: 63, distanceOut: 63, total: 126 },
+    { from: 'Kumasi', to: 'Sunyani', distanceIn: 135, distanceOut: 135, total: 270 },
+    { from: 'Kumasi', to: 'Tamale', distanceIn: 410, distanceOut: 410, total: 820 },
+    { from: 'Navrongo', to: 'Accra', distanceIn: 845, distanceOut: 830, total: 1660 },
+    { from: 'Navrongo', to: 'Kumasi', distanceIn: 580, distanceOut: 580, total: 1160 },
+    { from: 'Navrongo', to: 'Tamale', distanceIn: 192, distanceOut: 192, total: 384 },
+    { from: 'Techiman', to: 'Sunyani', distanceIn: 70, distanceOut: 70, total: 140 },
+    { from: 'Bolgatanga', to: 'Tamale', distanceIn: 161, distanceOut: 161, total: 322 },
+    { from: 'Tamale', to: 'Wa', distanceIn: 310, distanceOut: 310, total: 620 },
+    { from: 'Yendi', to: 'Tamale', distanceIn: 95, distanceOut: 95, total: 190 }
+];
+
+function uniqueSorted(values) {
+    return Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b));
+}
+
+function findTravelRoute(from, to) {
+    const rawFrom = String(from || '').trim();
+    const rawTo = String(to || '').trim();
+    const fromKey = rawFrom.toLowerCase();
+    const toKey = rawTo.toLowerCase();
+    if (rawFrom && rawTo && fromKey === toKey) {
+        return { from: rawFrom, to: rawTo, distanceIn: '', distanceOut: '', total: 125, samePlace: true };
+    }
+    return TRAVEL_ROUTES.find(r => r.from.toLowerCase() === fromKey && r.to.toLowerCase() === toKey) || null;
+}
+
+function populateTravelFromOptions(selectedFrom) {
+    const fromSelect = document.getElementById('travelFrom');
+    if (!fromSelect) return;
+    const current = selectedFrom || fromSelect.value || '';
+    fromSelect.innerHTML = '<option value="">Select origin</option>';
+    uniqueSorted(TRAVEL_ROUTES.flatMap(r => [r.from, r.to])).forEach(origin => {
+        const opt = document.createElement('option');
+        opt.value = origin;
+        opt.textContent = origin;
+        fromSelect.appendChild(opt);
+    });
+    if (current) {
+        if (!Array.from(fromSelect.options).some(o => o.value === current)) {
+            const opt = document.createElement('option');
+            opt.value = current;
+            opt.textContent = current;
+            fromSelect.appendChild(opt);
+        }
+        fromSelect.value = current;
+    }
+}
+
+function populateTravelToOptions(selectedTo) {
+    const fromSelect = document.getElementById('travelFrom');
+    const toSelect = document.getElementById('travelTo');
+    if (!fromSelect || !toSelect) return;
+    const origin = fromSelect.value;
+    const current = selectedTo || toSelect.value || '';
+    toSelect.innerHTML = '<option value="">Select destination</option>';
+    if (!origin) {
+        toSelect.disabled = true;
+        return;
+    }
+    const destinations = uniqueSorted([
+        ...TRAVEL_ROUTES.filter(r => r.from === origin).map(r => r.to),
+        origin
+    ]);
+    destinations.forEach(dest => {
+        const opt = document.createElement('option');
+        opt.value = dest;
+        opt.textContent = dest;
+        toSelect.appendChild(opt);
+    });
+    toSelect.disabled = false;
+    if (current) {
+        if (!Array.from(toSelect.options).some(o => o.value === current)) {
+            const opt = document.createElement('option');
+            opt.value = current;
+            opt.textContent = current;
+            toSelect.appendChild(opt);
+        }
+        toSelect.value = current;
+    }
+}
+
+function updateTravelDistanceSummary() {
+    const from = document.getElementById('travelFrom')?.value || '';
+    const to = document.getElementById('travelTo')?.value || '';
+    const summary = document.getElementById('travelDistanceSummary');
+    const inEl = document.getElementById('travelDistanceIn');
+    const outEl = document.getElementById('travelDistanceOut');
+    const totalEl = document.getElementById('travelTotalDistance');
+    const route = findTravelRoute(from, to);
+
+    if (inEl) inEl.value = route ? String(route.distanceIn) : '';
+    if (outEl) outEl.value = route ? String(route.distanceOut) : '';
+    if (totalEl) totalEl.value = route ? String(route.total) : '';
+
+    if (!summary) return;
+    summary.style.display = 'none';
+    summary.textContent = route ? 'Travel route has been assigned.' : '';
+    summary.classList.toggle('empty', !route);
+}
+
+function initTravelDropdowns() {
+    populateTravelFromOptions();
+    populateTravelToOptions();
+    updateTravelDistanceSummary();
+    const fromSelect = document.getElementById('travelFrom');
+    const toSelect = document.getElementById('travelTo');
+    if (fromSelect) fromSelect.addEventListener('change', function() {
+        populateTravelToOptions('');
+        updateTravelDistanceSummary();
+    });
+    if (toSelect) toSelect.addEventListener('change', updateTravelDistanceSummary);
+    if (fromSelect) fromSelect.disabled = true;
+    if (toSelect) toSelect.disabled = true;
+}
+
+function setTravelFields(from, to, distanceIn, distanceOut, totalDistance) {
+    populateTravelFromOptions(from || '');
+    populateTravelToOptions(to || '');
+    const fromEl = document.getElementById('travelFrom');
+    const toEl = document.getElementById('travelTo');
+    if (fromEl) fromEl.value = from || '';
+    populateTravelToOptions(to || '');
+    if (toEl) toEl.value = to || '';
+
+    const route = findTravelRoute(from, to);
+    const inEl = document.getElementById('travelDistanceIn');
+    const outEl = document.getElementById('travelDistanceOut');
+    const totalEl = document.getElementById('travelTotalDistance');
+    if (inEl) inEl.value = route ? String(route.distanceIn) : (distanceIn || '');
+    if (outEl) outEl.value = route ? String(route.distanceOut) : (distanceOut || '');
+    if (totalEl) totalEl.value = route ? String(route.total) : (totalDistance || '');
+    if (fromEl) fromEl.disabled = true;
+    if (toEl) toEl.disabled = true;
+    updateTravelDistanceSummary();
+}
+
+function formatKm(value) {
+    const s = String(value || '').trim();
+    if (!s) return '';
+    return /km$/i.test(s) ? s : s + ' km';
+}
+
 function getSelectedBankName() {
     const bankSelect = document.getElementById('bankName');
     if (!bankSelect) return '';
@@ -2049,6 +2250,9 @@ function showPreview() {
     const grandTotal = document.getElementById('grandTotal').textContent;
     const travelFrom = document.getElementById('travelFrom') ? document.getElementById('travelFrom').value : '';
     const travelTo = document.getElementById('travelTo') ? document.getElementById('travelTo').value : '';
+    const travelDistanceIn = document.getElementById('travelDistanceIn') ? document.getElementById('travelDistanceIn').value : '';
+    const travelDistanceOut = document.getElementById('travelDistanceOut') ? document.getElementById('travelDistanceOut').value : '';
+    const travelTotalDistance = document.getElementById('travelTotalDistance') ? document.getElementById('travelTotalDistance').value : '';
     const bankName = getSelectedBankName();
     const bankBranch = document.getElementById('bankBranch').value;
     const accountName = document.getElementById('accountName').value;
@@ -2094,8 +2298,8 @@ function showPreview() {
             html += '<div style="margin:6px 0 14px;font-size:13px;color:#555;">Total F2F hours: <strong>' + esc(f2fTotal) + '</strong></div>';
             if (travelFrom || travelTo) {
                 html += '<div class="preview-grid" style="margin-bottom:10px;">';
-                html += pitem('Commuting from', travelFrom);
-                html += pitem('To (study centre)', travelTo);
+                html += pitem('Travelling from', travelFrom);
+                html += pitem('Travelling to', travelTo);
                 html += '</div>';
             }
             html += '<div class="preview-section-title" style="margin-top:4px;">Online Sessions</div>';
@@ -2306,8 +2510,8 @@ async function downloadPreviewPdf() {
 
         if (mode === 'Blended') {
             sessionRows('Face-to-Face Sessions', getSessions('f2f'), 'Total Face-to-Face Hours', f2fTotal);
-            field('Commuting From', travelFrom);
-            field('To', travelTo);
+            field('Travelling From', travelFrom);
+            field('Travelling To', travelTo);
             sessionRows('Online Sessions', getSessions('on'), 'Total Online Hours', onTotal);
         } else {
             sessionRows('Online Sessions', getSessions('on'), 'Total Online Hours', onTotal);
@@ -2841,6 +3045,9 @@ function captureFormStateForClaimPdfDownload() {
         onSessionItems: (typeof collectSessionItems === 'function') ? collectSessionItems('on') : [],
         travelFrom: document.getElementById('travelFrom')?.value || '',
         travelTo: document.getElementById('travelTo')?.value || '',
+        travelDistanceIn: document.getElementById('travelDistanceIn')?.value || '',
+        travelDistanceOut: document.getElementById('travelDistanceOut')?.value || '',
+        travelTotalDistance: document.getElementById('travelTotalDistance')?.value || '',
         bankName: (typeof getSelectedBankName === 'function') ? getSelectedBankName() : (document.getElementById('bankName')?.value || ''),
         bankBranch: document.getElementById('bankBranch')?.value || '',
         accountName: document.getElementById('accountName')?.value || '',
@@ -2880,11 +3087,9 @@ function restoreFormStateAfterClaimPdfDownload(state) {
     setSessionRows('f2f', state.f2fSessionItems || []);
     setSessionRows('on', state.onSessionItems || []);
 
-    const travelFrom = document.getElementById('travelFrom');
-    if (travelFrom) travelFrom.value = state.travelFrom || '';
-    const travelTo = document.getElementById('travelTo');
-    ensureSelectOption(travelTo, state.travelTo || '');
-    if (travelTo) travelTo.value = state.travelTo || '';
+    if (typeof setTravelFields === 'function') {
+        setTravelFields(state.travelFrom || '', state.travelTo || '', state.travelDistanceIn || '', state.travelDistanceOut || '', state.travelTotalDistance || '');
+    }
 
     setBankFields(state.bankName || '', state.bankBranch || '', state.accountName || '', state.accountNumber || '', state.ghanaCardNumber || '');
     const remarks = document.getElementById('remarks');
@@ -3008,10 +3213,8 @@ function fillFormFromClaim(data, docId) {
     setSessionRows('f2f', data.f2fSessionItems || []);
     setSessionRows('on', data.onSessionItems || []);
 
-    if (data.travelFrom !== undefined) document.getElementById('travelFrom').value = data.travelFrom || '';
-    if (data.travelTo !== undefined) {
-        ensureSelectOption(document.getElementById('travelTo'), data.travelTo || '');
-        document.getElementById('travelTo').value = data.travelTo || '';
+    if (typeof setTravelFields === 'function') {
+        setTravelFields(data.travelFrom || '', data.travelTo || '', data.travelDistanceIn || '', data.travelDistanceOut || '', data.travelTotalDistance || data.totalDistanceTravelled || '');
     }
 
     setBankFields(data.bankName || '', data.bankBranch || '', data.accountName || '', data.accountNumber || '', data.ghanaCardNumber || data.ghanaCard || '');
@@ -3191,6 +3394,8 @@ function validateForm() {
         ok = false;
     }
 
+    // Travel route and distances are assigned by the administrator and saved invisibly.
+
     // facilitator signature still required; bank details are optional
     const required = {
         facilitatorSignature: 'Facilitator signature (please upload an image)'
@@ -3241,6 +3446,9 @@ function prepareFormData() {
     data.claimStatus = 'Submitted';
     data.bankName = getSelectedBankName();
     data.ghanaCardNumber = document.getElementById('ghanaCardNumber')?.value || '';
+    data.travelDistanceIn = document.getElementById('travelDistanceIn')?.value || '';
+    data.travelDistanceOut = document.getElementById('travelDistanceOut')?.value || '';
+    data.travelTotalDistance = document.getElementById('travelTotalDistance')?.value || '';
     ['modeOfDelivery','semester'].forEach(name => {
         const el = document.querySelector('input[name="'+name+'"]:checked');
         if (el) data[name] = el.value;
@@ -3347,6 +3555,9 @@ function prepareSheetDataFromClaimDoc(claimData, claimDocId) {
     data.ghanaCardNumber = data.ghanaCardNumber || data.ghanaCard || '';
     data.travelFrom = data.travelFrom || '';
     data.travelTo = data.travelTo || '';
+    data.travelDistanceIn = data.travelDistanceIn || '';
+    data.travelDistanceOut = data.travelDistanceOut || '';
+    data.travelTotalDistance = data.travelTotalDistance || data.totalDistanceTravelled || '';
     data.remarks = data.remarks || '';
     return data;
 }
@@ -3624,6 +3835,7 @@ function resetForm() {
     document.querySelector('input[name="semester"][value="Second Semester"]').checked = true;
     CURRENT_FORM_BLOCK_OVERRIDE = '';
     setActiveBlockField(CURRENT_ACTIVE_BLOCK);
+    if (typeof setTravelFields === 'function') setTravelFields('', '', '', '', '');
     const bankOther = document.getElementById('bankNameOther');
     bankOther.value = '';
     bankOther.style.display = 'none';
@@ -3738,6 +3950,9 @@ window.downloadPreviewPdf = async function downloadPreviewPdf() {
             grandTotal: clean(document.getElementById('grandTotal') ? document.getElementById('grandTotal').textContent : ''),
             travelFrom: valueOf('travelFrom'),
             travelTo: valueOf('travelTo'),
+            travelDistanceIn: valueOf('travelDistanceIn'),
+            travelDistanceOut: valueOf('travelDistanceOut'),
+            travelTotalDistance: valueOf('travelTotalDistance'),
             bankName: (typeof getSelectedBankName === 'function') ? getSelectedBankName() : valueOf('bankName'),
             bankBranch: valueOf('bankBranch'),
             accountName: valueOf('accountName'),
