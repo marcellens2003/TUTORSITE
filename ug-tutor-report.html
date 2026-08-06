@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Undergraduate Facilitator Claim Form</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:Rubik,Arial,sans-serif;background:linear-gradient(135deg,#06183f,#0b2d76 55%,#123c94);color:#1f2937;padding:18px}.page{max-width:1060px;margin:auto}.top{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap;background:linear-gradient(135deg,#08183f,#102a72 52%,#1d3a8f);color:#fff;border-radius:16px;padding:19px 22px;box-shadow:0 14px 36px rgba(5,16,48,.35);border-top:4px solid #ffd34d}.top h1{margin:0;font-size:24px}.top p{margin:6px 0 0;color:#ffe08a;font-size:13px}.actions{display:flex;gap:8px;flex-wrap:wrap}.card{background:rgba(255,255,255,.985);border-radius:15px;padding:20px 22px;margin-top:15px;box-shadow:0 14px 36px rgba(5,16,48,.25)}h2{margin:0 0 14px;color:#002147;font-size:18px;border-bottom:2px solid #0056b3;padding-bottom:8px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px 16px}.full{grid-column:1/-1}label{display:block;font-size:13px;font-weight:700;margin:0 0 6px;color:#344054}input,select,textarea{width:100%;padding:11px 12px;border:1px solid #cbd5e1;border-radius:8px;font:inherit;background:#fff}textarea{min-height:82px;resize:vertical}input:focus,select:focus,textarea:focus{outline:none;border-color:#0056b3;box-shadow:0 0 0 3px rgba(0,86,179,.14)}input[readonly]{background:#f8fafc;color:#475569}.btn{border:0;border-radius:8px;padding:10px 14px;background:#0056b3;color:#fff;font:inherit;font-weight:700;cursor:pointer}.btn:hover{background:#003d82}.btn.secondary{background:#eef2f7;color:#24364b;border:1px solid #cbd5e1}.btn.danger{background:#c7353f}.btn.success{background:#198754}.status{display:none;margin-top:14px;padding:11px 13px;border-radius:9px;font-size:13px;line-height:1.45}.status.ok{display:block;background:#d4edda;color:#155724;border:1px solid #b8dfc2}.status.warn{display:block;background:#fff3cd;color:#806000;border:1px solid #ffe69c}.status.err{display:block;background:#f8d7da;color:#721c24;border:1px solid #f1bfc6}.toolbar{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.summary div{background:#eef4ff;border:1px solid #cfdbef;border-radius:9px;padding:11px}.summary strong{display:block;color:#002147;font-size:18px}.summary span{font-size:12px;color:#64748b}.tablewrap{overflow:auto;border:1px solid #e5e7eb;border-radius:10px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:left;vertical-align:top}th{background:#f8fafc;color:#002147}.empty{text-align:center;color:#667085;padding:20px}.signature-box{border:1px dashed #9ca3af;border-radius:9px;padding:10px;background:#fafafa}.signature-pad{width:100%;height:170px;border:1px solid #cbd5e1;border-radius:7px;background:white;touch-action:none}.tiny{font-size:12px;color:#667085;line-height:1.5}.hidden{display:none!important}.modal{position:fixed;inset:0;background:rgba(2,12,35,.72);display:flex;align-items:center;justify-content:center;padding:18px;z-index:50}.modal .box{width:100%;max-width:430px;background:#fff;border-radius:14px;padding:21px;box-shadow:0 20px 70px rgba(0,0,0,.35)}@media(max-width:760px){body{padding:10px}.grid{grid-template-columns:1fr}.full{grid-column:auto}.summary{grid-template-columns:1fr}.top h1{font-size:20px}}
+@media print{body{background:#fff;padding:0}.actions,.toolbar,#claimsCard,#passwordModal{display:none!important}.page{max-width:none}.top,.card{box-shadow:none;border-radius:0}.top{color:#000;background:#fff;border:2px solid #002147}.top p{color:#333}.card{margin-top:0;border:1px solid #bbb}.signature-pad{display:none}.signature-box img{display:block!important;max-height:120px;max-width:100%}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="top">
+    <div><h1>Undergraduate Facilitator Claim Form</h1><p>University of Cape Coast — College of Distance Education</p></div>
+    <div class="actions"><button class="btn secondary" id="printBtn">Print / Save PDF</button><button class="btn danger" id="logoutBtn">Sign out</button></div>
+  </div>
+
+  <div id="status" class="status warn">Loading your account…</div>
+
+  <form id="claimForm" class="card hidden">
+    <h2>Facilitator and Course Details</h2>
+    <div class="grid">
+      <div><label>Staff ID</label><input id="staffId" name="staffId" readonly></div>
+      <div><label>Facilitator Name</label><input id="tutorName" name="tutorName" readonly></div>
+      <div class="full"><label>Course *</label><select id="course" name="course" required><option value="">Select course</option></select></div>
+      <div><label>Programme *</label><input id="program" name="program" required></div>
+      <div><label>Study Centre *</label><input id="studyCentre" name="studyCentre" required></div>
+      <div><label>Semester *</label><select id="semester" name="semester" required><option value="">Select semester</option><option>First Semester</option><option>Second Semester</option><option>Resit</option></select></div>
+      <div><label>Mode of Delivery *</label><select id="modeOfDelivery" name="modeOfDelivery" required><option value="">Select mode</option><option>Face-to-Face</option><option>Online</option><option>Blended</option></select></div>
+      <div><label>Academic Year</label><input id="academicYear" name="academicYear" value="2025/2026"></div>
+      <div><label>Face-to-Face Hours</label><input id="f2fHours" name="f2fHours" type="number" step="0.5" min="0" value="0"></div>
+      <div><label>Online Hours</label><input id="onHours" name="onHours" type="number" step="0.5" min="0" value="0"></div>
+      <div><label>Total Hours</label><input id="totalHours" name="totalHours" readonly value="0"></div>
+      <div class="full"><label>Session Dates / Details</label><textarea id="sessionDetails" name="sessionDetails" placeholder="Enter teaching dates, times, groups or other session details"></textarea></div>
+      <div class="full"><label>Remarks</label><textarea id="remarks" name="remarks"></textarea></div>
+    </div>
+
+    <h2 style="margin-top:22px">Payment Details</h2>
+    <div class="grid">
+      <div><label>Ghana Card Number *</label><input id="ghanaCardNumber" name="ghanaCardNumber" required placeholder="GHA-000000000-0"></div>
+      <div><label>Phone Number *</label><input id="phone" name="phone" required></div>
+      <div><label>Bank Name *</label><input id="bankName" name="bankName" required></div>
+      <div><label>Bank Branch *</label><input id="bankBranch" name="bankBranch" required></div>
+      <div class="full"><label>Account Number *</label><input id="accountNumber" name="accountNumber" required></div>
+      <div class="full signature-box"><label>Facilitator Signature *</label><canvas id="signaturePad" class="signature-pad"></canvas><img id="signaturePreview" class="hidden" alt="Signature preview"><div class="toolbar"><button type="button" class="btn secondary" id="clearSignature">Clear signature</button></div><div class="tiny">Sign inside the box using a mouse, touchpad or finger.</div></div>
+    </div>
+
+    <div class="summary" style="margin-top:18px"><div><strong id="sumF2f">0</strong><span>Face-to-face hours</span></div><div><strong id="sumOnline">0</strong><span>Online hours</span></div><div><strong id="sumTotal">0</strong><span>Total hours</span></div></div>
+    <div class="toolbar"><button class="btn success" type="submit" id="submitBtn">Submit Claim</button><button class="btn secondary" type="button" id="newBtn">New Claim</button></div>
+    <div id="formStatus" class="status"></div>
+  </form>
+
+  <div id="claimsCard" class="card hidden">
+    <h2>My Submitted Claims</h2>
+    <div class="toolbar"><button class="btn secondary" id="refreshClaims" type="button">Refresh</button></div>
+    <div class="tablewrap"><table><thead><tr><th>Claim</th><th>Course</th><th>Status</th><th>Actions</th></tr></thead><tbody id="claimsBody"><tr><td colspan="4" class="empty">No claims loaded.</td></tr></tbody></table></div>
+  </div>
+</div>
+
+<div id="passwordModal" class="modal hidden">
+  <div class="box"><h2>Change Temporary Password</h2><p class="tiny">You signed in using the temporary password. Create a new password before continuing.</p><label>Current Password</label><input id="currentPassword" type="password" value="123456"><label style="margin-top:12px">New Password</label><input id="newPassword" type="password" minlength="6"><label style="margin-top:12px">Confirm New Password</label><input id="confirmPassword" type="password" minlength="6"><div id="passwordStatus" class="status"></div><div class="toolbar"><button class="btn" id="changePasswordBtn" type="button">Change Password</button></div></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+import { getAuth,onAuthStateChanged,signOut,EmailAuthProvider,reauthenticateWithCredential,updatePassword } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+import { getFirestore,doc,getDoc,setDoc,updateDoc,collection,query,where,getDocs,serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+const firebaseConfig={apiKey:"AIzaSyCzgOGc51Qr6DXnJ-zkczBtGniYNLf0jOw",authDomain:"monitoringucc.firebaseapp.com",projectId:"monitoringucc",storageBucket:"monitoringucc.firebasestorage.app",messagingSenderId:"210063574932",appId:"1:210063574932:web:8ccd563312321dcd2af181"};
+const APPS_SCRIPT_URL=""; // Optional: paste the deployed Apps Script web-app URL here.
+const app=initializeApp(firebaseConfig);const auth=getAuth(app);const db=getFirestore(app);
+const $=id=>document.getElementById(id);let tutorRecord=null,currentClaimId="",signatureData="";
+function show(el,msg,type){el.textContent=msg;el.className="status "+type;}
+function slug(v){return String(v||"").trim().toUpperCase().replace(/[^A-Z0-9]+/g,"-").replace(/^-+|-+$/g,"");}
+function courseParts(raw){const s=String(raw||"").trim();const m=s.match(/^([A-Za-z0-9-]+)\s*[-|:]\s*(.+)$/);return m?{code:m[1],title:m[2]}:{code:(s.split(/\s+/)[0]||"COURSE"),title:s};}
+function recalc(){const a=parseFloat($("f2fHours").value)||0,b=parseFloat($("onHours").value)||0,t=a+b;$("totalHours").value=t;$("sumF2f").textContent=a;$("sumOnline").textContent=b;$("sumTotal").textContent=t;}
+["f2fHours","onHours"].forEach(id=>$(id).addEventListener("input",recalc));
+
+function normalizeCourse(c){if(typeof c==="string")return{label:c,code:courseParts(c).code,title:courseParts(c).title,program:"",centre:""};return{label:c.label||[c.code,c.title].filter(Boolean).join(" - "),code:c.code||"",title:c.title||"",program:c.program||c.programme||"",centre:c.centre||c.studyCentre||""};}
+function populateCourses(){const list=Array.isArray(tutorRecord.courses)?tutorRecord.courses:[];$("course").innerHTML='<option value="">Select course</option>'+list.map(c=>{c=normalizeCourse(c);return `<option value="${escapeHtml(c.label)}" data-program="${escapeHtml(c.program)}" data-centre="${escapeHtml(c.centre)}">${escapeHtml(c.label)}</option>`}).join("");}
+function escapeHtml(v){return String(v||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));}
+$("course").addEventListener("change",()=>{const o=$("course").selectedOptions[0];if(o){if(o.dataset.program)$("program").value=o.dataset.program;if(o.dataset.centre)$("studyCentre").value=o.dataset.centre;}});
+
+const canvas=$("signaturePad"),ctx=canvas.getContext("2d");let drawing=false;
+function resizeCanvas(){const r=canvas.getBoundingClientRect(),ratio=window.devicePixelRatio||1;const old=signatureData;canvas.width=Math.max(1,r.width*ratio);canvas.height=Math.max(1,r.height*ratio);ctx.scale(ratio,ratio);ctx.lineWidth=2;ctx.lineCap="round";ctx.strokeStyle="#111";if(old){const img=new Image();img.onload=()=>ctx.drawImage(img,0,0,r.width,r.height);img.src=old;}}
+window.addEventListener("resize",resizeCanvas);setTimeout(resizeCanvas,100);
+function point(e){const r=canvas.getBoundingClientRect(),t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top};}
+function start(e){drawing=true;const p=point(e);ctx.beginPath();ctx.moveTo(p.x,p.y);e.preventDefault();}
+function move(e){if(!drawing)return;const p=point(e);ctx.lineTo(p.x,p.y);ctx.stroke();signatureData=canvas.toDataURL("image/png");e.preventDefault();}
+function stop(){drawing=false;signatureData=canvas.toDataURL("image/png");}
+["mousedown","touchstart"].forEach(ev=>canvas.addEventListener(ev,start,{passive:false}));["mousemove","touchmove"].forEach(ev=>canvas.addEventListener(ev,move,{passive:false}));["mouseup","mouseleave","touchend"].forEach(ev=>canvas.addEventListener(ev,stop));
+$("clearSignature").onclick=()=>{ctx.clearRect(0,0,canvas.width,canvas.height);signatureData="";$("signaturePreview").classList.add("hidden")};
+
+function gather(){const d={};new FormData($("claimForm")).forEach((v,k)=>d[k]=v);const cp=courseParts(d.course);d.courseCode=cp.code;d.courseTitle=cp.title;d.uid=auth.currentUser.uid;d.claimId=currentClaimId||`UG-${slug(d.staffId)}-${slug(cp.code)}-${slug(d.semester)}`;d.formType="UndergraduateFacilitatorClaim";d.totalHours=Number(d.totalHours||0);d.f2fHours=Number(d.f2fHours||0);d.onHours=Number(d.onHours||0);d.facilitatorSignature=signatureData;d.claimStatus=d.claimStatus||"Submitted";d.updatedAt=serverTimestamp();if(!currentClaimId)d.createdAt=serverTimestamp();return d;}
+async function postToSheet(d){if(!APPS_SCRIPT_URL)return;try{await fetch(APPS_SCRIPT_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams(Object.entries(d).filter(([k,v])=>typeof v!=="object"&&k!=="facilitatorSignature"))});}catch(e){console.warn("Sheet sync post failed",e);}}
+
+$("claimForm").addEventListener("submit",async e=>{e.preventDefault();const fs=$("formStatus");try{const d=gather();if(!d.course||!d.program||!d.studyCentre||!d.semester){show(fs,"Complete all required course fields.","err");return}if(!signatureData){show(fs,"Please add your signature.","err");return}const ref=doc(db,"ug_claims",d.claimId);const existing=await getDoc(ref);if(existing.exists()&&!currentClaimId){show(fs,"A claim already exists for this course and semester. Open it from My Submitted Claims to edit it.","warn");return}$("submitBtn").disabled=true;await setDoc(ref,d,{merge:true});await postToSheet({...d,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});currentClaimId=d.claimId;show(fs,"Claim saved successfully.","ok");await loadClaims()}catch(err){console.error(err);show(fs,err.message||"Could not save claim.","err")}finally{$("submitBtn").disabled=false}});
+function resetForm(){const sid=$("staffId").value,name=$("tutorName").value;$("claimForm").reset();$("staffId").value=sid;$("tutorName").value=name;$("academicYear").value="2025/2026";currentClaimId="";$("submitBtn").textContent="Submit Claim";$("clearSignature").click();populateCourses();recalc();$("formStatus").className="status";}
+$("newBtn").onclick=resetForm;
+
+async function loadClaims(){const body=$("claimsBody");body.innerHTML='<tr><td colspan="4" class="empty">Loading claims…</td></tr>';try{const q=query(collection(db,"ug_claims"),where("uid","==",auth.currentUser.uid));const snap=await getDocs(q);const rows=[];snap.forEach(s=>rows.push({id:s.id,...s.data()}));rows.sort((a,b)=>String(b.updatedAt?.seconds||b.createdAt?.seconds||0).localeCompare(String(a.updatedAt?.seconds||a.createdAt?.seconds||0)));if(!rows.length){body.innerHTML='<tr><td colspan="4" class="empty">No submitted claims found.</td></tr>';return}body.innerHTML=rows.map(r=>`<tr><td><strong>${escapeHtml(r.claimId||r.id)}</strong><br><span class="tiny">${escapeHtml(r.semester||"")}</span></td><td>${escapeHtml(r.course||"")}<br><span class="tiny">${escapeHtml(r.program||"")} • ${escapeHtml(r.studyCentre||"")}</span></td><td>${escapeHtml(r.claimStatus||"Submitted")}</td><td><button class="btn secondary" data-edit="${escapeHtml(r.id)}">Open</button></td></tr>`).join("");body.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>openClaim(b.dataset.edit));}catch(err){body.innerHTML=`<tr><td colspan="4" class="empty">${escapeHtml(err.message||err)}</td></tr>`}}
+async function openClaim(id){const s=await getDoc(doc(db,"ug_claims",id));if(!s.exists())return;const d=s.data();currentClaimId=id;["course","program","studyCentre","semester","modeOfDelivery","academicYear","f2fHours","onHours","sessionDetails","remarks","ghanaCardNumber","phone","bankName","bankBranch","accountNumber"].forEach(k=>{if($(k)&&d[k]!=null)$(k).value=d[k]});signatureData=d.facilitatorSignature||"";ctx.clearRect(0,0,canvas.width,canvas.height);if(signatureData){const img=new Image();img.onload=()=>ctx.drawImage(img,0,0,canvas.getBoundingClientRect().width,canvas.getBoundingClientRect().height);img.src=signatureData;$("signaturePreview").src=signatureData}recalc();$("submitBtn").textContent="Update Claim";window.scrollTo({top:$("claimForm").offsetTop-10,behavior:"smooth"});}
+$("refreshClaims").onclick=loadClaims;$("printBtn").onclick=()=>window.print();
+
+async function loadTutor(user){const sid=(sessionStorage.getItem("tutorStaffId")||"").trim().toUpperCase();if(!sid||sessionStorage.getItem("tutorPortal")!=="ug"){location.replace("index.html");return}const snap=await getDoc(doc(db,"ug_tutors",sid));if(!snap.exists())throw new Error("Your undergraduate tutor record was not found.");const d=snap.data()||{};if(d.uid&&d.uid!==user.uid)throw new Error("This account is not linked to the selected Staff ID.");tutorRecord=d;$("staffId").value=sid;$("tutorName").value=d.name||d.fullName||sessionStorage.getItem("tutorName")||sid;populateCourses();$("claimForm").classList.remove("hidden");$("claimsCard").classList.remove("hidden");show($("status"),"Account loaded successfully.","ok");await loadClaims();if(sessionStorage.getItem("forcePasswordChange")==="1")$("passwordModal").classList.remove("hidden");}
+
+onAuthStateChanged(auth,async user=>{if(!user){location.replace("index.html");return}try{await loadTutor(user)}catch(err){show($("status"),err.message||String(err),"err")}});
+$("logoutBtn").onclick=async()=>{sessionStorage.clear();await signOut(auth);location.replace("index.html")};
+$("changePasswordBtn").onclick=async()=>{const box=$("passwordStatus"),cur=$("currentPassword").value,n=$("newPassword").value,c=$("confirmPassword").value;if(n.length<6){show(box,"New password must be at least 6 characters.","err");return}if(n!==c){show(box,"The new passwords do not match.","err");return}try{await reauthenticateWithCredential(auth.currentUser,EmailAuthProvider.credential(auth.currentUser.email,cur));await updatePassword(auth.currentUser,n);sessionStorage.removeItem("forcePasswordChange");show(box,"Password changed successfully.","ok");setTimeout(()=>$("passwordModal").classList.add("hidden"),700)}catch(err){show(box,err.code==="auth/invalid-credential"?"Current password is incorrect.":(err.message||"Could not change password."),"err")}};
+</script>
+</body>
+</html>
