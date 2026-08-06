@@ -256,7 +256,6 @@
       getAuth,
       signInWithEmailAndPassword,
       signOut,
-      onAuthStateChanged,
       setPersistence,
       browserSessionPersistence
     } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
@@ -297,6 +296,11 @@
     const passwordToggle = document.getElementById("passwordToggle");
 
     let pendingPasswordWasTemporary = false;
+
+    // Always begin with a fresh portal-routing session. The authenticated
+    // Firebase user may persist in the tab, but the entered Staff ID below
+    // determines whether the tutor is routed to postgraduate or undergraduate.
+    clearStoredSession();
 
     function staffIdToEmail(staffId) {
       const slug = staffId.trim().toLowerCase()
@@ -434,15 +438,6 @@
         showError(message);
       }
     }
-
-    onAuthStateChanged(auth, user => {
-      if (!user) return;
-      const staffId = sessionStorage.getItem("tutorStaffId");
-      const portal = sessionStorage.getItem("tutorPortal");
-      if (staffId && ROUTES[portal]) {
-        window.location.replace(ROUTES[portal]);
-      }
-    });
 
     loginButton.addEventListener("click", doLogin);
 
