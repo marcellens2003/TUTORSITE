@@ -342,10 +342,33 @@
     }
 
     function recordBelongsToUser(snapshot, uid) {
-      if (!snapshot.exists()) return null;
+      if (!snapshot || !snapshot.exists()) return null;
       const data = snapshot.data() || {};
       if (data.uid && data.uid !== uid) return null;
       return data;
+    }
+
+    async function getTutorRecordSafely(portal, staffId, uid) {
+      try {
+        const snapshot = await getDoc(doc(db, COLLECTIONS[portal], staffId));
+        return {
+          portal,
+          record: recordBelongsToUser(snapshot, uid),
+          permissionDenied: false,
+          error: null
+        };
+      } catch (error) {
+        // Firestore rules may deny the collection that does not contain the tutor.
+        // Do not fail the whole login if the other collection verifies correctly.
+        const denied = error && (error.code === "permission-denied" || error.code === "firestore/permission-denied");
+        console.warn(`Could not check ${COLLECTIONS[portal]}/${staffId}:`, error);
+        return {
+          portal,
+          record: null,
+          permissionDenied: denied,
+          error
+        };
+      }
     }
 
     function savePortalSession(portal, staffId, data, passwordWasTemporary) {
@@ -394,20 +417,13 @@
       try {
         const credential = await signInWithEmailAndPassword(auth, staffIdToEmail(staffId), password);
 
-        const [pgSnapshot, ugSnapshot] = await Promise.all([
-          getDoc(doc(db, COLLECTIONS.pg, staffId)),
-          getDoc(doc(db, COLLECTIONS.ug, staffId))
+        const [pgResult, ugResult] = await Promise.all([
+          getTutorRecordSafely("pg", staffId, credential.user.uid),
+          getTutorRecordSafely("ug", staffId, credential.user.uid)
         ]);
 
-        const pgRecord = recordBelongsToUser(pgSnapshot, credential.user.uid);
-        const ugRecord = recordBelongsToUser(ugSnapshot, credential.user.uid);
-
-        if (!pgRecord && !ugRecord) {
-          await signOut(auth);
-          setLoading(false);
-          showError("Your account signed in, but this Staff ID was not found in the facilitator directories. Contact the administrator.");
-          return;
-        }
+        const pgRecord = pgResult.record;
+        const ugRecord = ugResult.record;
 
         if (pgRecord && ugRecord) {
           await signOut(auth);
@@ -416,11 +432,25 @@
           return;
         }
 
-        const portal = pgRecord ? "pg" : "ug";
-        const record = pgRecord || ugRecord;
-        savePortalSession(portal, staffId, record, pendingPasswordWasTemporary);
+        if (pgRecord || ugRecord) {
+          const portal = pgRecord ? "pg" : "ug";
+          const record = pgRecord || ugRecord;
+          savePortalSession(portal, staffId, record, pendingPasswordWasTemporary);
+          setLoading(false);
+          redirectToPortal(portal);
+          return;
+        }
+
+        await signOut(auth);
         setLoading(false);
-        redirectToPortal(portal);
+
+        if (pgResult.permissionDenied || ugResult.permissionDenied) {
+          showError("The login was accepted, but Firestore blocked the tutor record check. Publish the updated Firestore rules and confirm this Staff ID exists in the correct tutor collection.");
+          return;
+        }
+
+        showError("Your account signed in, but this Staff ID was not found in the facilitator directories. Contact the administrator.");
+        return;
       } catch (error) {
         console.error(error);
         setLoading(false);
