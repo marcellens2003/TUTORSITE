@@ -1016,22 +1016,30 @@
             </label>
         </div>
 
-        <div class="field-label">ACTIVE BLOCK</div>
-        <div class="active-block-card warn" id="activeBlockCard">
-            <strong>Current active block</strong>
-            <span id="activeBlockDisplay">Loading…</span>
-            <div class="small" id="activeBlockHelp">The active block is selected by the administrator. You cannot change it here.</div>
+        <div class="field-label">BLOCK OF TEACHING *</div>
+        <div class="mode-delivery-container" id="blockSelector">
+            <label class="mode-option">
+                <input type="radio" name="block" value="Block 1" required>
+                <span class="mode-text">Block 1</span>
+            </label>
+            <label class="mode-option">
+                <input type="radio" name="block" value="Block 2" required>
+                <span class="mode-text">Block 2</span>
+            </label>
+            <label class="mode-option">
+                <input type="radio" name="block" value="Block 3" required>
+                <span class="mode-text">Block 3</span>
+            </label>
         </div>
-        <input type="hidden" id="activeBlockInput" name="block" required>
 
         <div class="field-label">COURSE CODE & TITLE *</div>
         <div id="courseSearchContainer" class="searchable-select-wrapper">
             <input type="text" id="courseSearchInput" class="searchable-input"
-                   placeholder="Waiting for admin active block..." autocomplete="off" required>
+                   placeholder="Select the course you taught..." autocomplete="off" required>
             <div id="courseDropdown" class="dropdown-options"></div>
             <input type="hidden" id="course" name="course" required>
         </div>
-        <div class="hint block-course-hint" id="blockCourseHint">The administrator has not selected an active block yet. Please contact the administrator.</div>
+        <div class="hint block-course-hint" id="blockCourseHint">All assigned courses are available. Select the block separately above.</div>
 
         <div class="field-label">PROGRAMME *</div>
         <select id="program" name="program" required>
@@ -1229,7 +1237,7 @@ function createSearchableDropdown(config) {
             hidden.value = this.value.trim();
         } else {
             // For the course field, tutors must choose from the courses assigned
-            // to the selected block. Typing only filters the list.
+            // to this tutor. Typing only filters the list.
             const typed = this.value.toLowerCase().trim();
             const exact = getData().find(item => item.toLowerCase() === typed);
             hidden.value = exact || '';
@@ -1247,7 +1255,7 @@ function createSearchableDropdown(config) {
             } else {
                 // For the course field, do NOT accept free text. The tutor must
                 // choose one of the courses returned by getData(), which is already
-                // filtered by the admin-controlled active block.
+                // limited to this tutor's assigned courses.
                 const typed = input.value.toLowerCase().trim();
                 const exact = getData().find(item => item.toLowerCase() === typed);
                 if (exact) {
@@ -1256,7 +1264,7 @@ function createSearchableDropdown(config) {
                     input.setCustomValidity('');
                 } else if (input.value.trim()) {
                     hidden.value = '';
-                    input.setCustomValidity('Please select one of your assigned courses for the active block.');
+                    input.setCustomValidity('Please select one of your assigned courses.');
                 } else {
                     hidden.value = '';
                     input.setCustomValidity('');
@@ -1277,7 +1285,7 @@ function createSearchableDropdown(config) {
                 this.setCustomValidity('');
             } else if (this.value.trim()) {
                 hidden.value = '';
-                this.setCustomValidity('Please select one of your assigned courses for the selected block.');
+                this.setCustomValidity('Please select one of your assigned courses.');
             } else {
                 hidden.value = '';
                 this.setCustomValidity('');
@@ -1344,14 +1352,13 @@ async function fillTutorFromLogin() {
         nameField.value = rawId;
         hint.textContent = 'No record found for ' + rawId + '. Contact the administrator.';
     }
-    await loadActiveBlock();
     populateProgramDropdown();
     updateCourseAvailability();
     if (typeof loadMyClaims === 'function') loadMyClaims();
 }
 window.fillTutorFromLogin = fillTutorFromLogin;
 
-// Active block is controlled globally by the admin dashboard.
+// Tutors now choose the teaching block themselves.
 let CURRENT_ACTIVE_BLOCK = '';
 let CURRENT_FORM_BLOCK_OVERRIDE = '';
 let CURRENT_ASSIGNED_TRAVEL = null;
@@ -1374,47 +1381,22 @@ function normalizeBlockLabel(value) {
 }
 
 function setActiveBlockField(block, options) {
-    options = options || {};
+    // Kept for older saved-claim/PDF restore code. There is no admin selected block now.
     const clean = normalizeBlockDisplay(block);
-    const input = document.getElementById('activeBlockInput');
-    const display = document.getElementById('activeBlockDisplay');
-    const help = document.getElementById('activeBlockHelp');
-    const card = document.getElementById('activeBlockCard');
-    if (input) input.value = clean;
-    if (display) display.textContent = clean || 'Not set';
-    if (help) {
-        help.textContent = options.editing
-            ? 'You are editing a saved claim for this block. New claims follow the administrator active block.'
-            : 'The active block is selected by the administrator. You cannot change it here.';
-    }
-    if (card) card.classList.toggle('warn', !clean);
+    setRadioValue('block', clean);
     return clean;
 }
 
 async function loadActiveBlock() {
-    const display = document.getElementById('activeBlockDisplay');
-    const help = document.getElementById('activeBlockHelp');
-    if (display) display.textContent = 'Loading…';
-    if (help) help.textContent = 'Checking the active block set by the administrator…';
-    try {
-        const fs = window.__firestore;
-        if (!fs || !fs.db) throw new Error('Firestore is not ready');
-        const snap = await fs.getDoc(fs.doc(fs.db, 'settings', 'activeBlock'));
-        const data = snap.exists() ? (snap.data() || {}) : {};
-        CURRENT_ACTIVE_BLOCK = normalizeBlockDisplay(data.activeBlock || data.block || '');
-    } catch (e) {
-        console.error('Could not load active block:', e);
-        CURRENT_ACTIVE_BLOCK = '';
-        if (help) help.textContent = 'Could not load the active block. Please refresh or contact the administrator.';
-    }
+    CURRENT_ACTIVE_BLOCK = '';
     CURRENT_FORM_BLOCK_OVERRIDE = '';
-    setActiveBlockField(CURRENT_ACTIVE_BLOCK);
-    return CURRENT_ACTIVE_BLOCK;
+    return '';
 }
 window.loadActiveBlock = loadActiveBlock;
 
 function selectedTeachingBlock() {
-    return (document.getElementById('activeBlockInput')?.value || CURRENT_FORM_BLOCK_OVERRIDE || CURRENT_ACTIVE_BLOCK || '').trim();
+    const checked = document.querySelector('input[name="block"]:checked');
+    return normalizeBlockDisplay((checked && checked.value) || CURRENT_FORM_BLOCK_OVERRIDE || '');
 }
 
 function courseBlockValue(c) {
@@ -1466,7 +1448,9 @@ function setModeRadioLock(mode, lock) {
 function selectedCourseAssignment() {
     const label = document.getElementById('course')?.value || '';
     if (!label) return null;
-    return filteredTutorCourseAssignments().find(c => c.label === label) || null;
+    const selectedBlock = normalizeBlockLabel(selectedTeachingBlock());
+    const matches = filteredTutorCourseAssignments().filter(c => c.label === label);
+    return matches.find(c => normalizeBlockLabel(c.block) === selectedBlock) || matches[0] || null;
 }
 
 function normalizeTravelLocation(value) {
@@ -1533,14 +1517,12 @@ function applyAssignedModeAndTravel(courseAssignment) {
 
 function filteredTutorCourseAssignments() {
     if (!CURRENT_TUTOR || !Array.isArray(CURRENT_TUTOR.courses)) return [];
-    const selectedBlock = normalizeBlockLabel(selectedTeachingBlock());
-    if (!selectedBlock) return [];
-
-    // Strict filtering: only courses with a block matching the admin-selected
-    // active block are returned. Old course records without a block are hidden.
     return CURRENT_TUTOR.courses
-        .map(c => Object.assign({}, c, { label: courseLabelValue(c), block: normalizeBlockDisplay(courseBlockValue(c)) }))
-        .filter(c => c.label && normalizeBlockLabel(c.block) === selectedBlock);
+        .map(c => Object.assign({}, c, {
+            label: courseLabelValue(c),
+            block: normalizeBlockDisplay(courseBlockValue(c))
+        }))
+        .filter(c => c.label);
 }
 
 function tutorCourses() {
@@ -1569,7 +1551,6 @@ function updateCourseAvailability() {
     const hint = document.getElementById('blockCourseHint');
     if (!input) return;
 
-    const block = selectedTeachingBlock();
     const courses = tutorCourses();
     if (!CURRENT_TUTOR) {
         input.disabled = true;
@@ -1578,23 +1559,16 @@ function updateCourseAvailability() {
         if (hidden) hidden.value = '';
         return;
     }
-    if (!block) {
-        input.disabled = true;
-        input.placeholder = 'Active block not set';
-        if (hint) { hint.textContent = 'The administrator has not selected an active block yet. Please contact the administrator.'; hint.className = 'hint block-course-hint'; }
-        if (hidden) hidden.value = '';
-        return;
-    }
     if (!courses.length) {
         input.disabled = true;
-        input.placeholder = 'No courses assigned for ' + block;
-        if (hint) { hint.textContent = 'No course has been assigned to you for the active block (' + block + '). Please contact the administrator.'; hint.className = 'hint block-course-hint warn'; }
+        input.placeholder = 'No courses assigned';
+        if (hint) { hint.textContent = 'No course has been assigned to you. Please contact the administrator.'; hint.className = 'hint block-course-hint warn'; }
         if (hidden) hidden.value = '';
         return;
     }
     input.disabled = false;
-    input.placeholder = '🔍 Select your course for ' + block + '...';
-    if (hint) { hint.textContent = courses.length + ' course' + (courses.length === 1 ? '' : 's') + ' available for the active block: ' + block + '.'; hint.className = 'hint block-course-hint ok'; }
+    input.placeholder = '🔍 Select the course you taught...';
+    if (hint) { hint.textContent = courses.length + ' assigned course' + (courses.length === 1 ? '' : 's') + ' available. Select the block separately above.'; hint.className = 'hint block-course-hint ok'; }
 }
 
 // ========== POPULATE PROGRAMME DROPDOWN ==========
@@ -1613,7 +1587,9 @@ function populateProgramDropdown() {
 // When a course is chosen, auto-fill programme + study centre from that assignment
 function onCourseSelected(label) {
     if (!CURRENT_TUTOR) return;
-    const match = filteredTutorCourseAssignments().find(c => c.label === label);
+    const selectedBlock = normalizeBlockLabel(selectedTeachingBlock());
+    const matches = filteredTutorCourseAssignments().filter(c => c.label === label);
+    const match = matches.find(c => normalizeBlockLabel(c.block) === selectedBlock) || matches[0];
     if (!match) return;
     const programValue = match.program || match.programme || '';
     const centreValue = match.centre || match.studyCentre || match.studyCenter || '';
@@ -1841,7 +1817,7 @@ function applyMode() {
 document.addEventListener('DOMContentLoaded', function() {
     createSearchableDropdown({
         inputId: 'courseSearchInput', dropdownId: 'courseDropdown', hiddenId: 'course',
-        getData: tutorCourses, placeholder: 'Waiting for admin active block...',
+        getData: tutorCourses, placeholder: 'Select the course you taught...',
         onSelect: onCourseSelected,
         allowCustom: false
     });
@@ -1862,12 +1838,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     document.querySelectorAll('input[name="semester"]').forEach(r =>
         r.addEventListener('change', scheduleDuplicateCheck));
-    document.addEventListener('activeBlockChanged', function() {
-        clearSelectedCourse();
-        populateProgramDropdown();
-        updateCourseAvailability();
-        scheduleDuplicateCheck();
-    });
+    document.querySelectorAll('input[name="block"]').forEach(r =>
+        r.addEventListener('change', function() {
+            const selectedCourse = document.getElementById('course')?.value || '';
+            if (selectedCourse) onCourseSelected(selectedCourse);
+            scheduleDuplicateCheck();
+        }));
     const openDupBtn = document.getElementById('openDuplicateClaimBtn');
     if (openDupBtn) openDupBtn.addEventListener('click', openDuplicateClaimFromNotice);
     const hideDupBtn = document.getElementById('hideDuplicateNoticeBtn');
@@ -3161,8 +3137,9 @@ window.downloadSubmittedClaimPdf = downloadSubmittedClaimPdf;
 
 function setRadioValue(name, value) {
     if (name === 'block') {
-        CURRENT_FORM_BLOCK_OVERRIDE = normalizeBlockDisplay(value || CURRENT_ACTIVE_BLOCK || '');
-        setActiveBlockField(CURRENT_FORM_BLOCK_OVERRIDE, { editing: !!value && normalizeBlockLabel(value) !== normalizeBlockLabel(CURRENT_ACTIVE_BLOCK) });
+        const clean = normalizeBlockDisplay(value || '');
+        CURRENT_FORM_BLOCK_OVERRIDE = clean;
+        document.querySelectorAll('input[name="block"]').forEach(r => { r.checked = (normalizeBlockDisplay(r.value) === clean); });
         return;
     }
     document.querySelectorAll('input[name="' + name + '"]').forEach(r => { r.checked = (r.value === value); });
@@ -3382,11 +3359,11 @@ function setupFormSubmission(form) {
         }
         const selectedBlock = selectedTeachingBlock();
         if (!selectedBlock) {
-            alert('No active block has been selected by the administrator. Please contact the administrator.'); return;
+            alert('Please select the block of teaching.'); return;
         }
         const selectedCourse = document.getElementById('course').value.trim();
         if (!selectedCourse || !tutorCourses().includes(selectedCourse)) {
-            alert('Please select one of your assigned courses for the active block (' + selectedBlock + ').'); return;
+            alert('Please select one of your assigned courses.'); return;
         }
         if (!validateForm()) return;
         showPreview();
@@ -3402,10 +3379,10 @@ function validateForm() {
     const mode = (document.querySelector('input[name="modeOfDelivery"]:checked') || {}).value;
     if (!mode) { alert('Select mode of delivery'); ok = false; }
     if (!document.querySelector('input[name="semester"]:checked')) { alert('Select semester'); ok = false; }
-    if (!selectedTeachingBlock()) { alert('No active block has been selected by the administrator.'); ok = false; }
+    if (!selectedTeachingBlock()) { alert('Please select the block of teaching.'); ok = false; }
     const selectedCourse = document.getElementById('course')?.value || '';
     if (ok && (!selectedCourse || !tutorCourses().includes(selectedCourse))) {
-        alert('Please select a course assigned to you for the selected block.');
+        alert('Please select one of your assigned courses.');
         ok = false;
     }
 
