@@ -1125,66 +1125,6 @@
         </div>
         <input type="hidden" id="totalHours" name="totalHours">
 
-        <!-- ============ BANK DETAILS ============ -->
-        <h3 class="section-head">Bank Details (For First Time Facilitators) <span style="font-weight:400;font-size:13px;color:#666;">(optional)</span></h3>
-        <div class="row-2">
-            <div>
-                <div class="sub-label">Name of bank</div>
-                <select id="bankName" name="bankName">
-                    <option value="" disabled selected>Select bank</option>
-                    <option value="Absa Bank Ghana">Absa Bank Ghana</option>
-                    <option value="Access Bank Ghana">Access Bank Ghana</option>
-                    <option value="Agricultural Development Bank (ADB)">Agricultural Development Bank (ADB)</option>
-                    <option value="Bank of Africa Ghana">Bank of Africa Ghana</option>
-                    <option value="CalBank">CalBank</option>
-                    <option value="Consolidated Bank Ghana (CBG)">Consolidated Bank Ghana (CBG)</option>
-                    <option value="Ecobank Ghana">Ecobank Ghana</option>
-                    <option value="FBNBank Ghana">FBNBank Ghana</option>
-                    <option value="Fidelity Bank Ghana">Fidelity Bank Ghana</option>
-                    <option value="First Atlantic Bank">First Atlantic Bank</option>
-                    <option value="First National Bank Ghana">First National Bank Ghana</option>
-                    <option value="GCB Bank">GCB Bank</option>
-                    <option value="GT Bank Ghana">GT Bank Ghana</option>
-                    <option value="National Investment Bank (NIB)">National Investment Bank (NIB)</option>
-                    <option value="OmniBSIC Bank">OmniBSIC Bank</option>
-                    <option value="Prudential Bank">Prudential Bank</option>
-                    <option value="Republic Bank Ghana">Republic Bank Ghana</option>
-                    <option value="Société Générale Ghana">Société Générale Ghana</option>
-                    <option value="Stanbic Bank Ghana">Stanbic Bank Ghana</option>
-                    <option value="Standard Chartered Bank Ghana">Standard Chartered Bank Ghana</option>
-                    <option value="United Bank for Africa (UBA) Ghana">United Bank for Africa (UBA) Ghana</option>
-                    <option value="Universal Merchant Bank (UMB)">Universal Merchant Bank (UMB)</option>
-                    <option value="Zenith Bank Ghana">Zenith Bank Ghana</option>
-                    <option value="ARB Apex Bank">ARB Apex Bank</option>
-                    <option value="Other">Other</option>
-                </select>
-                <input type="text" id="bankNameOther" placeholder="Enter bank name" style="display:none; margin-top:8px;">
-            </div>
-            <div>
-                <div class="sub-label">Branch *</div>
-                <input type="text" id="bankBranch" name="bankBranch" placeholder="e.g. Cape Coast">
-            </div>
-        </div>
-        <div class="row-2">
-            <div>
-                <div class="sub-label">Account name *</div>
-                <input type="text" id="accountName" name="accountName" placeholder="Name on the account">
-            </div>
-            <div>
-                <div class="sub-label">Account number *</div>
-                <input type="text" id="accountNumber" name="accountNumber"
-                       inputmode="numeric" placeholder="Account number">
-            </div>
-        </div>
-        <div class="row-2">
-            <div>
-                <div class="sub-label">Ghana Card Number</div>
-                <input type="text" id="ghanaCardNumber" name="ghanaCardNumber"
-                       placeholder="e.g. GHA-XXXXXXXXX-X" autocomplete="off">
-            </div>
-            <div></div>
-        </div>
-
         <div class="field-label">REMARKS</div>
         <textarea id="remarks" name="remarks" rows="4"
                   placeholder="Any additional remarks..."></textarea>
@@ -1414,6 +1354,7 @@ window.fillTutorFromLogin = fillTutorFromLogin;
 // Active block is controlled globally by the admin dashboard.
 let CURRENT_ACTIVE_BLOCK = '';
 let CURRENT_FORM_BLOCK_OVERRIDE = '';
+let CURRENT_ASSIGNED_TRAVEL = null;
 
 function normalizeBlockDisplay(value) {
     const raw = String(value || '').trim().toLowerCase();
@@ -1517,10 +1458,8 @@ function assignmentLooksPurelyOnline(courseAssignment) {
 }
 
 function setModeRadioLock(mode, lock) {
-    document.querySelectorAll('input[name="modeOfDelivery"]').forEach(r => {
-        // Keep the selected radio enabled so form validation and JS reads remain stable.
-        r.disabled = !!lock && r.value !== mode;
-    });
+    // Mode of delivery is no longer locked. Tutors can choose Blended or Purely Online.
+    document.querySelectorAll('input[name="modeOfDelivery"]').forEach(r => { r.disabled = false; });
 }
 
 function selectedCourseAssignment() {
@@ -1535,32 +1474,30 @@ function applyAssignedModeAndTravel(courseAssignment) {
     const travelTo = courseAssignment && (courseAssignment.travelTo || courseAssignment.to || courseAssignment.destination || '') || '';
     const hasAssignedTravel = !!(String(travelFrom || '').trim() && String(travelTo || '').trim());
 
-    // Some older imports defaulted blank/online rows to Blended. If the course/centre
-    // clearly says Online or Virtual and no travel route is assigned, force it back to online.
+    const route = findTravelRoute(travelFrom, travelTo);
+    const distanceIn = courseAssignment && (courseAssignment.travelDistanceIn || courseAssignment.distanceIn || courseAssignment.distanceInKm || '') || (route ? route.distanceIn : '');
+    const distanceOut = courseAssignment && (courseAssignment.travelDistanceOut || courseAssignment.distanceOut || courseAssignment.distanceOutKm || '') || (route ? route.distanceOut : '');
+    const totalDistance = courseAssignment && (courseAssignment.travelTotalDistance || courseAssignment.totalDistanceTravelled || courseAssignment.totalDistance || courseAssignment.travelDistanceTotal || '') || (route ? route.total : '');
+
+    CURRENT_ASSIGNED_TRAVEL = hasAssignedTravel ? {
+        from: travelFrom,
+        to: travelTo,
+        distanceIn: distanceIn,
+        distanceOut: distanceOut,
+        totalDistance: totalDistance
+    } : null;
+
+    // Preselect the most likely mode, but do not lock it. Tutors can change it.
     if (!hasAssignedTravel && assignmentLooksPurelyOnline(courseAssignment)) mode = 'Purely Online';
     if (!mode && hasAssignedTravel) mode = 'Blended';
 
-    // Reset radio state before applying the selected assignment mode. This prevents a
-    // previous blended course from leaving the next online course locked to Blended.
     document.querySelectorAll('input[name="modeOfDelivery"]').forEach(r => {
         r.disabled = false;
         r.checked = false;
     });
 
     if (mode) setRadioValue('modeOfDelivery', mode);
-
-    if (mode === 'Purely Online') {
-        // Online courses must not carry route/distance values from a previous selection.
-        setTravelFields('', '', '', '', '');
-        setModeRadioLock('Purely Online', true);
-    } else {
-        const route = findTravelRoute(travelFrom, travelTo);
-        const distanceIn = courseAssignment && (courseAssignment.travelDistanceIn || courseAssignment.distanceIn || courseAssignment.distanceInKm || '') || (route ? route.distanceIn : '');
-        const distanceOut = courseAssignment && (courseAssignment.travelDistanceOut || courseAssignment.distanceOut || courseAssignment.distanceOutKm || '') || (route ? route.distanceOut : '');
-        const totalDistance = courseAssignment && (courseAssignment.travelTotalDistance || courseAssignment.totalDistanceTravelled || courseAssignment.totalDistance || courseAssignment.travelDistanceTotal || '') || (route ? route.total : '');
-        setTravelFields(travelFrom, travelTo, distanceIn, distanceOut, totalDistance);
-        if (mode === 'Blended') setModeRadioLock('Blended', hasAssignedTravel || normalizeCourseDeliveryMode(courseAssignment && (courseAssignment.mode || courseAssignment.deliveryMode || courseAssignment.modeOfDelivery || courseAssignment.teachingMode)) === 'Blended');
-    }
+    refreshTravelForSelectedMode();
     applyMode();
 }
 
@@ -1581,6 +1518,7 @@ function tutorCourses() {
 }
 
 function clearSelectedCourse() {
+    CURRENT_ASSIGNED_TRAVEL = null;
     const input = document.getElementById('courseSearchInput');
     const hidden = document.getElementById('course');
     if (input) {
@@ -1825,9 +1763,26 @@ function recomputeTotals() {
     updateHoursLimitWarning(grand);
 }
 
+
+function refreshTravelForSelectedMode() {
+    const mode = (document.querySelector('input[name="modeOfDelivery"]:checked') || {}).value;
+    if (mode === 'Blended' && CURRENT_ASSIGNED_TRAVEL) {
+        setTravelFields(
+            CURRENT_ASSIGNED_TRAVEL.from || '',
+            CURRENT_ASSIGNED_TRAVEL.to || '',
+            CURRENT_ASSIGNED_TRAVEL.distanceIn || '',
+            CURRENT_ASSIGNED_TRAVEL.distanceOut || '',
+            CURRENT_ASSIGNED_TRAVEL.totalDistance || ''
+        );
+    } else if (mode !== 'Blended') {
+        setTravelFields('', '', '', '', '');
+    }
+}
+
 // Show/hide sections based on mode. Blended -> both; Purely Online -> online only.
 function applyMode() {
     const mode = (document.querySelector('input[name="modeOfDelivery"]:checked') || {}).value;
+    refreshTravelForSelectedMode();
     const f2f = document.getElementById('f2fSection');
     const on = document.getElementById('onlineSection');
     const onHead = on.querySelector('.section-head');
@@ -1887,15 +1842,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const bankSelect = document.getElementById('bankName');
     const bankOther = document.getElementById('bankNameOther');
-    bankSelect.addEventListener('change', function() {
-        if (this.value === 'Other') {
-            bankOther.style.display = 'block';
-            bankOther.focus();
-        } else {
-            bankOther.style.display = 'none';
-            bankOther.value = '';
-        }
-    });
+    if (bankSelect && bankOther) {
+        bankSelect.addEventListener('change', function() {
+            if (this.value === 'Other') {
+                bankOther.style.display = 'block';
+                bankOther.focus();
+            } else {
+                bankOther.style.display = 'none';
+                bankOther.value = '';
+            }
+        });
+    }
 
     initTravelDropdowns();
     initSignatureUpload();
@@ -2295,11 +2252,11 @@ function showPreview() {
     const travelDistanceIn = document.getElementById('travelDistanceIn') ? document.getElementById('travelDistanceIn').value : '';
     const travelDistanceOut = document.getElementById('travelDistanceOut') ? document.getElementById('travelDistanceOut').value : '';
     const travelTotalDistance = document.getElementById('travelTotalDistance') ? document.getElementById('travelTotalDistance').value : '';
-    const bankName = getSelectedBankName();
-    const bankBranch = document.getElementById('bankBranch').value;
-    const accountName = document.getElementById('accountName').value;
-    const accountNumber = document.getElementById('accountNumber').value;
-    const ghanaCardNumber = document.getElementById('ghanaCardNumber').value;
+    const bankName = '';
+    const bankBranch = '';
+    const accountName = '';
+    const accountNumber = '';
+    const ghanaCardNumber = '';
     const remarks = document.getElementById('remarks').value;
     const sigSrc = document.getElementById('sigPreview').src;
 
@@ -2357,19 +2314,6 @@ function showPreview() {
 
     // --- Grand total ---
     html += '<div class="preview-total">Grand total teaching hours: ' + esc(grandTotal) + '</div>';
-
-    // --- Bank ---
-    if (bankName || bankBranch || accountName || accountNumber || ghanaCardNumber) {
-        html += '<div class="preview-section">';
-        html += '<div class="preview-section-title">Bank Details</div>';
-        html += '<div class="preview-grid">';
-        html += pitem('Bank', bankName);
-        html += pitem('Branch', bankBranch);
-        html += pitem('Account Name', accountName);
-        html += pitem('Account Number', accountNumber);
-        html += pitem('Ghana Card Number', ghanaCardNumber);
-        html += '</div></div>';
-    }
 
     // --- Remarks ---
     if (remarks.trim()) {
@@ -2478,17 +2422,17 @@ async function downloadPreviewPdf() {
         const studyCentre = valueOf('studyCentre');
         const mode = checkedValue('modeOfDelivery');
         const semester = checkedValue('semester');
-        const block = checkedValue('block');
+        const block = (typeof selectedTeachingBlock === 'function' ? selectedTeachingBlock() : '') || valueOf('activeBlockInput') || checkedValue('block');
         const f2fTotal = clean(document.getElementById('f2fTotal') ? document.getElementById('f2fTotal').textContent : '');
         const onTotal = clean(document.getElementById('onTotal') ? document.getElementById('onTotal').textContent : '');
         const grandTotal = clean(document.getElementById('grandTotal') ? document.getElementById('grandTotal').textContent : '');
         const travelFrom = valueOf('travelFrom');
         const travelTo = valueOf('travelTo');
-        const bankName = getSelectedBankName();
-        const bankBranch = valueOf('bankBranch');
-        const accountName = valueOf('accountName');
-        const accountNumber = valueOf('accountNumber');
-        const ghanaCardNumber = valueOf('ghanaCardNumber');
+        const bankName = '';
+        const bankBranch = '';
+        const accountName = '';
+        const accountNumber = '';
+        const ghanaCardNumber = '';
         const remarks = valueOf('remarks');
         const hasSignature = !!valueOf('facilitatorSignature');
 
@@ -2561,15 +2505,6 @@ async function downloadPreviewPdf() {
 
         section('Grand Total');
         field('Grand Total Teaching Hours', grandTotal);
-
-        if (bankName || bankBranch || accountName || accountNumber || ghanaCardNumber) {
-            section('Bank Details');
-            field('Bank Name', bankName);
-            field('Bank Branch', bankBranch);
-            field('Account Name', accountName);
-            field('Account Number', accountNumber);
-            field('Ghana Card Number', ghanaCardNumber);
-        }
 
         section('Remarks');
         field('Remarks', remarks);
@@ -3090,11 +3025,11 @@ function captureFormStateForClaimPdfDownload() {
         travelDistanceIn: document.getElementById('travelDistanceIn')?.value || '',
         travelDistanceOut: document.getElementById('travelDistanceOut')?.value || '',
         travelTotalDistance: document.getElementById('travelTotalDistance')?.value || '',
-        bankName: (typeof getSelectedBankName === 'function') ? getSelectedBankName() : (document.getElementById('bankName')?.value || ''),
-        bankBranch: document.getElementById('bankBranch')?.value || '',
-        accountName: document.getElementById('accountName')?.value || '',
-        accountNumber: document.getElementById('accountNumber')?.value || '',
-        ghanaCardNumber: document.getElementById('ghanaCardNumber')?.value || '',
+        bankName: '',
+        bankBranch: '',
+        accountName: '',
+        accountNumber: '',
+        ghanaCardNumber: '',
         remarks: document.getElementById('remarks')?.value || '',
         facilitatorSignature: document.getElementById('facilitatorSignature')?.value || '',
         editNoticeVisible: document.getElementById('editNotice')?.style.display || ''
@@ -3270,6 +3205,7 @@ function fillFormFromClaim(data, docId) {
 function setBankFields(bankName, branch, accountName, accountNumber, ghanaCardNumber) {
     const bankSelect = document.getElementById('bankName');
     const bankOther = document.getElementById('bankNameOther');
+    if (!bankSelect || !bankOther) return;
     const bankValue = bankName || '';
     if (!bankValue) {
         bankSelect.value = '';
@@ -3287,11 +3223,10 @@ function setBankFields(bankName, branch, accountName, accountNumber, ghanaCardNu
             bankOther.value = bankValue;
         }
     }
-    document.getElementById('bankBranch').value = branch || '';
-    document.getElementById('accountName').value = accountName || '';
-    document.getElementById('accountNumber').value = accountNumber || '';
-    const ghanaCardEl = document.getElementById('ghanaCardNumber');
-    if (ghanaCardEl) ghanaCardEl.value = ghanaCardNumber || '';
+    const branchEl = document.getElementById('bankBranch'); if (branchEl) branchEl.value = branch || '';
+    const accountNameEl = document.getElementById('accountName'); if (accountNameEl) accountNameEl.value = accountName || '';
+    const accountNumberEl = document.getElementById('accountNumber'); if (accountNumberEl) accountNumberEl.value = accountNumber || '';
+    const ghanaCardEl = document.getElementById('ghanaCardNumber'); if (ghanaCardEl) ghanaCardEl.value = ghanaCardNumber || '';
 }
 
 function showEditMode(claimId) {
@@ -3451,11 +3386,6 @@ function validateForm() {
             alert('Please fill: ' + required[id]); ok = false; break;
         }
     }
-    // bank name: only validate the typed field if 'Other' was selected
-    if (document.getElementById('bankName').value === 'Other') {
-        const otherEl = document.getElementById('bankNameOther');
-        if (!otherEl.value.trim()) { otherEl.style.borderColor = 'red'; alert('Please type the bank name'); ok = false; }
-    }
 
     // require at least one session with hours for the active mode
     recomputeTotals();
@@ -3486,8 +3416,11 @@ function prepareFormData() {
     data.claimId = CURRENT_EDIT_CLAIM_ID || '';
     data.firestoreDocId = CURRENT_EDIT_DOC_ID || '';
     data.claimStatus = 'Submitted';
-    data.bankName = getSelectedBankName();
-    data.ghanaCardNumber = document.getElementById('ghanaCardNumber')?.value || '';
+    data.bankName = '';
+    data.bankBranch = '';
+    data.accountName = '';
+    data.accountNumber = '';
+    data.ghanaCardNumber = '';
     data.travelDistanceIn = document.getElementById('travelDistanceIn')?.value || '';
     data.travelDistanceOut = document.getElementById('travelDistanceOut')?.value || '';
     data.travelTotalDistance = document.getElementById('travelTotalDistance')?.value || '';
@@ -3590,11 +3523,11 @@ function prepareSheetDataFromClaimDoc(claimData, claimDocId) {
     data.onSessions = data.onSessions || data.onlineSessions || sessionsFromItemsForSheet(data.onSessionItems);
     data.f2fSessionItemsJson = data.f2fSessionItemsJson || JSON.stringify(data.f2fSessionItems || []);
     data.onSessionItemsJson = data.onSessionItemsJson || JSON.stringify(data.onSessionItems || []);
-    data.bankName = data.bankName || '';
-    data.bankBranch = data.bankBranch || '';
-    data.accountName = data.accountName || '';
-    data.accountNumber = data.accountNumber || '';
-    data.ghanaCardNumber = data.ghanaCardNumber || data.ghanaCard || '';
+    data.bankName = '';
+    data.bankBranch = '';
+    data.accountName = '';
+    data.accountNumber = '';
+    data.ghanaCardNumber = '';
     data.travelFrom = data.travelFrom || '';
     data.travelTo = data.travelTo || '';
     data.travelDistanceIn = data.travelDistanceIn || '';
@@ -3877,10 +3810,10 @@ function resetForm() {
     document.querySelector('input[name="semester"][value="Second Semester"]').checked = true;
     CURRENT_FORM_BLOCK_OVERRIDE = '';
     setActiveBlockField(CURRENT_ACTIVE_BLOCK);
+    CURRENT_ASSIGNED_TRAVEL = null;
     if (typeof setTravelFields === 'function') setTravelFields('', '', '', '', '');
     const bankOther = document.getElementById('bankNameOther');
-    bankOther.value = '';
-    bankOther.style.display = 'none';
+    if (bankOther) { bankOther.value = ''; bankOther.style.display = 'none'; }
     // Reset signature upload UI back to empty state
     document.getElementById('facilitatorSignature').value = '';
     document.getElementById('facilitatorSignature').defaultValue = '';
@@ -3986,7 +3919,7 @@ window.downloadPreviewPdf = async function downloadPreviewPdf() {
             studyCentre: valueOf('studyCentre'),
             mode: checkedValue('modeOfDelivery'),
             semester: checkedValue('semester'),
-            block: checkedValue('block'),
+            block: (typeof selectedTeachingBlock === 'function' ? selectedTeachingBlock() : '') || valueOf('activeBlockInput') || checkedValue('block'),
             f2fTotal: clean(document.getElementById('f2fTotal') ? document.getElementById('f2fTotal').textContent : ''),
             onTotal: clean(document.getElementById('onTotal') ? document.getElementById('onTotal').textContent : ''),
             grandTotal: clean(document.getElementById('grandTotal') ? document.getElementById('grandTotal').textContent : ''),
@@ -3995,11 +3928,11 @@ window.downloadPreviewPdf = async function downloadPreviewPdf() {
             travelDistanceIn: valueOf('travelDistanceIn'),
             travelDistanceOut: valueOf('travelDistanceOut'),
             travelTotalDistance: valueOf('travelTotalDistance'),
-            bankName: (typeof getSelectedBankName === 'function') ? getSelectedBankName() : valueOf('bankName'),
-            bankBranch: valueOf('bankBranch'),
-            accountName: valueOf('accountName'),
-            accountNumber: valueOf('accountNumber'),
-            ghanaCardNumber: valueOf('ghanaCardNumber'),
+            bankName: '',
+            bankBranch: '',
+            accountName: '',
+            accountNumber: '',
+            ghanaCardNumber: '',
             remarks: valueOf('remarks'),
             signature: valueOf('facilitatorSignature'),
             f2fRows: getSessions('f2f'),
@@ -4184,14 +4117,6 @@ window.downloadPreviewPdf = async function downloadPreviewPdf() {
             sessionTable('Online Sessions', data.onRows, 'Total Online Hours', data.onTotal);
         }
         totalBox('Grand Total Teaching Hours', data.grandTotal);
-        if (data.bankName || data.bankBranch || data.accountName || data.accountNumber || data.ghanaCardNumber) {
-            section('Bank Details');
-            fieldGrid([
-                {label:'Bank', value:data.bankName}, {label:'Branch', value:data.bankBranch},
-                {label:'Account Name', value:data.accountName}, {label:'Account Number', value:data.accountNumber},
-                {label:'Ghana Card Number', value:data.ghanaCardNumber}
-            ], 2);
-        }
         if (data.remarks) {
             section('Remarks');
             fullField('Remarks', data.remarks);
