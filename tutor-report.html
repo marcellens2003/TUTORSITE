@@ -1085,17 +1085,17 @@
 
             <!-- ============ FACILITATOR MOVEMENT ============ -->
             <div class="field-label" style="margin-top:18px;">FACILITATOR MOVEMENT</div>
-            <div class="hint">Your travel route is assigned by the administrator. Distance values are not displayed on this form.</div>
+            <div class="hint">For blended delivery, confirm or select your travel route. Distance values are calculated silently and are not displayed on this form.</div>
             <div class="row-2">
                 <div>
                     <div class="sub-label">Travelling from</div>
-                    <select id="travelFrom" name="travelFrom" disabled>
+                    <select id="travelFrom" name="travelFrom">
                         <option value="" selected>Not assigned</option>
                     </select>
                 </div>
                 <div>
                     <div class="sub-label">Travelling to</div>
-                    <select id="travelTo" name="travelTo" disabled>
+                    <select id="travelTo" name="travelTo">
                         <option value="" selected>Not assigned</option>
                     </select>
                 </div>
@@ -1355,6 +1355,7 @@ window.fillTutorFromLogin = fillTutorFromLogin;
 let CURRENT_ACTIVE_BLOCK = '';
 let CURRENT_FORM_BLOCK_OVERRIDE = '';
 let CURRENT_ASSIGNED_TRAVEL = null;
+let CURRENT_TRAVEL_SELECTABLE = false;
 
 function normalizeBlockDisplay(value) {
     const raw = String(value || '').trim().toLowerCase();
@@ -1468,28 +1469,57 @@ function selectedCourseAssignment() {
     return filteredTutorCourseAssignments().find(c => c.label === label) || null;
 }
 
+function normalizeTravelLocation(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    const text = raw.toLowerCase();
+    if (/purely\s+online|online\s+centre|online\s+center|virtual|online/.test(text)) return '';
+    if (/papafio|accra/.test(text)) return 'Accra';
+    if (/cape\s*coast|ucc/.test(text)) return 'Cape Coast';
+    if (/kumasi|st\.\s*louis/.test(text)) return 'Kumasi';
+    if (/tamale/.test(text)) return 'Tamale';
+    if (/takoradi|sekondi|holy\s*child/.test(text)) return 'Takoradi';
+    if (/koforidua/.test(text)) return 'Koforidua';
+    if (/sunyani/.test(text)) return 'Sunyani';
+    if (/tema/.test(text)) return 'Tema';
+    if (/bolga|bolgatanga|navrongo/.test(text)) return 'Bolga';
+    if (/\bwa\b/.test(text)) return 'Wa';
+    if (/\bho\b/.test(text)) return 'Ho';
+    return raw;
+}
+
 function applyAssignedModeAndTravel(courseAssignment) {
     let mode = normalizeCourseDeliveryMode(courseAssignment && (courseAssignment.mode || courseAssignment.deliveryMode || courseAssignment.modeOfDelivery || courseAssignment.teachingMode));
-    const travelFrom = courseAssignment && (courseAssignment.travelFrom || courseAssignment.from || courseAssignment.origin || '') || '';
-    const travelTo = courseAssignment && (courseAssignment.travelTo || courseAssignment.to || courseAssignment.destination || '') || '';
-    const hasAssignedTravel = !!(String(travelFrom || '').trim() && String(travelTo || '').trim());
+    const rawTravelFrom = courseAssignment && (courseAssignment.travelFrom || courseAssignment.from || courseAssignment.origin || '') || '';
+    const rawTravelTo = courseAssignment && (courseAssignment.travelTo || courseAssignment.to || courseAssignment.destination || '') || '';
+    const centreText = courseAssignment && (courseAssignment.centre || courseAssignment.studyCentre || courseAssignment.studyCenter || '') || '';
 
-    const route = findTravelRoute(travelFrom, travelTo);
+    const assignedFrom = normalizeTravelLocation(rawTravelFrom);
+    const assignedTo = normalizeTravelLocation(rawTravelTo);
+    const inferredTo = normalizeTravelLocation(assignedTo || centreText);
+    const inferredFrom = assignedFrom || (inferredTo ? 'Cape Coast' : '');
+    const hasExplicitAssignedTravel = !!(assignedFrom && assignedTo);
+    const hasAnyTravelChoice = !!(inferredFrom && inferredTo);
+
+    const route = findTravelRoute(inferredFrom, inferredTo);
     const distanceIn = courseAssignment && (courseAssignment.travelDistanceIn || courseAssignment.distanceIn || courseAssignment.distanceInKm || '') || (route ? route.distanceIn : '');
     const distanceOut = courseAssignment && (courseAssignment.travelDistanceOut || courseAssignment.distanceOut || courseAssignment.distanceOutKm || '') || (route ? route.distanceOut : '');
     const totalDistance = courseAssignment && (courseAssignment.travelTotalDistance || courseAssignment.totalDistanceTravelled || courseAssignment.totalDistance || courseAssignment.travelDistanceTotal || '') || (route ? route.total : '');
 
-    CURRENT_ASSIGNED_TRAVEL = hasAssignedTravel ? {
-        from: travelFrom,
-        to: travelTo,
+    CURRENT_ASSIGNED_TRAVEL = hasAnyTravelChoice ? {
+        from: inferredFrom,
+        to: inferredTo,
         distanceIn: distanceIn,
         distanceOut: distanceOut,
         totalDistance: totalDistance
     } : null;
 
+    // Keep travel selectable whenever travel was inferred from centre data, missing, or not found in the route table.
+    CURRENT_TRAVEL_SELECTABLE = !hasExplicitAssignedTravel || !route;
+
     // Preselect the most likely mode, but do not lock it. Tutors can change it.
-    if (!hasAssignedTravel && assignmentLooksPurelyOnline(courseAssignment)) mode = 'Purely Online';
-    if (!mode && hasAssignedTravel) mode = 'Blended';
+    if (!hasExplicitAssignedTravel && assignmentLooksPurelyOnline(courseAssignment)) mode = 'Purely Online';
+    if (!mode && hasAnyTravelChoice) mode = 'Blended';
 
     document.querySelectorAll('input[name="modeOfDelivery"]').forEach(r => {
         r.disabled = false;
@@ -1772,10 +1802,13 @@ function refreshTravelForSelectedMode() {
             CURRENT_ASSIGNED_TRAVEL.to || '',
             CURRENT_ASSIGNED_TRAVEL.distanceIn || '',
             CURRENT_ASSIGNED_TRAVEL.distanceOut || '',
-            CURRENT_ASSIGNED_TRAVEL.totalDistance || ''
+            CURRENT_ASSIGNED_TRAVEL.totalDistance || '',
+            !CURRENT_TRAVEL_SELECTABLE
         );
-    } else if (mode !== 'Blended') {
-        setTravelFields('', '', '', '', '');
+    } else if (mode === 'Blended') {
+        setTravelFields('', '', '', '', '', false);
+    } else {
+        setTravelFields('', '', '', '', '', true);
     }
 }
 
@@ -2190,11 +2223,17 @@ function initTravelDropdowns() {
         updateTravelDistanceSummary();
     });
     if (toSelect) toSelect.addEventListener('change', updateTravelDistanceSummary);
-    if (fromSelect) fromSelect.disabled = true;
-    if (toSelect) toSelect.disabled = true;
+    setTravelDropdownLock(true);
 }
 
-function setTravelFields(from, to, distanceIn, distanceOut, totalDistance) {
+function setTravelDropdownLock(locked) {
+    const fromEl = document.getElementById('travelFrom');
+    const toEl = document.getElementById('travelTo');
+    if (fromEl) fromEl.disabled = !!locked;
+    if (toEl) toEl.disabled = !!locked || !fromEl || !fromEl.value;
+}
+
+function setTravelFields(from, to, distanceIn, distanceOut, totalDistance, lockTravel) {
     populateTravelFromOptions(from || '');
     populateTravelToOptions(to || '');
     const fromEl = document.getElementById('travelFrom');
@@ -2210,8 +2249,7 @@ function setTravelFields(from, to, distanceIn, distanceOut, totalDistance) {
     if (inEl) inEl.value = route ? String(route.distanceIn) : (distanceIn || '');
     if (outEl) outEl.value = route ? String(route.distanceOut) : (distanceOut || '');
     if (totalEl) totalEl.value = route ? String(route.total) : (totalDistance || '');
-    if (fromEl) fromEl.disabled = true;
-    if (toEl) toEl.disabled = true;
+    setTravelDropdownLock(lockTravel !== false);
     updateTravelDistanceSummary();
 }
 
@@ -3371,7 +3409,15 @@ function validateForm() {
         ok = false;
     }
 
-    // Travel route and distances are assigned by the administrator and saved invisibly.
+    // For blended delivery, collect the travel route silently for distance calculation.
+    if (mode === 'Blended') {
+        const from = document.getElementById('travelFrom')?.value || '';
+        const to = document.getElementById('travelTo')?.value || '';
+        if (!from || !to) {
+            alert('Select travelling from and travelling to for blended delivery.');
+            ok = false;
+        }
+    }
 
     // facilitator signature still required; bank details are optional
     const required = {
