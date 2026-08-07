@@ -1491,9 +1491,36 @@ function normalizeCourseDeliveryMode(value) {
     const raw = String(value || '').trim();
     const lower = raw.toLowerCase();
     if (!raw) return '';
-    if (lower.includes('online') && !lower.includes('blend') && !lower.includes('face')) return 'Purely Online';
-    if (lower.includes('face') || lower.includes('f2f') || lower.includes('blend')) return 'Blended';
+    // Treat all purely-online wording as online, including values imported as
+    // "Online", "Purely Online", "Online Only", or "Virtual".
+    if ((/online|virtual/.test(lower) || /pure/.test(lower)) && !/blend|face|f2f|physical/.test(lower)) return 'Purely Online';
+    if (/blend|face|f2f|physical/.test(lower)) return 'Blended';
     return raw;
+}
+
+function textLooksPurelyOnline(value) {
+    const text = String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    if (!text) return false;
+    if (/blend|face|f2f|physical/.test(text)) return false;
+    return /(^| )(purely online|pure online|online only|online centre|online center|online for|virtual|online)( |$)/.test(text);
+}
+
+function assignmentLooksPurelyOnline(courseAssignment) {
+    if (!courseAssignment) return false;
+    // Check location fields separately so an old wrong mode value of "Blended"
+    // does not override a centre that clearly says Purely Online / Online Centre.
+    if (textLooksPurelyOnline(courseAssignment.centre) || textLooksPurelyOnline(courseAssignment.studyCentre) || textLooksPurelyOnline(courseAssignment.studyCenter)) return true;
+    return textLooksPurelyOnline(courseAssignment.mode)
+        || textLooksPurelyOnline(courseAssignment.deliveryMode)
+        || textLooksPurelyOnline(courseAssignment.modeOfDelivery)
+        || textLooksPurelyOnline(courseAssignment.teachingMode);
+}
+
+function setModeRadioLock(mode, lock) {
+    document.querySelectorAll('input[name="modeOfDelivery"]').forEach(r => {
+        // Keep the selected radio enabled so form validation and JS reads remain stable.
+        r.disabled = !!lock && r.value !== mode;
+    });
 }
 
 function selectedCourseAssignment() {
@@ -1503,22 +1530,37 @@ function selectedCourseAssignment() {
 }
 
 function applyAssignedModeAndTravel(courseAssignment) {
-    const mode = normalizeCourseDeliveryMode(courseAssignment && (courseAssignment.mode || courseAssignment.deliveryMode || courseAssignment.modeOfDelivery || courseAssignment.teachingMode));
-    const radios = document.querySelectorAll('input[name="modeOfDelivery"]');
-    if (mode) {
-        setRadioValue('modeOfDelivery', mode);
-        radios.forEach(r => { r.disabled = true; });
-    } else {
-        radios.forEach(r => { r.disabled = false; });
-    }
-
+    let mode = normalizeCourseDeliveryMode(courseAssignment && (courseAssignment.mode || courseAssignment.deliveryMode || courseAssignment.modeOfDelivery || courseAssignment.teachingMode));
     const travelFrom = courseAssignment && (courseAssignment.travelFrom || courseAssignment.from || courseAssignment.origin || '') || '';
     const travelTo = courseAssignment && (courseAssignment.travelTo || courseAssignment.to || courseAssignment.destination || '') || '';
-    const route = findTravelRoute(travelFrom, travelTo);
-    const distanceIn = courseAssignment && (courseAssignment.travelDistanceIn || courseAssignment.distanceIn || courseAssignment.distanceInKm || '') || (route ? route.distanceIn : '');
-    const distanceOut = courseAssignment && (courseAssignment.travelDistanceOut || courseAssignment.distanceOut || courseAssignment.distanceOutKm || '') || (route ? route.distanceOut : '');
-    const totalDistance = courseAssignment && (courseAssignment.travelTotalDistance || courseAssignment.totalDistanceTravelled || courseAssignment.totalDistance || courseAssignment.travelDistanceTotal || '') || (route ? route.total : '');
-    setTravelFields(travelFrom, travelTo, distanceIn, distanceOut, totalDistance);
+    const hasAssignedTravel = !!(String(travelFrom || '').trim() && String(travelTo || '').trim());
+
+    // Some older imports defaulted blank/online rows to Blended. If the course/centre
+    // clearly says Online or Virtual and no travel route is assigned, force it back to online.
+    if (!hasAssignedTravel && assignmentLooksPurelyOnline(courseAssignment)) mode = 'Purely Online';
+    if (!mode && hasAssignedTravel) mode = 'Blended';
+
+    // Reset radio state before applying the selected assignment mode. This prevents a
+    // previous blended course from leaving the next online course locked to Blended.
+    document.querySelectorAll('input[name="modeOfDelivery"]').forEach(r => {
+        r.disabled = false;
+        r.checked = false;
+    });
+
+    if (mode) setRadioValue('modeOfDelivery', mode);
+
+    if (mode === 'Purely Online') {
+        // Online courses must not carry route/distance values from a previous selection.
+        setTravelFields('', '', '', '', '');
+        setModeRadioLock('Purely Online', true);
+    } else {
+        const route = findTravelRoute(travelFrom, travelTo);
+        const distanceIn = courseAssignment && (courseAssignment.travelDistanceIn || courseAssignment.distanceIn || courseAssignment.distanceInKm || '') || (route ? route.distanceIn : '');
+        const distanceOut = courseAssignment && (courseAssignment.travelDistanceOut || courseAssignment.distanceOut || courseAssignment.distanceOutKm || '') || (route ? route.distanceOut : '');
+        const totalDistance = courseAssignment && (courseAssignment.travelTotalDistance || courseAssignment.totalDistanceTravelled || courseAssignment.totalDistance || courseAssignment.travelDistanceTotal || '') || (route ? route.total : '');
+        setTravelFields(travelFrom, travelTo, distanceIn, distanceOut, totalDistance);
+        if (mode === 'Blended') setModeRadioLock('Blended', hasAssignedTravel || normalizeCourseDeliveryMode(courseAssignment && (courseAssignment.mode || courseAssignment.deliveryMode || courseAssignment.modeOfDelivery || courseAssignment.teachingMode)) === 'Blended');
+    }
     applyMode();
 }
 
