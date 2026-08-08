@@ -250,33 +250,18 @@
     <div class="grid">
       <div>
         <div class="card">
-          <h2>Active block for tutors</h2>
+          <h2>Block selection</h2>
           <div class="subtitle">
-            Choose the block that tutors should currently see on the claim form. Tutors will not choose the block themselves.
+            Active block control has been removed. Tutors now see all assigned courses and choose the correct teaching block on the claim form.
           </div>
-
-          <div class="row">
-            <div>
-              <label for="activeBlockSelect">Current active block</label>
-              <select id="activeBlockSelect">
-                <option value="">Select active block</option>
-                <option value="Block 1">Block 1</option>
-                <option value="Block 2">Block 2</option>
-                <option value="Block 3">Block 3</option>
-              </select>
-              <div class="hint">This controls the courses shown to all tutors on tutor-report.html.</div>
-            </div>
-            <div>
-              <label>Saved active block</label>
-              <div id="activeBlockCurrent" class="helper-box" style="margin-top:0;min-height:44px;">Loading…</div>
-            </div>
+          <div class="helper-box ok">
+            Keep including the <strong>Block</strong> column during import for record keeping, but it will not hide courses from tutors.
           </div>
-
-          <div class="toolbar" style="margin-top:16px;">
-            <button id="saveActiveBlockBtn">Save active block</button>
-            <button id="refreshActiveBlockBtn" class="subtle">Refresh</button>
-          </div>
-          <div id="activeBlockResult" class="helper-box" style="display:none;"></div>
+          <select id="activeBlockSelect" style="display:none;"></select>
+          <div id="activeBlockCurrent" style="display:none;"></div>
+          <button id="saveActiveBlockBtn" type="button" style="display:none;"></button>
+          <button id="refreshActiveBlockBtn" type="button" style="display:none;"></button>
+          <div id="activeBlockResult" style="display:none;"></div>
         </div>
 
         <div class="card">
@@ -307,9 +292,9 @@
           <div class="hint">Leave blank when editing if you want to keep existing programmes unchanged.</div>
 
           <label for="courses">Courses</label>
-          <textarea id="courses" placeholder="One per line using: CODE | Title | Programme | Study centre | Block&#10;Example:&#10;EMA803D | Curriculum Development in Mathematics Education | MED Mathematics Education | Accra | Block 1"></textarea>
+          <textarea id="courses" placeholder="One per line using: CODE | Title | Programme | Study centre | Block | Mode | Travel From | Travel To&#10;Example:&#10;EMA803D | Curriculum Development in Mathematics Education | MED Mathematics Education | Accra | Block 1 | Blended | Accra | Kumasi"></textarea>
           <div class="hint">
-            The report form uses the active block selected above. Each course assignment must still include Block 1, Block 2, or Block 3 so it can be shown only in the correct block.
+            Each course assignment can include Block for record keeping, but tutors can choose the block themselves on the claim form. For face-to-face/blended rows, add Mode, Travel From, and Travel To so the distance is saved to claims and the Sheet without tutors seeing it.
           </div>
 
           <label class="inline-check">
@@ -338,12 +323,12 @@
 
           <div class="helper-box">
             <strong>Recommended column order:</strong><br>
-            <code>Staff ID</code> | <code>Full Name</code> | <code>Course Code</code> | <code>Course Title</code> | <code>Programme</code> | <code>Study Centre</code> | <code>Block</code> | <code>Password</code>
-            <div class="hint">Block is required for each course assignment. Password is optional. When blank, the default password below will be used.</div>
+            <code>Staff ID</code> | <code>Full Name</code> | <code>Course Code</code> | <code>Course Title</code> | <code>Programme</code> | <code>Study Centre</code> | <code>Block</code> | <code>Mode</code> | <code>Travel From</code> | <code>Travel To</code> | <code>Password</code>
+            <div class="hint">Block is required. Use Mode = Online for purely online rows. Use Mode = Blended for face-to-face/blended rows and add Travel From + Travel To. Password is optional.</div>
           </div>
 
           <label for="bulkPaste">Paste tutor/course rows from Excel</label>
-          <textarea id="bulkPaste" style="min-height:170px;" placeholder="Staff ID&#9;Full Name&#9;Course Code&#9;Course Title&#9;Programme&#9;Study Centre&#9;Block&#9;Password&#10;PGT0350&#9;Isaac Gyaase Yeboah&#9;ENG803&#9;Semantics&#9;MED Curriculum & Teaching&#9;Kumasi&#9;Block 1&#9;"></textarea>
+          <textarea id="bulkPaste" style="min-height:170px;" placeholder="Staff ID&#9;Full Name&#9;Course Code&#9;Course Title&#9;Programme&#9;Study Centre&#9;Block&#9;Mode&#9;Travel From&#9;Travel To&#9;Password&#10;PGT0350&#9;Isaac Gyaase Yeboah&#9;ENG803&#9;Semantics&#9;MED Curriculum & Teaching&#9;Kumasi&#9;Block 1&#9;Blended&#9;Accra&#9;Kumasi&#9;"></textarea>
 
           <div class="row">
             <div>
@@ -585,29 +570,11 @@
       .filter(Boolean)
       .map(function (line) {
         var parts = line.split('|').map(function (p) { return p.trim(); });
-        var code = parts[0] || '';
-        var title = parts[1] || '';
-        var program = parts[2] || '';
-        var centre = parts[3] || '';
-        var block = parts[4] || '';
-
-        if (!title && code.indexOf(' - ') > -1) {
-          var split = code.split(' - ');
-          code = split.shift().trim();
-          title = split.join(' - ').trim();
-        }
-
-        return {
-          code: code,
-          title: title,
-          label: title ? (code + ' - ' + title) : code,
-          program: program,
-          centre: centre,
-          block: normalizeBlockForBulk(block)
-        };
+        return normalizeCourseForBulk(parts[0] || '', parts[1] || '', parts[2] || '', parts[3] || '', parts[4] || '', parts[5] || '', parts[6] || '', parts[7] || '');
       })
       .filter(function (c) { return c.code || c.label; });
   }
+
 
   function programsFromCourses(courses) {
     return uniqueNonEmpty(courses.map(function (c) { return c.program; }));
@@ -621,10 +588,14 @@
         c.title || '',
         c.program || '',
         c.centre || '',
-        c.block || ''
+        c.block || '',
+        c.mode || '',
+        c.travelFrom || '',
+        c.travelTo || ''
       ].join(' | ').replace(/\s+\|\s+\|\s*$/g, '').trim();
     }).join('\n');
   }
+
 
   function programsTextFromDoc(programs) {
     return Array.isArray(programs) ? programs.join('\n') : '';
@@ -1130,14 +1101,80 @@
     return raw;
   }
 
+  var TRAVEL_ROUTES = [
+    { from: 'Abetifi', to: 'Kumasi', distanceIn: 130, distanceOut: 130, total: 260 },
+    { from: 'Accra', to: 'Koforidua', distanceIn: 80, distanceOut: 80, total: 160 },
+    { from: 'Accra', to: 'Kumasi', distanceIn: 250, distanceOut: 250, total: 500 },
+    { from: 'Cape Coast', to: 'Accra', distanceIn: 180, distanceOut: 180, total: 360 },
+    { from: 'Cape Coast', to: 'Tema', distanceIn: 205, distanceOut: 205, total: 410 },
+    { from: 'Cape Coast', to: 'Kumasi', distanceIn: 230, distanceOut: 230, total: 460 },
+    { from: 'Cape Coast', to: 'Sunyani', distanceIn: 353, distanceOut: 353, total: 706 },
+    { from: 'Cape Coast', to: 'Takoradi', distanceIn: 90, distanceOut: 90, total: 180 },
+    { from: 'Cape Coast', to: 'Koforidua', distanceIn: 220, distanceOut: 220, total: 440 },
+    { from: 'Cape Coast', to: 'Ho', distanceIn: 320, distanceOut: 320, total: 640 },
+    { from: 'Cape Coast', to: 'Winneba', distanceIn: 90, distanceOut: 90, total: 180 },
+    { from: 'Cape Coast', to: 'Bolga', distanceIn: 763, distanceOut: 763, total: 1526 },
+    { from: 'Cape Coast', to: 'Wa', distanceIn: 345, distanceOut: 345, total: 690 },
+    { from: 'Cape Coast', to: 'Tamale', distanceIn: 64, distanceOut: 64, total: 128 },
+    { from: 'Kasoa', to: 'Accra', distanceIn: 34.7, distanceOut: 34.7, total: 69.4 },
+    { from: 'Winneba', to: 'Sunyani', distanceIn: 450, distanceOut: 450, total: 900 },
+    { from: 'Winneba', to: 'Kumasi', distanceIn: 320, distanceOut: 320, total: 640 },
+    { from: 'Ejisu', to: 'Kumasi', distanceIn: 30, distanceOut: 30, total: 60 },
+    { from: 'Berekum', to: 'Sunyani', distanceIn: 45, distanceOut: 45, total: 90 },
+    { from: 'Kpandai', to: 'Tamale', distanceIn: 214, distanceOut: 214, total: 428 },
+    { from: 'Mampong', to: 'Kumasi', distanceIn: 63, distanceOut: 63, total: 126 },
+    { from: 'Kumasi', to: 'Sunyani', distanceIn: 135, distanceOut: 135, total: 270 },
+    { from: 'Kumasi', to: 'Tamale', distanceIn: 410, distanceOut: 410, total: 820 },
+    { from: 'Navrongo', to: 'Accra', distanceIn: 845, distanceOut: 830, total: 1660 },
+    { from: 'Navrongo', to: 'Kumasi', distanceIn: 580, distanceOut: 580, total: 1160 },
+    { from: 'Navrongo', to: 'Tamale', distanceIn: 192, distanceOut: 192, total: 384 },
+    { from: 'Techiman', to: 'Sunyani', distanceIn: 70, distanceOut: 70, total: 140 },
+    { from: 'Bolgatanga', to: 'Tamale', distanceIn: 161, distanceOut: 161, total: 322 },
+    { from: 'Tamale', to: 'Wa', distanceIn: 310, distanceOut: 310, total: 620 },
+    { from: 'Yendi', to: 'Tamale', distanceIn: 95, distanceOut: 95, total: 190 }
+  ];
+
+  function normalizeDeliveryModeForBulk(value, centre) {
+    var raw = String(value || '').trim();
+    var lower = raw.toLowerCase();
+    var centreLower = String(centre || '').toLowerCase();
+    if (!raw && /online|virtual/.test(centreLower)) return 'Purely Online';
+    if (!raw) return 'Blended';
+    if (/online|virtual|pure/.test(lower) && !/blend|face|f2f/.test(lower)) return 'Purely Online';
+    if (/blend|face|f2f|physical|centre|center/.test(lower)) return 'Blended';
+    return raw;
+  }
+
+  function findTravelRouteForBulk(from, to) {
+    var rawFrom = String(from || '').trim();
+    var rawTo = String(to || '').trim();
+    if (!rawFrom || !rawTo) return null;
+    if (rawFrom.toLowerCase() === rawTo.toLowerCase()) {
+      return { distanceIn: '', distanceOut: '', total: 125, samePlace: true };
+    }
+    var f = rawFrom.toLowerCase();
+    var t = rawTo.toLowerCase();
+    return TRAVEL_ROUTES.find(function (r) { return r.from.toLowerCase() === f && r.to.toLowerCase() === t; }) || null;
+  }
+
+
   function normalHeader(v) {
     return String(v || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
   }
 
   function detectBulkColumns(firstCells) {
-    var map = { staffId: 0, name: 1, code: 2, title: 3, program: 4, centre: 5, block: 6, password: 7 };
+    var map = { staffId: 0, name: 1, code: 2, title: 3, program: 4, centre: 5, block: 6, mode: 7, travelFrom: 8, travelTo: 9, password: 10 };
+    var firstCell = cleanBulkCell(firstCells[0] || '');
+    var normalizedFirstStaffId = normalizeStaffId(firstCell);
+
+    // Important: do not mistake the first tutor row for a header just because it contains
+    // words like "Programme", "Block", "Mode", or "Purely Online" in later columns.
+    if (normalizedFirstStaffId || /^pgt\s*\d+/i.test(firstCell)) {
+      return { hasHeader: false, map: map };
+    }
+
     var joined = firstCells.map(normalHeader).join(' | ');
-    var looksHeader = /staff|index|full name|course code|programme|program|centre|center|block|password/.test(joined);
+    var looksHeader = /staff|index|full name|course code|programme|program|centre|center|block|mode|travel|password/.test(joined);
     if (!looksHeader) return { hasHeader: false, map: map };
 
     map = {};
@@ -1151,6 +1188,9 @@
       else if (/programme/.test(h) || /program/.test(h)) map.program = idx;
       else if (/study centre/.test(h) || /study center/.test(h) || h === 'centre' || h === 'center') map.centre = idx;
       else if (/block/.test(h)) map.block = idx;
+      else if (/mode/.test(h) || /delivery/.test(h) || /teaching mode/.test(h)) map.mode = idx;
+      else if ((/travel/.test(h) || /travelling/.test(h)) && /from/.test(h)) map.travelFrom = idx;
+      else if ((/travel/.test(h) || /travelling/.test(h)) && /to/.test(h)) map.travelTo = idx;
       else if (/password/.test(h)) map.password = idx;
       else if (h === 'course' && map.code == null) map.code = idx;
     });
@@ -1162,15 +1202,23 @@
     if (map.program == null) map.program = 4;
     if (map.centre == null) map.centre = 5;
     if (map.block == null) map.block = 6;
+    if (map.mode == null) map.mode = 7;
+    if (map.travelFrom == null) map.travelFrom = 8;
+    if (map.travelTo == null) map.travelTo = 9;
+    if (map.password == null) map.password = 10;
     return { hasHeader: true, map: map };
   }
 
-  function normalizeCourseForBulk(code, title, program, centre, block) {
+
+  function normalizeCourseForBulk(code, title, program, centre, block, mode, travelFrom, travelTo) {
     code = String(code || '').trim();
     title = String(title || '').trim();
     program = String(program || '').trim();
     centre = String(centre || '').trim();
     block = normalizeBlockForBulk(block);
+    mode = normalizeDeliveryModeForBulk(mode, centre);
+    travelFrom = String(travelFrom || '').trim();
+    travelTo = String(travelTo || '').trim();
 
     if (!title && code.indexOf(' - ') > -1) {
       var split = code.split(' - ');
@@ -1178,15 +1226,28 @@
       title = split.join(' - ').trim();
     }
 
+    if (mode === 'Purely Online') {
+      travelFrom = '';
+      travelTo = '';
+    }
+
+    var route = findTravelRouteForBulk(travelFrom, travelTo);
     return {
       code: code,
       title: title,
       label: title ? (code + ' - ' + title) : code,
       program: program,
       centre: centre,
-      block: block
+      block: block,
+      mode: mode,
+      travelFrom: travelFrom,
+      travelTo: travelTo,
+      travelDistanceIn: route ? String(route.distanceIn) : '',
+      travelDistanceOut: route ? String(route.distanceOut) : '',
+      travelTotalDistance: route ? String(route.total) : ''
     };
   }
+
 
   function courseKey(c) {
     return [c.code || '', c.title || '', c.label || '', c.program || '', c.centre || '', c.block || '']
@@ -1207,7 +1268,13 @@
           label: c.label || (c.title ? ((c.code || '') + ' - ' + c.title) : (c.code || '')),
           program: c.program || '',
           centre: c.centre || '',
-          block: normalizeBlockForBulk(c.block || '')
+          block: normalizeBlockForBulk(c.block || ''),
+          mode: normalizeDeliveryModeForBulk(c.mode || c.deliveryMode || c.modeOfDelivery || '', c.centre || ''),
+          travelFrom: c.travelFrom || '',
+          travelTo: c.travelTo || '',
+          travelDistanceIn: c.travelDistanceIn || c.distanceIn || '',
+          travelDistanceOut: c.travelDistanceOut || c.distanceOut || '',
+          travelTotalDistance: c.travelTotalDistance || c.totalDistanceTravelled || c.totalDistance || ''
         });
       }
     }
@@ -1215,6 +1282,7 @@
     (Array.isArray(imported) ? imported : []).forEach(add);
     return out;
   }
+
 
   function parseBulkTutors() {
     var text = document.getElementById('bulkPaste').value || '';
@@ -1243,6 +1311,9 @@
       var program = cleanBulkCell(cells[map.program] || '');
       var centre = cleanBulkCell(cells[map.centre] || '');
       var block = map.block == null ? '' : normalizeBlockForBulk(cleanBulkCell(cells[map.block] || ''));
+      var mode = map.mode == null ? '' : cleanBulkCell(cells[map.mode] || '');
+      var travelFrom = map.travelFrom == null ? '' : cleanBulkCell(cells[map.travelFrom] || '');
+      var travelTo = map.travelTo == null ? '' : cleanBulkCell(cells[map.travelTo] || '');
       var password = map.password == null ? '' : cleanBulkCell(cells[map.password] || '');
 
       if (!sid) {
@@ -1268,13 +1339,15 @@
       if (program) groups[sid].programs.push(program);
 
       if (code || title) {
-        var course = normalizeCourseForBulk(code, title, program, centre, block);
+        var course = normalizeCourseForBulk(code, title, program, centre, block, mode, travelFrom, travelTo);
         groups[sid].courses.push(course);
         result.courseRows++;
         if (!course.code) result.warnings.push('Row ' + (i + 1) + ' has a course title but no course code.');
         if (!course.program) result.warnings.push('Row ' + (i + 1) + ' has no programme for ' + sid + '.');
         if (!course.centre) result.warnings.push('Row ' + (i + 1) + ' has no study centre for ' + sid + '.');
         if (!course.block) result.warnings.push('Row ' + (i + 1) + ' has no block for ' + sid + '. This course will not appear on the tutor form until a block is added.');
+        if (course.mode !== 'Purely Online' && (!course.travelFrom || !course.travelTo)) result.warnings.push('Row ' + (i + 1) + ' is blended/face-to-face but has no Travel From/Travel To for ' + sid + '.');
+        if (course.travelFrom && course.travelTo && !course.travelTotalDistance) result.warnings.push('Row ' + (i + 1) + ' has a travel route not found in the mileage list: ' + course.travelFrom + ' to ' + course.travelTo + '.');
       }
       result.rows++;
     }
@@ -1312,7 +1385,7 @@
         return '<tr>' +
           '<td><code>' + escapeHTML(g.staffId) + '</code><br><span style="font-size:11px;color:#667085;">' + escapeHTML(staffIdToEmail(g.staffId)) + '</span></td>' +
           '<td>' + escapeHTML(g.name) + '</td>' +
-          '<td>' + (g.courses.length ? g.courses.map(function (c) { return escapeHTML((c.code || '') + (c.title ? ' - ' + c.title : '') + (c.centre ? ' @ ' + c.centre : '') + (c.block ? ' [' + c.block + ']' : ' [No block]')); }).join('<br>') : '<span class="badge warn">No courses</span>') + '</td>' +
+          '<td>' + (g.courses.length ? g.courses.map(function (c) { return escapeHTML((c.code || '') + (c.title ? ' - ' + c.title : '') + (c.centre ? ' @ ' + c.centre : '') + (c.block ? ' [' + c.block + ']' : ' [No block]') + (c.mode ? ' {' + c.mode + '}' : '') + (c.travelFrom && c.travelTo ? ' route: ' + c.travelFrom + ' → ' + c.travelTo : '')); }).join('<br>') : '<span class="badge warn">No courses</span>') + '</td>' +
           '<td>' + (g.programs.length ? g.programs.map(function (p) { return '<span class="pill">' + escapeHTML(p) + '</span>'; }).join(' ') : '<span class="badge warn">None</span>') + '</td>' +
         '</tr>';
       }).join('') + '</tbody></table>';
@@ -1436,6 +1509,7 @@
     if (!db || !currentBox) return;
     currentBox.innerHTML = 'Loading…';
     try {
+      return '';
       var doc = await db.collection('settings').doc('activeBlock').get();
       var data = doc.exists ? (doc.data() || {}) : {};
       var block = normalizeActiveBlock(data.activeBlock || data.block || '');
@@ -1571,7 +1645,6 @@
         if (user) {
           showAuthPanels(true);
           setStatus('ready', 'Signed in as <strong>' + escapeHTML(user.email) + '</strong>.');
-          loadActiveBlockSetting();
           loadTutors();
         } else {
           showAuthPanels(false);
@@ -1579,8 +1652,7 @@
           tutors = [];
           tutorsBody.innerHTML = '<tr><td colspan="3" class="empty">Sign in to load tutor records.</td></tr>';
           countLabel.textContent = '—';
-          var activeBox = document.getElementById('activeBlockCurrent');
-          if (activeBox) activeBox.innerHTML = 'Sign in to load active block.';
+
         }
       });
 
