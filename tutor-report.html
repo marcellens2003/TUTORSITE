@@ -1035,11 +1035,11 @@
         <div class="field-label">COURSE CODE & TITLE *</div>
         <div id="courseSearchContainer" class="searchable-select-wrapper">
             <input type="text" id="courseSearchInput" class="searchable-input"
-                   placeholder="Select the course you taught..." autocomplete="off" required>
+                   placeholder="Select or type the course you taught..." autocomplete="off" required>
             <div id="courseDropdown" class="dropdown-options"></div>
             <input type="hidden" id="course" name="course" required>
         </div>
-        <div class="hint block-course-hint" id="blockCourseHint">All assigned courses are available. Select the block separately above.</div>
+        <div class="hint block-course-hint" id="blockCourseHint">All assigned courses are available, but you may type a course manually. Select the block separately above.</div>
 
         <div class="field-label">PROGRAMME *</div>
         <select id="program" name="program" required>
@@ -1235,9 +1235,17 @@ function createSearchableDropdown(config) {
             // Mirror typed value directly to hidden field so free-text is always
             // captured — the dropdown is a helper, not a gate.
             hidden.value = this.value.trim();
+            if (inputId === 'courseSearchInput') {
+                const typed = this.value.toLowerCase().trim();
+                const exact = getData().find(item => item.toLowerCase() === typed);
+                if (!exact) {
+                    CURRENT_ASSIGNED_TRAVEL = null;
+                    CURRENT_TRAVEL_SELECTABLE = true;
+                    refreshTravelForSelectedMode();
+                }
+            }
         } else {
-            // For the course field, tutors must choose from the courses assigned
-            // to this tutor. Typing only filters the list.
+            // Strict dropdown mode: typing only filters the list.
             const typed = this.value.toLowerCase().trim();
             const exact = getData().find(item => item.toLowerCase() === typed);
             hidden.value = exact || '';
@@ -1252,10 +1260,13 @@ function createSearchableDropdown(config) {
                 // For fields that allow manual typing, keep the typed value.
                 if (input.value.trim()) hidden.value = input.value.trim();
                 input.setCustomValidity('');
+                if (inputId === 'courseSearchInput') {
+                    const typed = input.value.toLowerCase().trim();
+                    const exact = getData().find(item => item.toLowerCase() === typed);
+                    if (exact && typeof onSelect === 'function') onSelect(exact);
+                }
             } else {
-                // For the course field, do NOT accept free text. The tutor must
-                // choose one of the courses returned by getData(), which is already
-                // limited to this tutor's assigned courses.
+                // Strict dropdown mode: require a selected list item.
                 const typed = input.value.toLowerCase().trim();
                 const exact = getData().find(item => item.toLowerCase() === typed);
                 if (exact) {
@@ -1276,6 +1287,11 @@ function createSearchableDropdown(config) {
         if (allowCustom) {
             if (this.value.trim()) hidden.value = this.value.trim();
             this.setCustomValidity('');
+            if (inputId === 'courseSearchInput') {
+                const typed = this.value.toLowerCase().trim();
+                const exact = getData().find(item => item.toLowerCase() === typed);
+                if (exact && typeof onSelect === 'function') onSelect(exact);
+            }
         } else {
             const typed = this.value.toLowerCase().trim();
             const exact = getData().find(item => item.toLowerCase() === typed);
@@ -1339,7 +1355,7 @@ async function fillTutorFromLogin() {
     // Re-enable course search now that CURRENT_TUTOR is set
     if (courseInput) {
         courseInput.disabled = false;
-        courseInput.placeholder = '🔍 Select the course you taught...';
+        courseInput.placeholder = '🔍 Select or type the course you taught...';
     }
 
     if (rec) {
@@ -1560,15 +1576,15 @@ function updateCourseAvailability() {
         return;
     }
     if (!courses.length) {
-        input.disabled = true;
-        input.placeholder = 'No courses assigned';
-        if (hint) { hint.textContent = 'No course has been assigned to you. Please contact the administrator.'; hint.className = 'hint block-course-hint warn'; }
-        if (hidden) hidden.value = '';
+        input.disabled = false;
+        input.placeholder = 'Type the course you taught...';
+        if (hint) { hint.textContent = 'No assigned course list was found. You may type the course manually.'; hint.className = 'hint block-course-hint warn'; }
+        if (hidden && !input.value.trim()) hidden.value = '';
         return;
     }
     input.disabled = false;
-    input.placeholder = '🔍 Select the course you taught...';
-    if (hint) { hint.textContent = courses.length + ' assigned course' + (courses.length === 1 ? '' : 's') + ' available. Select the block separately above.'; hint.className = 'hint block-course-hint ok'; }
+    input.placeholder = '🔍 Select or type the course you taught...';
+    if (hint) { hint.textContent = courses.length + ' assigned course' + (courses.length === 1 ? '' : 's') + ' available. You may also type a course manually. Select the block separately above.'; hint.className = 'hint block-course-hint ok'; }
 }
 
 // ========== POPULATE PROGRAMME DROPDOWN ==========
@@ -1576,7 +1592,21 @@ function populateProgramDropdown() {
     const prog = document.getElementById('program');
     if (!prog) return;
     prog.innerHTML = '<option value="" disabled selected>Select programme</option>';
-    const progs = [...new Set(filteredTutorCourseAssignments().map(c => c.program).filter(Boolean))];
+    const extraProgrammes = [];
+    if (CURRENT_TUTOR) {
+        ['program', 'programme', 'programName', 'programmeName'].forEach(k => {
+            if (CURRENT_TUTOR[k]) extraProgrammes.push(CURRENT_TUTOR[k]);
+        });
+        ['programs', 'programmes'].forEach(k => {
+            const v = CURRENT_TUTOR[k];
+            if (Array.isArray(v)) extraProgrammes.push(...v);
+            else if (v) extraProgrammes.push(v);
+        });
+    }
+    const progs = [...new Set([
+        ...filteredTutorCourseAssignments().map(c => c.program || c.programme).filter(Boolean),
+        ...extraProgrammes.map(p => String(p || '').trim()).filter(Boolean)
+    ])];
     progs.forEach(p => {
         const opt = document.createElement('option');
         opt.value = p; opt.textContent = p; prog.appendChild(opt);
@@ -1817,9 +1847,9 @@ function applyMode() {
 document.addEventListener('DOMContentLoaded', function() {
     createSearchableDropdown({
         inputId: 'courseSearchInput', dropdownId: 'courseDropdown', hiddenId: 'course',
-        getData: tutorCourses, placeholder: 'Select the course you taught...',
+        getData: tutorCourses, placeholder: 'Select or type the course you taught...',
         onSelect: onCourseSelected,
-        allowCustom: false
+        allowCustom: true
     });
     setupFormSubmission(document.getElementById('reportForm'));
     updateCourseAvailability();
@@ -3361,10 +3391,12 @@ function setupFormSubmission(form) {
         if (!selectedBlock) {
             alert('Please select the block of teaching.'); return;
         }
-        const selectedCourse = document.getElementById('course').value.trim();
-        if (!selectedCourse || !tutorCourses().includes(selectedCourse)) {
-            alert('Please select one of your assigned courses.'); return;
+        const selectedCourse = (document.getElementById('course')?.value || document.getElementById('courseSearchInput')?.value || '').trim();
+        if (!selectedCourse) {
+            alert('Please select or type the course you taught.'); return;
         }
+        const hiddenCourse = document.getElementById('course');
+        if (hiddenCourse) hiddenCourse.value = selectedCourse;
         if (!validateForm()) return;
         showPreview();
     });
@@ -3380,10 +3412,13 @@ function validateForm() {
     if (!mode) { alert('Select mode of delivery'); ok = false; }
     if (!document.querySelector('input[name="semester"]:checked')) { alert('Select semester'); ok = false; }
     if (!selectedTeachingBlock()) { alert('Please select the block of teaching.'); ok = false; }
-    const selectedCourse = document.getElementById('course')?.value || '';
-    if (ok && (!selectedCourse || !tutorCourses().includes(selectedCourse))) {
-        alert('Please select one of your assigned courses.');
+    const selectedCourse = (document.getElementById('course')?.value || document.getElementById('courseSearchInput')?.value || '').trim();
+    if (ok && !selectedCourse) {
+        alert('Please select or type the course you taught.');
         ok = false;
+    } else {
+        const hiddenCourse = document.getElementById('course');
+        if (hiddenCourse) hiddenCourse.value = selectedCourse;
     }
 
     // For blended delivery, collect the travel route silently for distance calculation.
