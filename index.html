@@ -1,489 +1,307 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Facilitator Claims Login</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    * { box-sizing: border-box; }
-    html, body { max-width: 100%; overflow-x: hidden; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: "Rubik", Arial, sans-serif;
-      background: #0a1f5c;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      position: relative;
-    }
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      z-index: -2;
-      background: url("books-bg-blur.jpg") center/cover no-repeat;
-      transform: scale(1.04);
-    }
-    body::after {
-      content: "";
-      position: fixed;
-      inset: 0;
-      z-index: -1;
-      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(10,31,92,.32));
-    }
-    .card {
-      width: 100%;
-      max-width: 470px;
-      background: rgba(255,255,255,.98);
-      border: 1px solid rgba(255,255,255,.68);
-      border-radius: 16px;
-      box-shadow: 0 18px 55px rgba(5,16,48,.48);
-      overflow: hidden;
-    }
-    .header {
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 20px 22px 23px;
-      background:
-        radial-gradient(80% 120% at 90% -20%, rgba(255,211,77,.20), rgba(255,211,77,0) 55%),
-        linear-gradient(135deg, #08183f 0%, #102a72 45%, #1d3a8f 82%, #244aa6 100%);
-      box-shadow: inset 0 0 0 1px rgba(255,211,77,.22);
-    }
-    .header::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 4px;
-      background: linear-gradient(90deg, #e8b500, #ffd34d, #e8b500);
-    }
-    .header::after {
-      content: "";
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 4px;
-      background: linear-gradient(90deg, #d4362a 0 18%, #e8b500 18%, #ffd34d 50%, #e8b500 82%, #d4362a 82% 100%);
-    }
-    .logo {
-      width: 60px;
-      height: 60px;
-      object-fit: contain;
-      flex: 0 0 auto;
-      filter: drop-shadow(0 2px 5px rgba(0,0,0,.42));
-    }
-    .header-copy {
-      flex: 1;
-      min-width: 0;
-      text-align: center;
-      color: #fff;
-    }
-    .header-copy h1 {
-      margin: 0;
-      font-size: 19px;
-      line-height: 1.25;
-      letter-spacing: .6px;
-      font-weight: 800;
-      text-shadow: 0 1px 3px rgba(0,0,0,.35);
-    }
-    .header-copy p {
-      margin: 7px 0 0;
-      color: #ffe08a;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: .7px;
-      text-transform: uppercase;
-    }
-    .body { padding: 28px 30px 30px; }
-    .field { margin-bottom: 18px; }
-    label {
-      display: block;
-      margin-bottom: 7px;
-      color: #344054;
-      font-size: 14px;
-      font-weight: 700;
-    }
-    input {
-      width: 100%;
-      padding: 12px 13px;
-      border: 1px solid #c9d0da;
-      border-radius: 7px;
-      outline: none;
-      font: inherit;
-      font-size: 15px;
-      background: #fff;
-      transition: border-color .18s, box-shadow .18s;
-    }
-    input:focus {
-      border-color: #1d3a8f;
-      box-shadow: 0 0 0 3px rgba(29,58,143,.12);
-    }
-    .hint { margin-top: 5px; color: #667085; font-size: 12px; }
-    .password-wrap { position: relative; }
-    .password-wrap input { padding-right: 73px; }
-    .toggle {
-      position: absolute;
-      right: 8px;
-      top: 50%;
-      transform: translateY(-50%);
-      border: 0;
-      border-radius: 5px;
-      padding: 6px 8px;
-      background: transparent;
-      color: #1d3a8f;
-      font: inherit;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-    .toggle:hover { background: #eef3fb; }
-    .primary, .portal-btn {
-      width: 100%;
-      border: 0;
-      border-radius: 7px;
-      padding: 12px 14px;
-      font: inherit;
-      font-size: 15px;
-      font-weight: 800;
-      cursor: pointer;
-    }
-    .primary {
-      margin-top: 3px;
-      color: #fff;
-      background: linear-gradient(135deg, #102a72, #1d3a8f);
-    }
-    .primary:hover { background: linear-gradient(135deg, #0a1f5c, #14307f); }
-    .primary:disabled { background: #9caeca; cursor: not-allowed; }
-    .message {
-      display: none;
-      margin: 0 0 14px;
-      padding: 10px 11px;
-      border-radius: 7px;
-      font-size: 13px;
-      line-height: 1.45;
-      text-align: center;
-    }
-    .error { color: #721c24; background: #f8d7da; border: 1px solid #f5c6cb; }
-    .success { color: #155724; background: #d4edda; border: 1px solid #c3e6cb; }
-    .loading {
-      display: none;
-      align-items: center;
-      justify-content: center;
-      gap: 9px;
-      margin: 12px 0 0;
-      color: #475467;
-      font-size: 13px;
-    }
-    .spinner {
-      width: 19px;
-      height: 19px;
-      border: 3px solid #e4e7ec;
-      border-top-color: #1d3a8f;
-      border-radius: 50%;
-      animation: spin .85s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    @media (min-width: 769px) and (hover:hover) {
-      .card { background: rgba(255,255,255,.97); backdrop-filter: blur(2px); }
-    }
-    @media (max-width: 520px) {
-      body { padding: 13px; }
-      .body { padding: 23px 18px 25px; }
-      .header { padding: 17px 13px 20px; gap: 8px; }
-      .header-copy h1 { font-size: 16px; }
-      .header-copy p { font-size: 9px; }
-      .logo { width: 49px; height: 49px; }
-      input { font-size: 16px; }
-    }
-  </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <title>Facilitator Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { box-sizing: border-box; }
+        html, body { max-width: 100%; overflow-x: hidden; }
+        img { max-width: 100%; }
+        body {
+            margin: 0; min-height: 100vh; font-family: 'Rubik', Arial, sans-serif;
+            background: #0a1f5c;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px; position: relative;
+        }
+        body::before {
+            content: ''; position: fixed; inset: 0; z-index: -2;
+            background-image: url("books-bg-blur.jpg");
+            background-size: cover; background-position: center;
+            transform: scale(1.04);
+        }
+        body::after {
+            content: ''; position: fixed; inset: 0; z-index: -1;
+            background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(10,31,92,0.22));
+        }
+        .login-container {
+            width: 100%; max-width: 440px;
+            background: rgba(255,255,255,0.98);
+            padding: 30px; border-radius: 14px;
+            box-shadow: 0 18px 50px rgba(5,16,48,0.45);
+            border: 1px solid rgba(255,255,255,0.6);
+            position: relative; z-index: 1;
+        }
+        @media (min-width: 769px) and (hover: hover) {
+            .login-container { background: rgba(255,255,255,0.97); backdrop-filter: blur(2px); }
+        }
+        .header {
+            position: relative; overflow: hidden;
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 12px; margin: -30px -30px 24px; padding: 18px 22px;
+            background:
+                radial-gradient(80% 120% at 90% -20%, rgba(255,211,77,0.20), rgba(255,211,77,0) 55%),
+                linear-gradient(135deg, #08183f 0%, #102a72 45%, #1d3a8f 82%, #244aa6 100%);
+            border-radius: 14px 14px 0 0;
+            box-shadow: inset 0 0 0 1px rgba(255,211,77,0.22), inset 0 1px 0 rgba(255,255,255,0.18);
+        }
+        .header::before {
+            content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px;
+            background: linear-gradient(90deg, #e8b500 0%, #ffd34d 50%, #e8b500 100%);
+        }
+        .header::after {
+            content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px;
+            background: linear-gradient(90deg,
+                #d4362a 0%, #d4362a 18%, #e8b500 18%, #ffd34d 50%, #e8b500 82%, #d4362a 82%, #d4362a 100%);
+        }
+        .header h2 {
+            margin: 0; flex-grow: 1; text-align: center; font-size: 19px;
+            font-weight: 800; letter-spacing: 0.8px; color: #ffffff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.35);
+        }
+        .header h2::after {
+            content: ""; display:block; width:60px; height:3px; margin:7px auto 0;
+            background: linear-gradient(90deg, rgba(232,181,0,0), #ffd34d, rgba(232,181,0,0));
+            border-radius:3px;
+        }
+        .logo { flex-shrink: 0; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.45)); }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: bold; color: #444; }
+        .form-group input {
+            width: 100%; padding: 12px; font-size: 15px;
+            border: 1px solid #ccc; border-radius: 6px; outline: none; transition: border 0.3s;
+        }
+        .form-group input:focus { border-color: #1d3a8f; }
+        .hint { font-size: 12px; color: #666; margin-top: 4px; }
+        .pw-wrap { position: relative; }
+        .pw-wrap input { padding-right: 70px; }
+        .pw-toggle {
+            position: absolute; top: 50%; right: 8px; transform: translateY(-50%);
+            background: transparent; border: none; cursor: pointer;
+            font-size: 13px; font-weight: bold; color: #1d3a8f;
+            padding: 4px 8px; border-radius: 4px; line-height: 1;
+        }
+        .pw-toggle:hover { background: #eef3fb; }
+        .pw-toggle:focus { outline: 2px solid #1d3a8f; outline-offset: 1px; }
+        .primary-btn {
+            width: 100%; padding: 12px; border: none;
+            border-radius: 6px; font-size: 16px; font-weight: bold;
+            cursor: pointer; margin-top: 10px; transition: background 0.3s;
+            background: linear-gradient(135deg, #102a72, #1d3a8f); color: #fff;
+        }
+        .primary-btn:hover { background: linear-gradient(135deg, #0a1f5c, #14307f); }
+        .primary-btn:disabled { background: #9ec5e8; cursor: not-allowed; }
+        .error-message {
+            color: #721c24; font-size: 14px; margin-top: 5px; display: none;
+            text-align: center; padding: 8px; background-color: #f8d7da;
+            border-radius: 4px; border: 1px solid #f5c6cb;
+        }
+        .success-message {
+            color: #155724; font-size: 14px; margin-top: 5px; display: none;
+            text-align: center; padding: 8px; background-color: #d4edda;
+            border-radius: 4px; border: 1px solid #c3e6cb;
+        }
+        .loading { display: none; text-align: center; margin-top: 10px; }
+        .loading-spinner {
+            border: 3px solid #f3f3f3; border-top: 3px solid #1d3a8f;
+            border-radius: 50%; width: 20px; height: 20px;
+            animation: spin 1s linear infinite; display: inline-block; vertical-align: middle;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @media (max-width: 768px) {
+            .login-container { padding: 22px 18px; }
+            .header { margin: -22px -18px 22px; padding: 16px 16px; }
+            .header h2 { font-size: 17px; }
+            .logo { height: 48px; width: 48px; }
+            .form-group input { font-size: 16px; }
+        }
+    </style>
 </head>
 <body>
-  <main class="card" aria-labelledby="pageTitle">
-    <header class="header">
-      <img src="CoDE LOGO PNG.png" class="logo" alt="College of Distance Education logo"
-           onerror="this.style.visibility='hidden'">
-      <div class="header-copy">
-        <h1 id="pageTitle">Facilitator Claims Login</h1>
-        <p>Postgraduate and Undergraduate</p>
-      </div>
-      <img src="UCC LOGO PNG.png" class="logo" alt="University of Cape Coast logo"
-           onerror="this.style.visibility='hidden'">
-    </header>
 
-    <section class="body">
-      <div id="loginPanel">
-        <div class="field">
-          <label for="staffId">Staff ID</label>
-          <input id="staffId" type="text" placeholder="Enter your Staff ID"
-                 autocomplete="username" autocapitalize="characters" spellcheck="false">
-          <div class="hint">Use the Staff ID supplied by the College of Distance Education.</div>
+<div class="login-container">
+    <div class="header">
+        <img src="CoDE LOGO PNG.png" height="60" width="60" class="logo"
+             onerror="this.src='https://via.placeholder.com/60/002147/FFFFFF?text=CoDE'">
+        <h2>Facilitator Claim Summary Login</h2>
+        <img src="UCC LOGO PNG.png" height="60" width="60" class="logo"
+             onerror="this.src='https://via.placeholder.com/60/0056b3/FFFFFF?text=UCC'">
+    </div>
+
+    <div class="form-group">
+        <label for="staffId">Staff ID</label>
+        <input type="text" id="staffId" placeholder="e.g. PGT0420"
+               autocomplete="username" autocapitalize="characters" spellcheck="false">
+        <div class="hint">Enter your CoDE facilitator Staff ID.</div>
+    </div>
+
+    <div class="form-group">
+        <label for="password">Password</label>
+        <div class="pw-wrap">
+            <input type="password" id="password" placeholder="Your password"
+                   autocomplete="current-password">
+            <button type="button" class="pw-toggle" id="pwToggle"
+                    aria-label="Show password" aria-pressed="false">Show</button>
         </div>
+    </div>
 
-        <div class="field">
-          <label for="password">Password</label>
-          <div class="password-wrap">
-            <input id="password" type="password" placeholder="Enter your password" autocomplete="current-password">
-            <button id="passwordToggle" class="toggle" type="button" aria-label="Show password" aria-pressed="false">Show</button>
-          </div>
-        </div>
+    <div id="loginError" class="error-message"></div>
+    <div id="loginSuccess" class="success-message">Signed in! Redirecting...</div>
+    <div id="loginLoading" class="loading">
+        <div class="loading-spinner"></div>
+        <span style="margin-left: 8px;">Signing in...</span>
+    </div>
 
-        <div id="errorMessage" class="message error" role="alert"></div>
-        <div id="successMessage" class="message success" role="status">Signed in successfully. Redirecting…</div>
+    <button type="button" class="primary-btn" id="loginBtn">Sign in</button>
+</div>
 
-        <button id="loginButton" class="primary" type="button">Sign in</button>
-        <div id="loading" class="loading" aria-live="polite">
-          <span class="spinner" aria-hidden="true"></span>
-          <span>Checking your account…</span>
-        </div>
-      </div>
-
-    </section>
-  </main>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+<script type="module">
+    import { initializeApp }
+        from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
     import {
-      getAuth,
-      signInWithEmailAndPassword,
-      signOut,
-      setPersistence,
-      browserSessionPersistence
+        getAuth, signInWithEmailAndPassword, signOut,
+        onAuthStateChanged, setPersistence, browserSessionPersistence
     } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+    import {
+        getFirestore, doc, getDoc
+    } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyCzgOGc51Qr6DXnJ-zkczBtGniYNLf0jOw",
-      authDomain: "monitoringucc.firebaseapp.com",
-      projectId: "monitoringucc",
-      storageBucket: "monitoringucc.firebasestorage.app",
-      messagingSenderId: "210063574932",
-      appId: "1:210063574932:web:8ccd563312321dcd2af181"
+        apiKey: "AIzaSyCzgOGc51Qr6DXnJ-zkczBtGniYNLf0jOw",
+        authDomain: "monitoringucc.firebaseapp.com",
+        projectId: "monitoringucc",
+        storageBucket: "monitoringucc.firebasestorage.app",
+        messagingSenderId: "210063574932",
+        appId: "1:210063574932:web:8ccd563312321dcd2af181"
     };
-
-    const ROUTES = {
-      pg: "tutor-report.html",
-      ug: "ug-tutor-report.html"
-    };
-    const COLLECTIONS = {
-      pg: "tutors",
-      ug: "ug_tutors"
-    };
-    const AUTH_DOMAIN = "tutors.ucc.local";
-    const TEMPORARY_PASSWORD = "123456";
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    await setPersistence(auth, browserSessionPersistence);
+    setPersistence(auth, browserSessionPersistence);
 
-    const staffIdInput = document.getElementById("staffId");
-    const passwordInput = document.getElementById("password");
-    const loginButton = document.getElementById("loginButton");
-    const loginPanel = document.getElementById("loginPanel");
-    const errorMessage = document.getElementById("errorMessage");
-    const successMessage = document.getElementById("successMessage");
-    const loading = document.getElementById("loading");
-    const passwordToggle = document.getElementById("passwordToggle");
+    // Tutor directory now lives in Firestore (collection: tutors, doc id = Staff ID)
+    // instead of being hardcoded here. See doLogin() below.
 
-    let pendingPasswordWasTemporary = false;
-
-    // Always begin with a fresh portal-routing session. The authenticated
-    // Firebase user may persist in the tab, but the entered Staff ID below
-    // determines whether the tutor is routed to postgraduate or undergraduate.
-    clearStoredSession();
-
-    function staffIdToEmail(staffId) {
-      const slug = staffId.trim().toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
-      return `${slug}@${AUTH_DOMAIN}`;
+    // Firebase needs an email-shaped login, so each Staff ID maps to a
+    // synthetic address. Keep this identical wherever accounts are created.
+    const DOMAIN = 'tutors.ucc.local';
+    function staffIdToEmail(s) {
+        const slug = s.trim().toLowerCase()
+                       .replace(/[^a-z0-9]+/g, '-')
+                       .replace(/^-+|-+$/g, '');
+        return slug + '@' + DOMAIN;
     }
 
-    function normalizeStaffId(value) {
-      return value.trim().toUpperCase();
-    }
-
-    function clearStoredSession() {
-      [
-        "tutorStaffId",
-        "tutorName",
-        "tutorPortal",
-        "tutorCollection",
-        "forcePasswordChange"
-      ].forEach(key => sessionStorage.removeItem(key));
-    }
+    onAuthStateChanged(auth, (user) => {
+        if (user && sessionStorage.getItem('tutorStaffId')) {
+            window.location.href = 'tutor-report.html';
+        }
+    });
 
     function showError(message) {
-      successMessage.style.display = "none";
-      errorMessage.textContent = message;
-      errorMessage.style.display = "block";
+        const el = document.getElementById('loginError');
+        el.textContent = message; el.style.display = 'block';
     }
-
     function clearMessages() {
-      errorMessage.style.display = "none";
-      successMessage.style.display = "none";
+        document.getElementById('loginError').style.display = 'none';
+        document.getElementById('loginSuccess').style.display = 'none';
     }
-
     function setLoading(isLoading) {
-      loading.style.display = isLoading ? "flex" : "none";
-      loginButton.disabled = isLoading;
-      staffIdInput.disabled = isLoading;
-      passwordInput.disabled = isLoading;
-    }
-
-    function recordBelongsToUser(snapshot, uid) {
-      if (!snapshot || !snapshot.exists()) return null;
-      const data = snapshot.data() || {};
-      if (data.uid && data.uid !== uid) return null;
-      return data;
-    }
-
-    async function getTutorRecordSafely(portal, staffId, uid) {
-      try {
-        const snapshot = await getDoc(doc(db, COLLECTIONS[portal], staffId));
-        return {
-          portal,
-          record: recordBelongsToUser(snapshot, uid),
-          permissionDenied: false,
-          error: null
-        };
-      } catch (error) {
-        // Firestore rules may deny the collection that does not contain the tutor.
-        // Do not fail the whole login if the other collection verifies correctly.
-        const denied = error && (error.code === "permission-denied" || error.code === "firestore/permission-denied");
-        console.warn(`Could not check ${COLLECTIONS[portal]}/${staffId}:`, error);
-        return {
-          portal,
-          record: null,
-          permissionDenied: denied,
-          error
-        };
-      }
-    }
-
-    function savePortalSession(portal, staffId, data, passwordWasTemporary) {
-      sessionStorage.setItem("tutorStaffId", staffId);
-      sessionStorage.setItem("tutorName", data.name || data.fullName || staffId);
-      sessionStorage.setItem("tutorPortal", portal);
-      sessionStorage.setItem("tutorCollection", COLLECTIONS[portal]);
-
-      if (passwordWasTemporary) {
-        sessionStorage.setItem("forcePasswordChange", "1");
-      } else {
-        sessionStorage.removeItem("forcePasswordChange");
-      }
-    }
-
-    function redirectToPortal(portal) {
-      const route = ROUTES[portal];
-      if (!route) {
-        showError("The selected portal is not configured. Contact the administrator.");
-        return;
-      }
-      successMessage.style.display = "block";
-      window.setTimeout(() => window.location.replace(route), 350);
+        document.getElementById('loginLoading').style.display = isLoading ? 'block' : 'none';
+        document.getElementById('loginBtn').disabled = isLoading;
     }
 
     async function doLogin() {
-      clearMessages();
-      const staffId = normalizeStaffId(staffIdInput.value);
-      const password = passwordInput.value;
+        clearMessages();
+        const rawStaffId = document.getElementById('staffId').value.trim().toUpperCase();
+        const password = document.getElementById('password').value;
+        if (!rawStaffId) { showError('Please enter your Staff ID.'); return; }
+        if (!password)   { showError('Please enter your password.'); return; }
 
-      if (!staffId) {
-        showError("Please enter your Staff ID.");
-        staffIdInput.focus();
-        return;
-      }
-      if (!password) {
-        showError("Please enter your password.");
-        passwordInput.focus();
-        return;
-      }
+        setLoading(true);
+        try {
+            const email = staffIdToEmail(rawStaffId);
+            const cred = await signInWithEmailAndPassword(auth, email, password);
 
-      setLoading(true);
-      clearStoredSession();
-      pendingPasswordWasTemporary = password === TEMPORARY_PASSWORD;
+            // Password is correct — now confirm this Staff ID has a tutor
+            // record in Firestore and that it's linked to this signed-in
+            // account, then pull the display name from it.
+            let tutorName = rawStaffId;
+            try {
+                const snap = await getDoc(doc(db, 'tutors', rawStaffId));
+                if (snap.exists()) {
+                    const data = snap.data();
+                    const authEmail = (cred.user.email || '').toLowerCase();
+                    const tutorLoginEmail = (data.loginEmail || staffIdToEmail(rawStaffId)).toLowerCase();
+                    if (data.uid && data.uid !== cred.user.uid && tutorLoginEmail !== authEmail) {
+                        // Staff ID belongs to a different account than the one
+                        // that just signed in, and the login email also does not match.
+                        // Treat as not found rather than silently using the wrong tutor's data.
+                        throw new Error('STAFF_ID_MISMATCH');
+                    }
+                    tutorName = data.name || rawStaffId;
+                } else {
+                    throw new Error('NOT_IN_DIRECTORY');
+                }
+            } catch (lookupErr) {
+                await signOut(auth);
+                setLoading(false);
+                if (lookupErr.message === 'STAFF_ID_MISMATCH' || lookupErr.message === 'NOT_IN_DIRECTORY') {
+                    showError('Staff ID not found in the facilitators list. Contact the administrator.');
+                } else {
+                    console.error(lookupErr);
+                    showError('Could not verify your facilitator record. Check your connection and try again.');
+                }
+                return;
+            }
 
-      try {
-        const credential = await signInWithEmailAndPassword(auth, staffIdToEmail(staffId), password);
+            sessionStorage.setItem('tutorStaffId', rawStaffId);
+            sessionStorage.setItem('tutorName', tutorName);
 
-        const [pgResult, ugResult] = await Promise.all([
-          getTutorRecordSafely("pg", staffId, credential.user.uid),
-          getTutorRecordSafely("ug", staffId, credential.user.uid)
-        ]);
-
-        const pgRecord = pgResult.record;
-        const ugRecord = ugResult.record;
-
-        if (pgRecord && ugRecord) {
-          await signOut(auth);
-          setLoading(false);
-          showError("This Staff ID appears in both facilitator directories. The administrator must correct the duplicate Staff ID before you can continue.");
-          return;
+            setLoading(false);
+            document.getElementById('loginSuccess').style.display = 'block';
+            setTimeout(() => { window.location.href = 'tutor-report.html'; }, 800);
+        } catch (e) {
+            console.error(e);
+            let msg = 'Could not sign in. Please try again.';
+            if (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' ||
+                e.code === 'auth/user-not-found' || e.code === 'auth/invalid-email') {
+                msg = 'Incorrect Staff ID or password. Please try again, or contact your administrator.';
+            } else if (e.code === 'auth/too-many-requests') {
+                msg = 'Too many attempts. Please wait a while and try again.';
+            } else if (e.code === 'auth/network-request-failed') {
+                msg = 'Could not reach the server. Check your connection and try again.';
+            } else if (e.code === 'auth/user-disabled') {
+                msg = 'This account has been disabled. Contact your administrator.';
+            }
+            showError(msg); setLoading(false);
         }
-
-        if (pgRecord || ugRecord) {
-          const portal = pgRecord ? "pg" : "ug";
-          const record = pgRecord || ugRecord;
-          savePortalSession(portal, staffId, record, pendingPasswordWasTemporary);
-          setLoading(false);
-          redirectToPortal(portal);
-          return;
-        }
-
-        await signOut(auth);
-        setLoading(false);
-
-        if (pgResult.permissionDenied || ugResult.permissionDenied) {
-          showError("The login was accepted, but Firestore blocked the tutor record check. Publish the updated Firestore rules and confirm this Staff ID exists in the correct tutor collection.");
-          return;
-        }
-
-        showError("Your account signed in, but this Staff ID was not found in the facilitator directories. Contact the administrator.");
-        return;
-      } catch (error) {
-        console.error(error);
-        setLoading(false);
-
-        let message = "Could not sign in. Please try again.";
-        if (["auth/invalid-credential", "auth/wrong-password", "auth/user-not-found", "auth/invalid-email"].includes(error.code)) {
-          message = "Incorrect Staff ID or password. Please try again or contact the administrator.";
-        } else if (error.code === "auth/too-many-requests") {
-          message = "Too many unsuccessful attempts. Please wait briefly and try again.";
-        } else if (error.code === "auth/network-request-failed") {
-          message = "Network error. Check your internet connection and try again.";
-        } else if (error.code === "permission-denied" || error.code === "firestore/permission-denied") {
-          message = "Your account could not be verified against the facilitator directories. Check the Firestore rules or contact the administrator.";
-        }
-        showError(message);
-      }
     }
 
-    loginButton.addEventListener("click", doLogin);
+    document.getElementById('loginBtn').addEventListener('click', doLogin);
 
-    [staffIdInput, passwordInput].forEach(input => {
-      input.addEventListener("keydown", event => {
-        if (event.key === "Enter" && !loginButton.disabled) doLogin();
-      });
+    // Show/hide password — toggle (click to show, click again to hide)
+    const pwToggle = document.getElementById('pwToggle');
+    const pwField = document.getElementById('password');
+    pwToggle.addEventListener('click', () => {
+        const showing = pwField.type === 'text';
+        pwField.type = showing ? 'password' : 'text';
+        pwToggle.textContent = showing ? 'Show' : 'Hide';
+        pwToggle.setAttribute('aria-pressed', showing ? 'false' : 'true');
+        pwToggle.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+        pwField.focus();
     });
+    document.getElementById('staffId').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') document.getElementById('password').focus();
+    });
+    document.getElementById('password').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') doLogin();
+    });
+</script>
 
-    passwordToggle.addEventListener("click", () => {
-      const show = passwordInput.type === "password";
-      passwordInput.type = show ? "text" : "password";
-      passwordToggle.textContent = show ? "Hide" : "Show";
-      passwordToggle.setAttribute("aria-label", show ? "Hide password" : "Show password");
-      passwordToggle.setAttribute("aria-pressed", show ? "true" : "false");
-    });
-  </script>
 </body>
 </html>
