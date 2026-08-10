@@ -255,6 +255,7 @@
               <div><label for="editBlock">Block</label><input id="editBlock" type="text"></div>
               <div><label for="editTravelFrom">Travel From</label><input id="editTravelFrom" type="text"></div>
               <div><label for="editTravelTo">Travel To</label><input id="editTravelTo" type="text"></div>
+              <div><label for="editTravelTotalDistance">Total Distance Travelled</label><input id="editTravelTotalDistance" type="text"></div>
               <div><label for="editBankName">Bank Name</label><input id="editBankName" type="text"></div>
               <div><label for="editBankBranch">Bank Branch</label><input id="editBankBranch" type="text"></div>
               <div><label for="editAccountName">Account Name</label><input id="editAccountName" type="text"></div>
@@ -629,6 +630,7 @@
     setEditValue('editBlock', d.block || '');
     setEditValue('editTravelFrom', d.travelFrom || '');
     setEditValue('editTravelTo', d.travelTo || '');
+    setEditValue('editTravelTotalDistance', d.travelTotalDistance || d.totalDistanceTravelled || '');
     setEditValue('editBankName', d.bankName || '');
     setEditValue('editBankBranch', d.bankBranch || '');
     setEditValue('editAccountName', d.accountName || '');
@@ -672,6 +674,7 @@
       block: getEditValue('editBlock'),
       travelFrom: getEditValue('editTravelFrom'),
       travelTo: getEditValue('editTravelTo'),
+      travelTotalDistance: getEditValue('editTravelTotalDistance'),
       bankName: getEditValue('editBankName'),
       bankBranch: getEditValue('editBankBranch'),
       accountName: getEditValue('editAccountName'),
@@ -832,6 +835,9 @@
       grandTotal: clean(d.totalHours || '0'),
       travelFrom: clean(d.travelFrom),
       travelTo: clean(d.travelTo),
+      travelDistanceIn: clean(d.travelDistanceIn || d.distanceIn),
+      travelDistanceOut: clean(d.travelDistanceOut || d.distanceOut),
+      travelTotalDistance: clean(d.travelTotalDistance || d.totalDistanceTravelled || d.totalTravelDistance),
       bankName: clean(d.bankName),
       bankBranch: clean(d.bankBranch),
       accountName: clean(d.accountName),
@@ -918,7 +924,14 @@
       y -= 46;
       labelValue('Mode of Delivery', data.mode, margin, y, w, 34);
       labelValue('Block', data.block, margin+w+gap, y, w, 34);
-      y -= 44;
+      y -= 42;
+      if (data.travelFrom || data.travelTo || data.travelTotalDistance) {
+        labelValue('Travel Route', [data.travelFrom, data.travelTo].filter(Boolean).join(' to ') || '-', margin, y, w, 34);
+        labelValue('Total Distance Travelled', data.travelTotalDistance ? (data.travelTotalDistance + ' km') : '-', margin+w+gap, y, w, 34);
+        y -= 42;
+      } else {
+        y -= 2;
+      }
     }
     function tableCell(txt, x, yy, w, size, bold, color) {
       var lines = wrap(txt || '-', size, w-8).slice(0, 2);
