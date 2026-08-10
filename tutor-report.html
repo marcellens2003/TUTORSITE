@@ -1129,7 +1129,7 @@
 
         <div class="grand-total-line" id="grandTotalLine">Grand total teaching hours: <strong id="grandTotal">0.00</strong></div>
         <div id="hoursLimitWarning" class="hours-limit-warning" role="alert">
-            <strong>Hours limit exceeded:</strong> Total teaching hours cannot exceed 24. Please review the session times before submitting.
+            <strong>Hours requirement:</strong> Total teaching hours must be exactly 16 or 24 before submission.
         </div>
         <input type="hidden" id="totalHours" name="totalHours">
 
@@ -1370,9 +1370,132 @@ async function fillTutorFromLogin() {
     }
     populateProgramDropdown();
     updateCourseAvailability();
+    restoreFormDraftOnce();
+    unlockModeOfDelivery();
     if (typeof loadMyClaims === 'function') loadMyClaims();
 }
 window.fillTutorFromLogin = fillTutorFromLogin;
+
+
+// ========== LOCAL DRAFT AUTOSAVE ==========
+let DRAFT_AUTOSAVE_READY = false;
+let DRAFT_RESTORE_RUNNING = false;
+let DRAFT_SAVE_TIMER = null;
+let DRAFT_RESTORED_FOR_KEY = '';
+
+function getDraftStorageKey() {
+    const staffId = (document.getElementById('staffId')?.value || sessionStorage.getItem('tutorStaffId') || '').trim().toUpperCase();
+    return staffId ? 'pgTutorClaimDraft:' + staffId : '';
+}
+
+function captureDraftState() {
+    return {
+        savedAt: new Date().toISOString(),
+        courseSearchInput: document.getElementById('courseSearchInput')?.value || '',
+        course: document.getElementById('course')?.value || '',
+        program: document.getElementById('program')?.value || '',
+        studyCentre: document.getElementById('studyCentre')?.value || '',
+        modeOfDelivery: (document.querySelector('input[name="modeOfDelivery"]:checked') || {}).value || '',
+        semester: (document.querySelector('input[name="semester"]:checked') || {}).value || '',
+        block: selectedTeachingBlock(),
+        f2fSessionItems: (typeof collectSessionItems === 'function') ? collectSessionItems('f2f') : [],
+        onSessionItems: (typeof collectSessionItems === 'function') ? collectSessionItems('on') : [],
+        travelFrom: document.getElementById('travelFrom')?.value || '',
+        travelTo: document.getElementById('travelTo')?.value || '',
+        travelDistanceIn: document.getElementById('travelDistanceIn')?.value || '',
+        travelDistanceOut: document.getElementById('travelDistanceOut')?.value || '',
+        travelTotalDistance: document.getElementById('travelTotalDistance')?.value || '',
+        remarks: document.getElementById('remarks')?.value || '',
+        facilitatorSignature: document.getElementById('facilitatorSignature')?.value || ''
+    };
+}
+
+function saveFormDraftNow() {
+    if (!DRAFT_AUTOSAVE_READY || DRAFT_RESTORE_RUNNING) return;
+    const key = getDraftStorageKey();
+    if (!key) return;
+    try {
+        localStorage.setItem(key, JSON.stringify(captureDraftState()));
+    } catch (err) {
+        console.warn('Could not save form draft locally:', err);
+    }
+}
+
+function scheduleDraftSave() {
+    if (!DRAFT_AUTOSAVE_READY || DRAFT_RESTORE_RUNNING) return;
+    clearTimeout(DRAFT_SAVE_TIMER);
+    DRAFT_SAVE_TIMER = setTimeout(saveFormDraftNow, 300);
+}
+
+function clearFormDraft() {
+    const key = getDraftStorageKey();
+    if (!key) return;
+    try { localStorage.removeItem(key); } catch (err) {}
+}
+
+function restoreFormDraftOnce() {
+    const key = getDraftStorageKey();
+    if (!key || DRAFT_RESTORED_FOR_KEY === key) return;
+    DRAFT_RESTORED_FOR_KEY = key;
+    const raw = localStorage.getItem(key);
+    DRAFT_AUTOSAVE_READY = true;
+    if (!raw) return;
+
+    let state = null;
+    try { state = JSON.parse(raw); } catch (err) { return; }
+    if (!state || typeof state !== 'object') return;
+
+    DRAFT_RESTORE_RUNNING = true;
+    try {
+        const courseInput = document.getElementById('courseSearchInput');
+        if (courseInput) courseInput.value = state.courseSearchInput || '';
+        const course = document.getElementById('course');
+        if (course) course.value = state.course || state.courseSearchInput || '';
+
+        const program = document.getElementById('program');
+        ensureSelectOption(program, state.program || '');
+        if (program) program.value = state.program || '';
+
+        const centre = document.getElementById('studyCentre');
+        if (centre) centre.value = state.studyCentre || '';
+
+        setRadioValue('semester', state.semester || 'Second Semester');
+        setRadioValue('block', state.block || '');
+        setRadioValue('modeOfDelivery', state.modeOfDelivery || '');
+        unlockModeOfDelivery();
+
+        setSessionRows('f2f', state.f2fSessionItems || []);
+        setSessionRows('on', state.onSessionItems || []);
+
+        if (typeof setTravelFields === 'function') {
+            setTravelFields(state.travelFrom || '', state.travelTo || '', state.travelDistanceIn || '', state.travelDistanceOut || '', state.travelTotalDistance || '', false);
+        }
+
+        const remarks = document.getElementById('remarks');
+        if (remarks) remarks.value = state.remarks || '';
+
+        if (state.facilitatorSignature) setSignatureImageFromDataUrl(state.facilitatorSignature);
+        applyMode();
+        recomputeTotals();
+        if (state.courseSearchInput || state.program || state.studyCentre || state.remarks || state.facilitatorSignature) {
+            showSuccessMessage('Your saved draft has been restored on this device.');
+        }
+    } finally {
+        DRAFT_RESTORE_RUNNING = false;
+    }
+}
+
+function setupDraftAutosave() {
+    const form = document.getElementById('reportForm');
+    if (!form) return;
+    form.addEventListener('input', scheduleDraftSave, true);
+    form.addEventListener('change', scheduleDraftSave, true);
+    document.addEventListener('click', function(e) {
+        if (e.target && (e.target.classList.contains('period-btn') || e.target.classList.contains('row-del') || e.target.classList.contains('add-row-btn'))) {
+            setTimeout(scheduleDraftSave, 50);
+        }
+    }, true);
+}
 
 // Tutors now choose the teaching block themselves.
 let CURRENT_ACTIVE_BLOCK = '';
@@ -1456,9 +1579,16 @@ function assignmentLooksPurelyOnline(courseAssignment) {
         || textLooksPurelyOnline(courseAssignment.teachingMode);
 }
 
+function unlockModeOfDelivery() {
+    document.querySelectorAll('input[name="modeOfDelivery"]').forEach(r => {
+        r.disabled = false;
+        r.removeAttribute('disabled');
+    });
+}
+
 function setModeRadioLock(mode, lock) {
-    // Mode of delivery is no longer locked. Tutors can choose Blended or Purely Online.
-    document.querySelectorAll('input[name="modeOfDelivery"]').forEach(r => { r.disabled = false; });
+    // Mode of delivery is never locked. Tutors can choose freely.
+    unlockModeOfDelivery();
 }
 
 function selectedCourseAssignment() {
@@ -1521,14 +1651,15 @@ function applyAssignedModeAndTravel(courseAssignment) {
     if (!hasExplicitAssignedTravel && assignmentLooksPurelyOnline(courseAssignment)) mode = 'Purely Online';
     if (!mode && hasAnyTravelChoice) mode = 'Blended';
 
-    document.querySelectorAll('input[name="modeOfDelivery"]').forEach(r => {
-        r.disabled = false;
-        r.checked = false;
-    });
+    unlockModeOfDelivery();
 
-    if (mode) setRadioValue('modeOfDelivery', mode);
+    // Suggest the assigned mode only when the tutor has not already chosen one.
+    // After that, leave the choice fully under the tutor's control.
+    const existingMode = (document.querySelector('input[name="modeOfDelivery"]:checked') || {}).value || '';
+    if (mode && !existingMode) setRadioValue('modeOfDelivery', mode);
     refreshTravelForSelectedMode();
     applyMode();
+    unlockModeOfDelivery();
 }
 
 function filteredTutorCourseAssignments() {
@@ -1557,7 +1688,8 @@ function clearSelectedCourse() {
     const centre = document.getElementById('studyCentre');
     if (centre) centre.value = '';
     setTravelFields('', '', '', '', '');
-    document.querySelectorAll('input[name="modeOfDelivery"]').forEach(r => { r.disabled = false; r.checked = false; });
+    unlockModeOfDelivery();
+    document.querySelectorAll('input[name="modeOfDelivery"]').forEach(r => { r.checked = false; });
     applyMode();
 }
 
@@ -1760,31 +1892,37 @@ function sumSection(target) {
     return total;
 }
 
-const MAX_CLAIM_HOURS = 24;
+const ALLOWED_CLAIM_HOURS = [16, 24];
+
+function isAllowedClaimHours(totalHoursValue) {
+    const total = Number(totalHoursValue || 0);
+    return ALLOWED_CLAIM_HOURS.some(h => Math.abs(total - h) < 0.01);
+}
 
 function updateHoursLimitWarning(totalHoursValue) {
     const total = Number(totalHoursValue || 0);
-    const overLimit = total > MAX_CLAIM_HOURS + 0.0001;
+    const mode = (document.querySelector('input[name="modeOfDelivery"]:checked') || {}).value || '';
+    const invalidTotal = !!mode && total > 0.0001 && !isAllowedClaimHours(total);
     const warning = document.getElementById('hoursLimitWarning');
     const totalLine = document.getElementById('grandTotalLine');
     const submitBtn = document.getElementById('submitBtn');
 
     if (warning) {
-        warning.style.display = overLimit ? 'block' : 'none';
-        warning.innerHTML = '<strong>Hours limit exceeded:</strong> Total teaching hours cannot exceed ' +
-            MAX_CLAIM_HOURS + '. Current total is ' + total.toFixed(2) +
-            ' hours. Please review the session times before submitting.';
+        warning.style.display = invalidTotal ? 'block' : 'none';
+        warning.innerHTML = '<strong>Hours requirement:</strong> Total teaching hours must be exactly <strong>16</strong> or <strong>24</strong> before submission. Current total is ' +
+            total.toFixed(2) + ' hours. Please review the session times before submitting.';
     }
-    if (totalLine) totalLine.classList.toggle('over-limit', overLimit);
+    if (totalLine) totalLine.classList.toggle('over-limit', invalidTotal);
     if (submitBtn) {
-        submitBtn.classList.toggle('hours-blocked', overLimit);
-        submitBtn.title = overLimit ? 'Total teaching hours cannot exceed ' + MAX_CLAIM_HOURS + ' hours.' : '';
-        if (!submitBtn.dataset.saving) submitBtn.disabled = overLimit;
+        submitBtn.classList.toggle('hours-blocked', invalidTotal);
+        submitBtn.title = invalidTotal ? 'Total teaching hours must be exactly 16 or 24 hours.' : '';
+        if (!submitBtn.dataset.saving) submitBtn.disabled = invalidTotal;
     }
-    return !overLimit;
+    return !invalidTotal;
 }
 
 function recomputeTotals() {
+    unlockModeOfDelivery();
     const mode = (document.querySelector('input[name="modeOfDelivery"]:checked') || {}).value;
     let f2f = 0, on = 0;
     if (mode === 'Blended') { f2f = sumSection('f2f'); on = sumSection('on'); }
@@ -1797,6 +1935,7 @@ function recomputeTotals() {
     document.getElementById('grandTotal').innerHTML = grand.toFixed(2) + ' <span class="hm">(' + hmLabel(grand) + ')</span>';
     document.getElementById('totalHours').value = grand.toFixed(2);
     updateHoursLimitWarning(grand);
+    scheduleDraftSave();
 }
 
 
@@ -1820,6 +1959,7 @@ function refreshTravelForSelectedMode() {
 
 // Show/hide sections based on mode. Blended -> both; Purely Online -> online only.
 function applyMode() {
+    unlockModeOfDelivery();
     const mode = (document.querySelector('input[name="modeOfDelivery"]:checked') || {}).value;
     refreshTravelForSelectedMode();
     const f2f = document.getElementById('f2fSection');
@@ -1852,7 +1992,9 @@ document.addEventListener('DOMContentLoaded', function() {
         allowCustom: true
     });
     setupFormSubmission(document.getElementById('reportForm'));
+    setupDraftAutosave();
     updateCourseAvailability();
+    unlockModeOfDelivery();
 
     document.querySelectorAll('input[name="modeOfDelivery"]').forEach(r =>
         r.addEventListener('change', applyMode));
@@ -2713,6 +2855,7 @@ async function submitAndDownloadFromPreview() {
         closePreview();
         await showSubmitSuccessPopup('Your claim has been successfully submitted and your PDF download has started. The Google Sheet copy will be created automatically by the system.');
         await loadMyClaims();
+        clearFormDraft();
         resetForm();
     } catch (e) {
         document.getElementById('loading').style.display = 'none';
@@ -3449,9 +3592,9 @@ function validateForm() {
     recomputeTotals();
     const grand = parseFloat(document.getElementById('totalHours').value || '0');
     if (mode && grand <= 0) { alert('Add at least one teaching session with valid start/end times.'); ok = false; }
-    if (mode && grand > MAX_CLAIM_HOURS) {
+    if (mode && grand > 0 && !isAllowedClaimHours(grand)) {
         updateHoursLimitWarning(grand);
-        alert('Total teaching hours cannot exceed ' + MAX_CLAIM_HOURS + '. Current total is ' + grand.toFixed(2) + ' hours. Please correct the session times before submitting.');
+        alert('Total teaching hours must be exactly 16 or 24. Current total is ' + grand.toFixed(2) + ' hours. Please correct the session times before submitting.');
         ok = false;
     }
     return ok;
@@ -3703,6 +3846,7 @@ async function submitFormData(data) {
 
         await showSubmitSuccessPopup('Your claim has been successfully submitted and saved. The Google Sheet copy will be created automatically by the system.');
         await loadMyClaims();
+        clearFormDraft();
         resetForm();
     } catch (e) {
         showErrorMessage(e.message);
@@ -3859,6 +4003,9 @@ function showPwError(msg) {
 }
 
 function resetForm() {
+    clearFormDraft();
+    DRAFT_RESTORED_FOR_KEY = '';
+    DRAFT_AUTOSAVE_READY = false;
     document.getElementById('reportForm').reset();
     document.getElementById('courseSearchInput').value = '';
     document.getElementById('course').value = '';
