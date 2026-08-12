@@ -3523,6 +3523,48 @@ async function saveClaimToFirestore(data) {
     return claimId;
 }
 
+
+function ensureBlendedTravelValues() {
+    const mode = (document.querySelector('input[name="modeOfDelivery"]:checked') || {}).value || '';
+    if (mode !== 'Blended') return true;
+
+    const fromEl = document.getElementById('travelFrom');
+    const toEl = document.getElementById('travelTo');
+    let from = (fromEl && fromEl.value || '').trim();
+    let to = (toEl && toEl.value || '').trim();
+
+    // If the course assignment gave us a route but the disabled dropdown values
+    // were not posted by the browser, restore them before submission.
+    if ((!from || !to) && CURRENT_ASSIGNED_TRAVEL) {
+        from = from || (CURRENT_ASSIGNED_TRAVEL.from || '');
+        to = to || (CURRENT_ASSIGNED_TRAVEL.to || '');
+        if (fromEl && from) fromEl.value = from;
+        if (toEl && to) {
+            populateTravelToOptions(to);
+            toEl.value = to;
+        }
+    }
+
+    // Final fallback for blended claims: travelling from defaults to Cape Coast,
+    // and travelling to is inferred from the selected study centre when possible.
+    if (!from) {
+        from = 'Cape Coast';
+        if (fromEl) fromEl.value = from;
+        populateTravelToOptions(to || '');
+    }
+    if (!to) {
+        const centre = document.getElementById('studyCentre')?.value || '';
+        to = normalizeTravelLocation(centre);
+        if (toEl && to) {
+            populateTravelToOptions(to);
+            toEl.value = to;
+        }
+    }
+
+    if (typeof updateTravelDistanceSummary === 'function') updateTravelDistanceSummary();
+    return !!(from && to);
+}
+
 function setupFormSubmission(form) {
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -3540,6 +3582,7 @@ function setupFormSubmission(form) {
         }
         const hiddenCourse = document.getElementById('course');
         if (hiddenCourse) hiddenCourse.value = selectedCourse;
+        ensureBlendedTravelValues();
         if (!validateForm()) return;
         showPreview();
     });
@@ -3566,6 +3609,7 @@ function validateForm() {
 
     // For blended delivery, collect the travel route silently for distance calculation.
     if (mode === 'Blended') {
+        ensureBlendedTravelValues();
         const from = document.getElementById('travelFrom')?.value || '';
         const to = document.getElementById('travelTo')?.value || '';
         if (!from || !to) {
@@ -3622,6 +3666,9 @@ function prepareFormData() {
     data.accountName = '';
     data.accountNumber = '';
     data.ghanaCardNumber = '';
+    if (data.modeOfDelivery === 'Blended') ensureBlendedTravelValues();
+    data.travelFrom = document.getElementById('travelFrom')?.value || data.travelFrom || '';
+    data.travelTo = document.getElementById('travelTo')?.value || data.travelTo || '';
     data.travelDistanceIn = document.getElementById('travelDistanceIn')?.value || '';
     data.travelDistanceOut = document.getElementById('travelDistanceOut')?.value || '';
     data.travelTotalDistance = document.getElementById('travelTotalDistance')?.value || '';
