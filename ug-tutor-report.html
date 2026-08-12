@@ -8,818 +8,605 @@
     <title>Undergraduate Facilitator Claim Form</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-    * { box-sizing: border-box; }
-    html, body { max-width: 100%; overflow-x: hidden; }
-    body {
-        font-family: 'Rubik', Arial, sans-serif;
-        background: #0a1f5c;
-        padding: 20px;
-        min-height: 100vh;
-        position: relative;
-        margin: 0;
-    }
-    body::before {
-        content: ''; position: fixed; inset: 0; z-index: -2;
-        background-image: url("books-bg-blur.jpg");
-        background-size: cover; background-position: center;
-        transform: scale(1.04);
-    }
-    body::after {
-        content: ''; position: fixed; inset: 0; z-index: -1;
-        background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(10,31,92,0.25));
-    }
-    h1, h2, p, .field-label, .option-item, .searchable-input,
-    .mode-text, .duration-display { overflow-wrap: break-word; word-break: break-word; }
-    img { max-width: 100%; }
-    .header {
-        position: relative; overflow: hidden;
-        display: flex; align-items: center; justify-content: space-between;
-        margin: 0 auto 30px; padding: 24px 34px;
-        max-width: 900px;
-        background:
-            radial-gradient(80% 120% at 88% -10%, rgba(255,211,77,0.18), rgba(255,211,77,0) 55%),
-            radial-gradient(120% 140% at 0% 0%, rgba(255,255,255,0.14), rgba(255,255,255,0) 48%),
-            linear-gradient(135deg, #08183f 0%, #102a72 42%, #1d3a8f 78%, #244aa6 100%);
-        color: #ffffff; border-radius: 16px;
-        box-shadow: 0 14px 36px rgba(8,24,63,0.45), inset 0 0 0 1px rgba(255,211,77,0.22), inset 0 1px 0 rgba(255,255,255,0.18);
-        min-height: 150px;
-    }
-    .header::after {
-        content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 5px;
-        background: linear-gradient(90deg, #d4362a 0%, #d4362a 18%, #e8b500 18%, #ffd34d 50%, #e8b500 82%, #d4362a 82%, #d4362a 100%);
-    }
-    .top-rule { position: absolute; left: 0; right: 0; top: 0; height: 4px; background: linear-gradient(90deg, #e8b500 0%, #ffd34d 50%, #e8b500 100%); z-index: 2; }
-    .logo-container { flex:0 0 auto; position: relative; z-index: 1; display:flex; align-items:center; justify-content:center; }
-    .header-logo { height:96px; width:96px; object-fit:contain; display:block; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.45)); }
-    .header-center { flex:1; text-align:center; padding:0 28px; min-width:300px; position: relative; z-index: 1; }
-    .header-center h1 { margin:0; font-size:28px; font-weight:800; letter-spacing:1.2px; line-height:1.2; text-shadow: 0 2px 4px rgba(0,0,0,0.35); }
-    .header-center h1 .shine { background: linear-gradient(180deg, #ffffff 0%, #fff4cf 55%, #ffd86b 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: #ffd86b; }
-    .header-center .subtitle { margin:11px 0 0; font-size:16px; font-weight:700; letter-spacing:1px; text-transform: uppercase; color:#ffe08a; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
-    .container { max-width: 760px; margin: auto; background: rgba(255,255,255,0.98); padding: 25px 30px; border-radius: 14px; box-shadow: 0 18px 50px rgba(5,16,48,0.45); border: 1px solid rgba(255,255,255,0.6); }
-    @media (min-width: 769px) and (hover: hover) { .container { background: rgba(255,255,255,0.97); backdrop-filter: blur(2px); } }
-    h2 { text-align:center; margin:0 0 25px; color:#002147; border-bottom:2px solid #0056b3; padding-bottom:10px; }
-    .field-label { font-weight:bold; margin-top:18px; color:#333; }
-    .sub-label { font-weight:600; font-size:13px; margin:12px 0 4px; color:#444; }
-    input, select, textarea, .searchable-input {
-        width:100%; padding:11px; margin-top:6px; border:1px solid #ccc;
-        border-radius:6px; font-size:15px; transition: border 0.3s; font-family: inherit;
-    }
-    input:focus, select:focus, textarea:focus, .searchable-input:focus { border-color: #0056b3; outline:none; box-shadow:0 0 0 2px rgba(0,123,255,0.25); }
-    input[readonly] { background:#f8fafc; color:#475569; }
-    textarea { resize:vertical; min-height:90px; }
-    .row-2 { display:flex; gap:14px; flex-wrap:wrap; }
-    .row-2 > div { flex:1; min-width:180px; }
-    .searchable-select-wrapper { position: relative; width: 100%; margin-top: 6px; }
-    .searchable-input { background-color: white; cursor: text; }
-    .dropdown-options { position: absolute; top: calc(100% + 4px); left: 0; right: 0; max-height: 280px; overflow-y: auto; background: white; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 6px 16px rgba(0,0,0,0.15); z-index: 999; display: none; }
-    .dropdown-options.show { display: block; }
-    .option-item { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f0f0f0; transition: background 0.15s; font-size: 15px; }
-    .option-item:hover, .option-item.selected { background-color: #e6f2ff; }
-    .no-result { padding: 12px; color: #666; font-style: italic; text-align: center; }
-    .mode-delivery-container { display: flex; gap: 12px; margin-top: 8px; }
-    .mode-option { flex: 1; display: flex; align-items: center; gap: 10px; padding: 12px 16px; border: 2px solid #0056b3; border-radius: 8px; background: #e8f0fe; }
-    .mode-option input[type="radio"] { width: 16px; height: 16px; margin:0; accent-color:#0056b3; }
-    .mode-text { font-size: 15px; color: #0056b3; font-weight: 700; }
-    .delivery-section { border:1px solid #d9e1ef; border-radius:10px; padding:6px 14px 16px; margin-top:18px; background:#fafcff; }
-    .section-head { margin:18px 0 6px; font-size:16px; color:#0a2a6b; border-bottom:2px solid #0a2a6b; padding-bottom:5px; }
-    .session-table { width:100%; border-collapse:collapse; margin-top:6px; font-size:13px; }
-    .session-table th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.3px; color:#555; padding:4px 6px; border-bottom:1px solid #dde3ee; }
-    .session-table td { padding:4px 6px; vertical-align:middle; }
-    .session-table input { width:100%; padding:7px; font-size:14px; border:1px solid #ccc; border-radius:5px; box-sizing:border-box; }
-    .session-table .hrs-cell { font-weight:600; color:#0a2a6b; white-space:nowrap; }
-    .hm { color:#6b7a99; font-weight:500; font-size:.92em; }
-    .time-entry { display:flex; align-items:center; gap:6px; width:100%; }
-    .time-entry input[type="time"] { flex:1; min-width:96px; }
-    .period-toggle { display:inline-flex; gap:3px; flex-shrink:0; }
-    .period-btn { width:auto; margin:0; padding:6px 8px; font-size:11px; line-height:1; border-radius:5px; border:1px solid #c8d4e8; background:#f0f5ff; color:#164081; cursor:pointer; }
-    .period-btn.active { background:#0056b3; color:#fff; border-color:#0056b3; }
-    .row-del { background:#fff0f1; color:#dc3545; border:1px solid #f3c0c5; border-radius:50%; width:32px; height:32px; min-width:32px; cursor:pointer; font-size:16px; font-weight:600; line-height:1; display:inline-flex; align-items:center; justify-content:center; padding:0; }
-    .row-del:hover { background:#dc3545; color:#fff; border-color:#dc3545; }
-    .add-row-btn { margin-top:8px; background:#0a2a6b; color:#fff; border:none; border-radius:6px; padding:8px 14px; font-size:13px; cursor:pointer; font-weight:600; width:auto; }
-    .total-line { margin-top:10px; font-size:14px; }
-    .grand-total-line { margin-top:16px; padding:12px 14px; background:#e8f0ff; border:1px solid #b9d0ff; border-radius:8px; font-size:15px; color:#0a2a6b; }
-    .grand-total-line.over-limit { background:#fff1f2; border-color:#dc3545; color:#721c24; }
-    .hours-limit-warning { display:none; margin-top:10px; padding:11px 13px; border:1px solid #f5c2c7; background:#fff1f2; color:#721c24; border-radius:8px; font-size:13px; line-height:1.5; font-weight:500; }
-    .note-box { background:#fff8e1; border:1px solid #ffe082; border-radius:8px; padding:12px 14px; margin-top:16px; font-size:13.5px; line-height:1.55; color:#5d4b00; }
-    .sig-drop-zone { position: relative; border: 2px dashed #c0c8d6; border-radius: 10px; background: #fafbfd; min-height: 130px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: border-color .15s, background .15s; padding: 12px; }
-    .sig-drop-zone:hover, .sig-drop-zone.dragover { border-color: #0056b3; background: #f0f5fc; }
-    .sig-drop-zone.has-image { background: #fff; cursor: default; }
-    .sig-icon { font-size: 28px; text-align: center; margin-bottom: 6px; }
-    .sig-instructions { text-align: center; font-size: 14px; color: #444; line-height: 1.5; }
-    .sig-instructions strong { color: #0056b3; }
-    .sig-sub { display: block; font-size: 12px; color: #888; margin-top: 3px; }
-    .sig-preview { max-width: 100%; max-height: 110px; object-fit: contain; border-radius: 4px; }
-    .sig-remove-btn { position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; border-radius: 50%; border: 1px solid #f3c0c5; background: #fff0f1; color: #dc3545; font-size: 15px; font-weight: 600; cursor: pointer; display:none; align-items: center; justify-content: center; line-height: 1; }
-    .sig-drop-zone.has-image .sig-remove-btn { display:flex; }
-    .sig-error { color: #b32a37; font-size: 13px; margin-top: 6px; min-height: 16px; }
-    button { width:100%; margin-top:30px; padding:13px; background: linear-gradient(135deg, #0056b3, #003d82); color:#fff; border:none; border-radius:6px; font-size:17px; font-weight:bold; cursor:pointer; transition: all 0.3s; letter-spacing:0.5px; font-family: inherit; }
-    button:hover { background: linear-gradient(135deg, #004494, #002147); transform: translateY(-2px); box-shadow:0 4px 12px rgba(0,86,179,0.3); }
-    .button-row { display:flex; gap:12px; flex-wrap:wrap; }
-    .button-row button { flex:1; min-width:160px; }
-    .secondary-btn { background: #f0f2f5; color:#333; border:1px solid #d6dae2; }
-    .secondary-btn:hover { background:#e1e5ea; color:#222; box-shadow:none; }
-    .danger-btn { background: linear-gradient(135deg, #dc3545, #b02a37); }
-    .loading, .error-message, .success-message { display:none; text-align:center; padding:12px; border-radius:6px; margin:10px 0; }
-    .loading { background:#e3f2fd; color:#0056b3; font-weight:bold; }
-    .error-message { background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; }
-    .success-message { background:#d4edda; color:#155724; border:1px solid #c3e6cb; }
-    .edit-notice { display:none; background:#fff8e1; border:1px solid #ffe082; color:#5d4b00; padding:10px 12px; border-radius:8px; margin-bottom:14px; font-size:13px; }
-    .claims-card { max-width:760px; margin:22px auto 0; background:rgba(255,255,255,.98); border-radius:14px; padding:20px; box-shadow:0 12px 34px rgba(5,16,48,.34); }
-    .claims-card h2 { margin-bottom:14px; }
-    .claims-table-wrap { overflow:auto; border:1px solid #e5e7eb; border-radius:10px; }
-    .claims-table { width:100%; border-collapse:collapse; font-size:13px; }
-    .claims-table th, .claims-table td { padding:10px; border-bottom:1px solid #e5e7eb; text-align:left; vertical-align:top; }
-    .claims-table th { background:#f8fafc; color:#002147; }
-    .mini-btn { width:auto; margin:0; padding:8px 12px; font-size:13px; border-radius:6px; }
-    .empty { text-align:center; color:#667085; padding:20px; }
-    .preview-overlay, .pw-modal-overlay, .submit-success-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:10000; align-items:center; justify-content:center; padding:18px; overflow-y:auto; }
-    .preview-overlay.open, .pw-modal-overlay.open, .submit-success-modal-overlay.active { display:flex; }
-    .preview-modal { background:#fff; border-radius:12px; width:100%; max-width:680px; box-shadow:0 12px 40px rgba(0,0,0,.25); overflow:hidden; }
-    .preview-header { background:#002147; color:#fff; padding:18px 22px; display:flex; align-items:center; justify-content:space-between; }
-    .preview-header h3 { margin:0; font-size:17px; }
-    .preview-close { background:none; border:none; color:#fff; font-size:22px; cursor:pointer; line-height:1; padding:2px 6px; width:auto; margin:0; }
-    .preview-body { padding:20px 22px; max-height:65vh; overflow-y:auto; }
-    .preview-section { margin-bottom:18px; }
-    .preview-section-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#0056b3; border-bottom:1px solid #dde3ee; padding-bottom:5px; margin-bottom:10px; }
-    .preview-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; }
-    .preview-item label { display:block; font-size:11px; color:#888; font-weight:600; text-transform:uppercase; letter-spacing:.3px; margin-bottom:2px; }
-    .preview-item .pval { font-size:14px; color:#111; font-weight:500; word-break:break-word; min-height:18px; }
-    .preview-sessions { width:100%; border-collapse:collapse; font-size:13px; }
-    .preview-sessions th, .preview-sessions td { padding:5px 8px; border-bottom:1px solid #f0f0f0; text-align:left; }
-    .preview-sig { max-width:220px; max-height:90px; border:1px solid #eee; border-radius:6px; object-fit:contain; margin-top:4px; }
-    .preview-footer { padding:14px 22px; border-top:1px solid #eee; display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; }
-    .preview-footer button { width:auto; margin:0; padding:11px 22px; font-size:14px; }
-    .pw-modal, .submit-success-modal { width:100%; max-width:430px; background:#fff; border-radius:14px; padding:24px; box-shadow:0 20px 55px rgba(0,0,0,.28); }
-    .submit-success-modal { text-align:center; border-top:7px solid #0b7a3b; }
-    .submit-success-icon { width:58px; height:58px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; background:#eaf8ef; color:#0b7a3b; font-size:34px; font-weight:800; margin-bottom:12px; }
-    .pw-error, .pw-success { display:none; border-radius:6px; padding:9px 12px; font-size:13px; margin-top:12px; }
-    .pw-error { background:#fff0f1; border:1px solid #f3c0c5; color:#b32a37; }
-    .pw-success { background:#f0fff4; border:1px solid #b2dfcc; color:#1a7a45; }
-    .hidden { display:none !important; }
-    @media (max-width:768px) {
-        body { padding:10px; }
-        .header { padding:16px 14px; min-height:auto; gap:8px; border-radius:12px; }
-        .header-logo { height:54px; width:54px; }
-        .header-center { padding:0 6px; min-width:0; }
-        .header-center h1 { font-size:17px; letter-spacing:.5px; }
-        .header-center .subtitle { font-size:12px; letter-spacing:.5px; }
-        .container { padding:18px 16px; border-radius:12px; }
-        input, select, textarea, .searchable-input { font-size:16px; }
-        .mode-delivery-container { flex-wrap:wrap; }
-        .preview-grid { grid-template-columns:1fr; }
-    }
-    @media (max-width:560px) {
-        .session-table thead { display:none; }
-        .session-table, .session-table tbody { display:block; width:100%; }
-        .session-table tr { display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end; background:#fff; border:1px solid #dde3ee; border-radius:8px; padding:10px; margin-bottom:10px; }
-        .session-table td { padding:0; }
-        .session-table td:nth-child(1), .session-table td:nth-child(2), .session-table td:nth-child(3) { flex:1 1 100%; }
-        .session-table td:nth-child(4) { flex:1 1 calc(100% - 52px); display:flex; align-items:center; justify-content:flex-end; min-height:36px; padding-top:4px; }
-        .session-table td:nth-child(5) { flex:0 0 44px; display:flex; align-items:center; justify-content:flex-end; padding-top:4px; }
-        .session-table td:nth-child(1)::before { content:"Date"; }
-        .session-table td:nth-child(2)::before { content:"Start"; }
-        .session-table td:nth-child(3)::before { content:"End"; }
-        .session-table td:nth-child(4)::before { content:"Hours"; margin-right:auto; }
-        .session-table td:nth-child(1)::before, .session-table td:nth-child(2)::before, .session-table td:nth-child(3)::before, .session-table td:nth-child(4)::before { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.3px; color:#777; margin-bottom:3px; }
-    }
-    @media print {
-        body { background:#fff; padding:0; }
-        body::before, body::after, .claims-card, .button-row, .preview-overlay, .pw-modal-overlay, .submit-success-modal-overlay, #messageBox, .add-row-btn, .row-del, .sig-remove-btn { display:none !important; }
-        .header, .container { box-shadow:none; border-radius:0; max-width:none; }
-        .header { color:#000; background:#fff; border:2px solid #002147; }
-        .header-center .subtitle { color:#333; }
-    }
+        * { box-sizing: border-box; }
+        html, body { max-width: 100%; overflow-x: hidden; }
+        h1, h2, p, .field-label, .option-item, .searchable-input, .mode-text { overflow-wrap: break-word; word-break: break-word; }
+        img { max-width: 100%; }
+        body {
+            font-family: 'Rubik', Arial, sans-serif;
+            background: #0a1f5c;
+            padding: 20px;
+            min-height: 100vh;
+            position: relative;
+        }
+        body::before {
+            content: ''; position: fixed; inset: 0; z-index: -2;
+            background-image: url("books-bg-blur.jpg");
+            background-size: cover; background-position: center;
+            transform: scale(1.04);
+        }
+        body::after {
+            content: ''; position: fixed; inset: 0; z-index: -1;
+            background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(10,31,92,0.22));
+        }
+        .header {
+            position: relative; overflow: hidden;
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 30px; padding: 24px 34px;
+            background:
+                radial-gradient(80% 120% at 88% -10%, rgba(255,211,77,0.18), rgba(255,211,77,0) 55%),
+                radial-gradient(120% 140% at 0% 0%, rgba(255,255,255,0.14), rgba(255,255,255,0) 48%),
+                linear-gradient(135deg, #08183f 0%, #102a72 42%, #1d3a8f 78%, #244aa6 100%);
+            color: #ffffff; border-radius: 16px;
+            box-shadow: 0 14px 36px rgba(8,24,63,0.45), inset 0 0 0 1px rgba(255,211,77,0.22), inset 0 1px 0 rgba(255,255,255,0.18);
+            min-height: 150px;
+        }
+        .header::before {
+            content: ""; position: absolute; top:0; bottom:0; left:-60%; width:55%;
+            background: linear-gradient(105deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.16) 50%, rgba(255,255,255,0) 100%);
+            transform: skewX(-18deg);
+        }
+        @keyframes sheen { 0%, 18% { left: -60%; } 55%, 100% { left: 130%; } }
+        @media (min-width: 769px) and (hover: hover) and (prefers-reduced-motion: no-preference) { .header::before { animation: sheen 6.5s ease-in-out infinite; } }
+        .header::after {
+            content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 5px;
+            background: linear-gradient(90deg, #d4362a 0%, #d4362a 18%, #e8b500 18%, #ffd34d 50%, #e8b500 82%, #d4362a 82%, #d4362a 100%);
+        }
+        .header > .top-rule { position: absolute; left: 0; right: 0; top: 0; height: 4px; background: linear-gradient(90deg, #e8b500 0%, #ffd34d 50%, #e8b500 100%); z-index: 2; }
+        .logo-container { flex:0 0 auto; position: relative; z-index: 1; display:flex; align-items:center; justify-content:center; }
+        .logo-left { margin-right:auto; } .logo-right { margin-left:auto; }
+        .header-logo { height:96px; width:96px; object-fit:contain; display:block; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.45)); }
+        .header-center { flex:1; text-align:center; padding:0 28px; min-width:300px; position: relative; z-index: 1; }
+        .header-center h1 { margin:0; font-size:28px; font-weight:800; letter-spacing:1.6px; line-height:1.2; text-shadow: 0 2px 4px rgba(0,0,0,0.35); }
+        .header-center h1 .shine { background: linear-gradient(180deg, #ffffff 0%, #fff4cf 55%, #ffd86b 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: #ffd86b; }
+        .header-center h1::after { content: ""; display:block; width:88px; height:3px; margin:11px auto 0; background: linear-gradient(90deg, rgba(232,181,0,0), #ffd34d, rgba(232,181,0,0)); border-radius:3px; }
+        .header-center .subtitle { margin:11px 0 0; font-size:16px; font-weight:600; letter-spacing:1.2px; text-transform: uppercase; color:#ffe08a; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        .container, .claims-card {
+            max-width: 700px; margin: auto; background: rgba(255,255,255,0.98);
+            padding: 25px 30px; border-radius: 14px;
+            box-shadow: 0 18px 50px rgba(5,16,48,0.45);
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+        .claims-card { margin-bottom: 22px; }
+        @media (min-width: 769px) and (hover: hover) { .container, .claims-card { background: rgba(255,255,255,0.97); backdrop-filter: blur(2px); } }
+        h2 { text-align:center; margin-bottom:25px; color:#002147; border-bottom:2px solid #0056b3; padding-bottom:10px; }
+        h3 { color:#002147; }
+        .field-label { font-weight:bold; margin-top:18px; color:#333; }
+        .sub-label { font-weight:600; font-size:13px; margin:12px 0 4px; color:#444; }
+        .hint { font-size:12px; color:#666; margin-top:4px; line-height:1.45; }
+        .note-box { background:#fff8e1; border:1px solid #ffe082; border-radius:8px; padding:12px 14px; margin-top:16px; font-size:13.5px; line-height:1.55; color:#5d4b00; }
+        .section-head { margin:24px 0 6px; font-size:16px; color:#0a2a6b; border-bottom:2px solid #0a2a6b; padding-bottom:5px; }
+        .delivery-section { border:1px solid #d9e1ef; border-radius:10px; padding:6px 14px 16px; margin-top:14px; background:#fafcff; }
+        .row-2 { display:flex; gap:14px; flex-wrap:wrap; }
+        .row-2 > div { flex:1; min-width:150px; }
+        input, select, textarea { width:100%; padding:11px; margin-top:6px; border:1px solid #ccc; border-radius:6px; font-size:15px; transition: border 0.3s; }
+        input:focus, select:focus, textarea:focus { border-color: #0056b3; outline:none; box-shadow:0 0 0 2px rgba(0,123,255,0.25); }
+        textarea { resize:vertical; min-height:100px; }
+        .searchable-select-wrapper { position: relative; width: 100%; margin-top: 6px; }
+        .searchable-input { width: 100%; padding: 11px; font-size: 15px; border: 1px solid #ccc; border-radius: 6px; outline: none; background-color: white; transition: border 0.3s; cursor: text; }
+        .dropdown-options { position: absolute; top: calc(100% + 4px); left: 0; right: 0; max-height: 280px; overflow-y: auto; background: white; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 6px 16px rgba(0,0,0,0.15); z-index: 999; display: none; }
+        .dropdown-options.show { display: block; }
+        .option-item { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f0f0f0; transition: background 0.15s; font-size: 15px; }
+        .option-item:hover { background-color: #e6f2ff; }
+        .no-result { padding: 12px; color: #666; font-style: italic; text-align: center; }
+        .mode-delivery-container { display: flex; gap: 12px; margin-top: 8px; }
+        .mode-option { flex: 1; display: flex; align-items: center; gap: 10px; padding: 12px 16px; border: 2px solid #0056b3; border-radius: 8px; background: #e8f0fe; }
+        .mode-option input[type="radio"] { width:16px; height:16px; margin:0; flex-shrink:0; accent-color:#0056b3; }
+        .mode-text { font-size: 15px; color: #0056b3; font-weight:600; }
+        button { width:100%; margin-top:30px; padding:13px; background: linear-gradient(135deg, #0056b3, #003d82); color:#fff; border:none; border-radius:6px; font-size:17px; font-weight:bold; cursor:pointer; transition: all 0.3s; letter-spacing:0.5px; }
+        button:hover { background: linear-gradient(135deg, #004494, #002147); transform: translateY(-2px); box-shadow:0 4px 12px rgba(0,86,179,0.3); }
+        button.secondary { background:#6c757d; }
+        .top-buttons { max-width:700px;margin:0 auto 10px;text-align:right;display:flex;justify-content:flex-end;gap:8px; }
+        .top-buttons button, .claims-actions button, .claim-item button, .preview-footer button, .pw-actions button { width:auto; margin:0; padding:8px 12px; font-size:13px; border-radius:6px; letter-spacing:0; transform:none; box-shadow:none; }
+        .claims-actions { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0; }
+        .claims-status { font-size:13px; margin-top:8px; color:#555; }
+        .claims-list { display:grid; gap:8px; margin-top:10px; }
+        .claim-item { background:#fff; border:1px solid #dde6f5; border-radius:8px; padding:10px 12px; display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; }
+        .claim-title { font-weight:700; color:#0a2a6b; font-size:14px; margin-bottom:3px; }
+        .claim-meta { font-size:12px; color:#666; line-height:1.45; }
+        .claim-button-row { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+        .edit-notice, .duplicate-notice { display:none; border:1px solid #ffe082; background:#fff8e1; color:#5d4b00; border-radius:10px; padding:12px 14px; margin-bottom:16px; font-size:13px; line-height:1.5; }
+        .duplicate-notice { border-color:#f5c2c7; background:#fff1f2; color:#721c24; margin-top:12px; }
+        .session-table { width:100%; border-collapse:collapse; margin-top:6px; font-size:13px; }
+        .session-table th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.3px; color:#555; padding:4px 6px; border-bottom:1px solid #dde3ee; }
+        .session-table td { padding:4px 6px; vertical-align:middle; }
+        .session-table input { width:100%; padding:7px; font-size:14px; border:1px solid #ccc; border-radius:5px; }
+        .hrs-cell { font-weight:600; color:#0a2a6b; white-space:nowrap; }
+        .hm { color:#6b7a99; font-weight:500; font-size:.92em; }
+        .row-del { background:#fff0f1; color:#dc3545; border:1px solid #f3c0c5; border-radius:50%; width:32px; height:32px; min-width:32px; cursor:pointer; font-size:16px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; padding:0; }
+        .row-del:hover { background:#dc3545; color:#fff; }
+        .time-entry { display:flex; align-items:center; gap:6px; width:100%; }
+        .time-entry input[type="time"] { flex:1; min-width:96px; }
+        .period-toggle { display:inline-flex; gap:3px; flex-shrink:0; }
+        .period-btn { width:auto; margin:0; padding:6px 8px; font-size:11px; line-height:1; border-radius:5px; border:1px solid #c8d4e8; background:#f0f5fc; color:#0a2a6b; }
+        .period-btn.active { background:#0056b3; color:#fff; border-color:#0056b3; }
+        .add-row-btn { margin-top:8px; background:#0a2a6b; color:#fff; border:none; border-radius:6px; padding:8px 14px; font-size:13px; cursor:pointer; font-weight:500; width:auto; }
+        .total-line { margin-top:10px; font-size:14px; }
+        .grand-total-line { margin-top:16px; padding:12px 14px; background:#e8f0ff; border:1px solid #b9d0ff; border-radius:8px; font-size:15px; color:#0a2a6b; }
+        .grand-total-line.over-limit { background:#fff1f2; border-color:#dc3545; color:#721c24; }
+        .hours-limit-warning { display:none; margin-top:10px; padding:11px 13px; border:1px solid #f5c2c7; background:#fff1f2; color:#721c24; border-radius:8px; font-size:13px; line-height:1.5; font-weight:500; }
+        .loading, .error-message, .success-message { display:none; text-align:center; padding:12px; border-radius:6px; margin:10px 0; }
+        .loading { background:#e3f2fd; color:#0056b3; font-weight:bold; }
+        .error-message { background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; }
+        .success-message { background:#d4edda; color:#155724; border:1px solid #c3e6cb; }
+        .sig-drop-zone { position:relative; border:2px dashed #c0c8d6; border-radius:10px; background:#fafbfd; min-height:130px; display:flex; align-items:center; justify-content:center; cursor:pointer; padding:12px; }
+        .sig-drop-zone:hover, .sig-drop-zone.dragover { border-color:#0056b3; background:#f0f5fc; }
+        .sig-drop-zone.has-image { background:#fff; cursor:default; }
+        .sig-icon { font-size:28px; text-align:center; margin-bottom:6px; }
+        .sig-instructions { text-align:center; font-size:14px; color:#444; line-height:1.5; }
+        .sig-instructions strong { color:#0056b3; }
+        .sig-sub { display:block; font-size:12px; color:#888; margin-top:3px; }
+        .sig-preview { max-width:100%; max-height:110px; object-fit:contain; border-radius:4px; }
+        .sig-remove-btn { position:absolute; top:8px; right:8px; width:26px; height:26px; border-radius:50%; border:1px solid #f3c0c5; background:#fff0f1; color:#dc3545; font-size:15px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; padding:0; }
+        .sig-error { color:#b32a37; font-size:13px; margin-top:6px; }
+        .preview-overlay, .pw-modal-overlay, .submit-success-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:10000; align-items:flex-start; justify-content:center; padding:20px 12px; overflow-y:auto; }
+        .preview-overlay.open, .pw-modal-overlay.open, .submit-success-modal-overlay.active { display:flex; }
+        .preview-modal, .pw-modal, .submit-success-modal { background:#fff; border-radius:12px; width:100%; max-width:640px; box-shadow:0 12px 40px rgba(0,0,0,.25); margin:auto; overflow:hidden; position:relative; }
+        .pw-modal, .submit-success-modal { max-width:420px; padding:26px 24px 22px; }
+        .preview-header { background:#002147; color:#fff; padding:18px 22px; display:flex; align-items:center; justify-content:space-between; }
+        .preview-header h3 { margin:0; font-size:17px; color:#fff; }
+        .preview-subtitle { font-size:12px; opacity:.8; margin-top:3px; }
+        .preview-close, .pw-close { background:none; border:none; color:#fff; font-size:22px; cursor:pointer; line-height:1; padding:2px 6px; width:auto; margin:0; }
+        .pw-close { color:#888; position:absolute; top:14px; right:16px; }
+        .preview-body { padding:20px 22px; max-height:65vh; overflow-y:auto; }
+        .preview-section { margin-bottom:20px; }
+        .preview-section-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#0056b3; border-bottom:1px solid #dde3ee; padding-bottom:5px; margin-bottom:10px; }
+        .preview-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; }
+        .preview-grid.single { grid-template-columns:1fr; }
+        .preview-item label { display:block; font-size:11px; color:#888; font-weight:600; text-transform:uppercase; letter-spacing:.3px; margin-bottom:2px; }
+        .preview-item .pval { font-size:14px; color:#111; font-weight:500; word-break:break-word; min-height:18px; }
+        .preview-item .pval.empty { color:#bbb; font-style:italic; font-weight:400; }
+        .preview-sessions { width:100%; border-collapse:collapse; font-size:13px; margin-top:4px; }
+        .preview-sessions th { text-align:left; font-size:11px; text-transform:uppercase; color:#666; padding:4px 8px; border-bottom:1px solid #eee; background:#f8f9fa; }
+        .preview-sessions td { padding:5px 8px; border-bottom:1px solid #f0f0f0; color:#222; }
+        .preview-total { background:#f0f5fc; border-radius:8px; padding:10px 14px; font-size:14px; color:#002147; font-weight:600; margin-bottom:8px; }
+        .preview-sig { max-width:220px; max-height:90px; border:1px solid #eee; border-radius:6px; object-fit:contain; margin-top:4px; }
+        .preview-footer { padding:14px 22px; border-top:1px solid #eee; display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; }
+        .btn-edit { background:#f0f2f5; color:#333; }
+        .btn-confirm { background:#0056b3; color:#fff; }
+        .btn-download { background:#155724; color:#fff; }
+        .submit-success-modal { text-align:center; border-top:7px solid #0b7a3b; }
+        .submit-success-icon { width:58px; height:58px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; background:#eaf8ef; color:#0b7a3b; font-size:34px; font-weight:800; margin-bottom:12px; }
+        @media (max-width:768px) {
+            body { padding:10px; }
+            .header { padding:16px 14px; min-height:auto; gap:8px; border-radius:12px; }
+            .header-logo { height:54px; width:54px; }
+            .header-center { padding:0 6px; min-width:0; }
+            .header-center h1 { font-size:17px; letter-spacing:.5px; }
+            .header-center .subtitle { font-size:12px; letter-spacing:.5px; }
+            .container, .claims-card { padding:18px 16px; border-radius:12px; }
+            input, select, textarea, .searchable-input { font-size:16px; }
+            .mode-delivery-container, .row-2 { flex-wrap:wrap; }
+            .claim-item { grid-template-columns:1fr; }
+            .claim-button-row { justify-content:stretch; }
+            .claim-item button { width:100%; }
+        }
+        @media (max-width:560px) {
+            .session-table thead { display:none; }
+            .session-table, .session-table tbody { display:block; width:100%; }
+            .session-table tr { display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end; background:#fff; border:1px solid #dde3ee; border-radius:8px; padding:10px; margin-bottom:10px; }
+            .session-table td { padding:0; }
+            .session-table td:nth-child(1), .session-table td:nth-child(2), .session-table td:nth-child(3) { flex:1 1 100%; }
+            .session-table td:nth-child(4) { flex:1 1 calc(100% - 52px); display:flex; align-items:center; justify-content:flex-end; min-height:36px; padding-top:4px; }
+            .session-table td:nth-child(5) { flex:0 0 44px; display:flex; align-items:center; justify-content:flex-end; padding-top:4px; }
+            .session-table td:nth-child(1)::before { content:"Date"; }
+            .session-table td:nth-child(2)::before { content:"Start"; }
+            .session-table td:nth-child(3)::before { content:"End"; }
+            .session-table td:nth-child(4)::before { content:"Hours"; margin-right:auto; }
+            .session-table td:nth-child(1)::before, .session-table td:nth-child(2)::before, .session-table td:nth-child(3)::before, .session-table td:nth-child(4)::before { display:block; font-size:10px; text-transform:uppercase; color:#777; margin-bottom:3px; }
+        }
+        @media (max-width:380px) { .header { flex-direction:column; } }
+        @media print {
+            body * { visibility:hidden !important; }
+            #previewOverlay, #previewOverlay * { visibility:visible !important; }
+            #previewOverlay { position:static !important; display:block !important; background:#fff !important; padding:0 !important; overflow:visible !important; }
+            #previewModal { width:100% !important; max-width:100% !important; box-shadow:none !important; margin:0 !important; border-radius:0 !important; }
+            .preview-body { max-height:none !important; overflow:visible !important; }
+            .preview-footer, .preview-close { display:none !important; }
+        }
 </style>
 </head>
 <body>
-<div class="header">
-    <div class="top-rule"></div>
-    <div class="logo-container"><img src="CoDE LOGO PNG.png" alt="CoDE Logo" class="header-logo"></div>
-    <div class="header-center">
-        <h1><span class="shine">Undergraduate Facilitator Claim Form</span></h1>
-        <div class="subtitle">College of Distance Education</div>
-    </div>
-    <div class="logo-container"><img src="UCC LOGO PNG.png" alt="UCC Logo" class="header-logo"></div>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential }
+        from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+    import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, collection, setDoc, updateDoc, getDocs, query, where, serverTimestamp }
+        from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCzgOGc51Qr6DXnJ-zkczBtGniYNLf0jOw",
+        authDomain: "monitoringucc.firebaseapp.com",
+        projectId: "monitoringucc",
+        storageBucket: "monitoringucc.firebasestorage.app",
+        messagingSenderId: "210063574932",
+        appId: "1:210063574932:web:8ccd563312321dcd2af181"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    let db;
+    try { db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) }); }
+    catch (e) { console.warn('Persistence unavailable; normal Firestore mode used.', e); db = getFirestore(app); }
+    window.__currentUserUid = '';
+    window.__firestore = { db, doc, getDoc, collection, setDoc, updateDoc, getDocs, query, where, serverTimestamp };
+    document.documentElement.style.visibility = 'hidden';
+
+    onAuthStateChanged(auth, (user) => {
+        const hasStaffId = !!sessionStorage.getItem('tutorStaffId');
+        const portal = sessionStorage.getItem('portalType') || sessionStorage.getItem('tutorPortal') || 'undergraduate';
+        if (user && hasStaffId) {
+            window.__currentUserUid = user.uid;
+            document.documentElement.style.visibility = 'visible';
+            if (typeof window.fillTutorFromLogin === 'function') window.fillTutorFromLogin();
+        } else {
+            sessionStorage.removeItem('tutorStaffId'); sessionStorage.removeItem('tutorName'); window.__currentUserUid = '';
+            if (user) signOut(auth).finally(() => window.location.replace('index.html'));
+            else window.location.replace('index.html');
+        }
+    });
+
+    window.logout = function () {
+        sessionStorage.removeItem('tutorStaffId'); sessionStorage.removeItem('tutorName'); sessionStorage.removeItem('forcePasswordChange');
+        signOut(auth).then(() => window.location.replace('index.html'));
+    };
+
+    window.changePassword = async function (currentPw, newPw) {
+        const user = auth.currentUser;
+        if (!user) return { ok:false, msg:'Not signed in.' };
+        try {
+            const cred = EmailAuthProvider.credential(user.email, currentPw);
+            await reauthenticateWithCredential(user, cred);
+            await updatePassword(user, newPw);
+            sessionStorage.removeItem('forcePasswordChange');
+            return { ok:true };
+        } catch (e) {
+            if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') return { ok:false, msg:'Current password is incorrect.' };
+            if (e.code === 'auth/weak-password') return { ok:false, msg:'New password must be at least 6 characters.' };
+            return { ok:false, msg:e.message || 'Something went wrong. Please try again.' };
+        }
+    };
+</script>
+
+<div class="top-buttons">
+    <button type="button" onclick="openPwModal()" style="background:#f0f2f5;border:1px solid #d0d5dd;color:#333;">🔑 Change Password</button>
+    <button type="button" onclick="logout()" style="background:#dc3545;color:#fff;">Log out</button>
 </div>
 
-<div class="container" id="formContainer">
-    <h2>Facilitator Teaching Claim</h2>
-    <div id="loadingBox" class="loading" style="display:block;">Loading your undergraduate account…</div>
-    <div id="errorBox" class="error-message"></div>
-    <div id="messageBox" class="success-message"></div>
-    <div id="editNotice" class="edit-notice">You are editing claim: <strong id="editClaimLabel"></strong></div>
+<div class="header">
+    <span class="top-rule"></span>
+    <div class="logo-container logo-left"><img src="CoDE LOGO PNG.png" alt="CoDE Logo" class="header-logo"></div>
+    <div class="header-center">
+        <h1>UNIVERSITY OF CAPE COAST <span class="shine">(UCC)</span></h1>
+        <div class="subtitle">College of Distance Education (CoDE)</div>
+    </div>
+    <div class="logo-container logo-right"><img src="UCC LOGO PNG.png" alt="UCC Logo" class="header-logo"></div>
+</div>
 
-    <form id="reportForm" class="hidden">
-        <input type="hidden" name="formType" value="UndergraduateFacilitatorClaim">
-        <input type="hidden" id="block" name="block" value="Face-to-Face">
-        <input type="hidden" id="modeOfDelivery" name="modeOfDelivery" value="Face-to-Face">
-        <input type="hidden" id="onHours" name="onHours" value="0">
+<div class="claims-card" id="claimsCard">
+    <h2>My Submitted Claims</h2>
+    <p style="margin-top:-12px;color:#555;font-size:13px;line-height:1.5;">Pull up a previous undergraduate claim, edit it, and submit again. Claims save to Firestore first; Google Sheet copies are created automatically by Apps Script.</p>
+    <div class="claims-actions">
+        <button type="button" id="newClaimBtn">+ Start New Claim</button>
+        <button type="button" id="refreshClaimsBtn" class="secondary">↻ Refresh My Claims</button>
+    </div>
+    <div id="claimsStatus" class="claims-status">Your claims will appear here after your profile loads.</div>
+    <div id="claimsList" class="claims-list"></div>
+</div>
+
+<div class="container">
+    <h2>Undergraduate Facilitator Claim Summary</h2>
+    <div class="edit-notice" id="editNotice"><strong>Editing saved claim:</strong> <span id="editClaimLabel"></span><div class="claims-actions" style="margin-bottom:0;"><button type="button" class="secondary" id="cancelEditBtn">Cancel edit / start fresh</button></div></div>
+
+    <form id="reportForm">
+        <div class="field-label">STAFF ID</div>
+        <input type="text" id="staffId" name="staffId" readonly required style="background:#f0f7ff;cursor:not-allowed;">
+
+        <div class="field-label">NAME OF FACILITATOR</div>
+        <input type="text" id="tutorName" name="tutorName" readonly required style="background:#f0f7ff;cursor:not-allowed;">
+        <div class="hint" id="tutorHint"></div>
+
+        <div class="field-label">SEMESTER *</div>
+        <div class="mode-delivery-container">
+            <label class="mode-option"><input type="radio" name="semester" value="First Semester"><span class="mode-text">First Semester</span></label>
+            <label class="mode-option"><input type="radio" name="semester" value="Second Semester" checked><span class="mode-text">Second Semester</span></label>
+        </div>
+
+        <input type="hidden" id="activeBlockInput" name="block" value="Face-to-Face" required>
+
+        <div class="field-label">COURSE CODE & TITLE *</div>
+        <div id="courseSearchContainer" class="searchable-select-wrapper">
+            <input type="text" id="courseSearchInput" class="searchable-input" placeholder="Loading your courses…" autocomplete="off" required>
+            <div id="courseDropdown" class="dropdown-options"></div>
+            <input type="hidden" id="course" name="course" required>
+        </div>
+        <div class="hint" id="courseHint">Courses will appear after your undergraduate account loads.</div>
+
+        <div class="field-label">PROGRAMME *</div>
+        <select id="program" name="program" required><option value="" disabled selected>Select programme</option></select>
+
+        <div class="field-label">STUDY CENTRE *</div>
+        <input type="text" id="studyCentre" name="studyCentre" placeholder="Auto-fills from the course; edit if different" required>
+
+        <div class="note-box">
+            <strong>Please note:</strong> Fill out <strong>one form per course, programme, centre, and semester</strong>.
+            If you have already submitted for the same course, open the existing claim and edit it instead of starting a fresh one.
+            This undergraduate form records teaching as <strong>Face-to-Face</strong>.
+        </div>
+
+        <div class="field-label">MODE OF DELIVERY *</div>
+        <div class="mode-delivery-container">
+            <label class="mode-option"><input type="radio" name="modeOfDelivery" value="Face-to-Face" required checked><span class="mode-text">Face-to-Face</span></label>
+        </div>
+        <div class="hint" id="modeHint">Undergraduate teaching is recorded here as Face-to-Face.</div>
+
+        <div class="duplicate-notice" id="duplicateNotice"><strong>Already submitted:</strong> <span id="duplicateNoticeText"></span><div class="claims-actions" style="margin-bottom:0;"><button type="button" id="openDuplicateClaimBtn" style="background:#b02a37;">Open existing claim</button><button type="button" class="secondary" id="hideDuplicateNoticeBtn">Dismiss</button></div></div>
+
+        <div id="f2fSection" class="delivery-section">
+            <h3 class="section-head">Face-to-Face Teaching</h3>
+            <div class="field-label">Sessions taught</div>
+            <div class="hint">Add a row for each session. Hours are summed automatically.</div>
+            <table class="session-table"><thead><tr><th>Date</th><th>Start</th><th>End</th><th>Hours</th><th></th></tr></thead><tbody id="f2fRows"></tbody></table>
+            <button type="button" class="add-row-btn" data-target="f2f">+ Add face-to-face session</button>
+            <div class="total-line">Total face-to-face hours: <strong id="f2fTotal">0.00</strong></div>
+            <input type="hidden" id="f2fHours" name="f2fHours">
+
+            <div class="field-label" style="margin-top:18px;">FACILITATOR MOVEMENT</div>
+            <div class="hint">Your travel route is assigned by the administrator. Distance values are not displayed on this form.</div>
+            <div class="row-2">
+                <div><div class="sub-label">Travelling from</div><select id="travelFrom" name="travelFrom" disabled><option value="" selected>Not assigned</option></select></div>
+                <div><div class="sub-label">Travelling to</div><select id="travelTo" name="travelTo" disabled><option value="" selected>Not assigned</option></select></div>
+            </div>
+            <input type="hidden" id="travelDistanceIn" name="travelDistanceIn">
+            <input type="hidden" id="travelDistanceOut" name="travelDistanceOut">
+            <input type="hidden" id="travelTotalDistance" name="travelTotalDistance">
+        </div>
+
+        <div id="onlineSection" style="display:none;"><table><tbody id="onRows"></tbody></table><input type="hidden" id="onHours" name="onHours" value="0.00"></div>
         <input type="hidden" id="onSessions" name="onSessions" value="">
-        <input type="hidden" id="travelFrom" name="travelFrom" value="">
-        <input type="hidden" id="travelTo" name="travelTo" value="">
-        <input type="hidden" id="travelDistanceIn" name="travelDistanceIn" value="">
-        <input type="hidden" id="travelDistanceOut" name="travelDistanceOut" value="">
-        <input type="hidden" id="travelTotalDistance" name="travelTotalDistance" value="">
         <input type="hidden" id="bankName" name="bankName" value="">
         <input type="hidden" id="bankBranch" name="bankBranch" value="">
         <input type="hidden" id="accountName" name="accountName" value="">
         <input type="hidden" id="accountNumber" name="accountNumber" value="">
         <input type="hidden" id="ghanaCardNumber" name="ghanaCardNumber" value="">
-        <input type="hidden" id="facilitatorSignature" name="facilitatorSignature" value="">
-        <input type="hidden" id="course" name="course" required>
 
-        <div class="row-2">
-            <div>
-                <div class="field-label">Staff ID</div>
-                <input type="text" id="staffId" name="staffId" readonly>
-            </div>
-            <div>
-                <div class="field-label">Facilitator Name</div>
-                <input type="text" id="tutorName" name="tutorName" readonly>
-            </div>
-        </div>
+        <div class="grand-total-line" id="grandTotalLine">Grand total teaching hours: <strong id="grandTotal">0.00</strong></div>
+        <div id="hoursLimitWarning" class="hours-limit-warning" role="alert"></div>
+        <input type="hidden" id="totalHours" name="totalHours">
 
-        <div class="field-label">Course Taught</div>
-        <div class="searchable-select-wrapper">
-            <input type="text" id="courseSearchInput" class="searchable-input" placeholder="🔍 Select the course you taught..." autocomplete="off" required>
-            <div id="courseDropdown" class="dropdown-options"></div>
-        </div>
+        <div class="field-label">REMARKS</div>
+        <textarea id="remarks" name="remarks" rows="4" placeholder="Any additional remarks..."></textarea>
 
-        <div class="row-2">
-            <div>
-                <div class="field-label">Programme</div>
-                <input type="text" id="program" name="program" readonly required>
-            </div>
-            <div>
-                <div class="field-label">Study Centre</div>
-                <input type="text" id="studyCentre" name="studyCentre" readonly required>
-            </div>
+        <h3 class="section-head">Signature</h3>
+        <div class="sub-label">Facilitator signature (image) *</div>
+        <div id="sigDropZone" class="sig-drop-zone" tabindex="0" role="button" aria-label="Upload, drag, or paste your signature image">
+            <div id="sigEmptyState"><div class="sig-icon">✍️</div><div class="sig-instructions"><strong>Click to upload</strong>, drag &amp; drop, or <strong>paste (Ctrl+V)</strong> a small image of your signature<span class="sig-sub">PNG or JPEG, ideally on a white background — max 1MB</span></div></div>
+            <img id="sigPreview" class="sig-preview" style="display:none;" alt="Signature preview">
+            <button type="button" id="sigRemoveBtn" class="sig-remove-btn" style="display:none;" title="Remove signature">×</button>
         </div>
+        <input type="file" id="sigFileInput" accept="image/png, image/jpeg" style="display:none;">
+        <div id="sigError" class="sig-error" style="display:none;"></div>
+        <input type="hidden" id="facilitatorSignature" name="facilitatorSignature">
 
-        <div class="row-2">
-            <div>
-                <div class="field-label">Semester</div>
-                <select id="semester" name="semester" required>
-                    <option value="" disabled selected>Select semester</option>
-                    <option value="First Semester">First Semester</option>
-                    <option value="Second Semester">Second Semester</option>
-                    <option value="Resit">Resit</option>
-                </select>
-            </div>
-            <div>
-                <div class="field-label">Academic Year</div>
-                <input type="text" id="academicYear" name="academicYear" value="2025/2026" required>
-            </div>
-        </div>
-
-        <div class="field-label">Mode of Delivery</div>
-        <div class="mode-delivery-container">
-            <label class="mode-option">
-                <input type="radio" checked disabled>
-                <span class="mode-text">Face-to-Face</span>
-            </label>
-        </div>
-        <div class="note-box">For undergraduate claims, any teaching described previously as block or blended is recorded here as <strong>Face-to-Face</strong>.</div>
-
-        <div class="delivery-section" id="f2fSection">
-            <div class="section-head">Face-to-Face Teaching Sessions</div>
-            <table class="session-table">
-                <thead>
-                    <tr><th>Date</th><th>Start Time</th><th>End Time</th><th>Hours</th><th></th></tr>
-                </thead>
-                <tbody id="f2fRows"></tbody>
-            </table>
-            <button type="button" class="add-row-btn" data-target="f2f">+ Add Session</button>
-            <div class="total-line"><strong>Face-to-face total:</strong> <span id="f2fTotal">0.00 <span class="hm">(0h 0m)</span></span></div>
-        </div>
-
-        <div class="grand-total-line" id="grandTotalBox">
-            <strong>Total hours:</strong> <span id="grandTotal">0.00 <span class="hm">(0h 0m)</span></span>
-        </div>
-        <div id="hoursLimitWarning" class="hours-limit-warning"></div>
-        <input type="hidden" id="f2fHours" name="f2fHours" value="0">
-        <input type="hidden" id="totalHours" name="totalHours" value="0">
-        <input type="hidden" id="f2fSessions" name="f2fSessions" value="">
-
-        <div class="field-label">Remarks</div>
-        <textarea id="remarks" name="remarks" placeholder="Any relevant comment about the teaching claim"></textarea>
-
-        <div class="field-label">Facilitator Signature</div>
-        <div id="sigDropZone" class="sig-drop-zone" tabindex="0" role="button" aria-label="Upload facilitator signature">
-            <button type="button" id="sigRemoveBtn" class="sig-remove-btn" aria-label="Remove signature">×</button>
-            <div id="sigPlaceholder">
-                <div class="sig-icon">✍️</div>
-                <div class="sig-instructions"><strong>Upload your signature image</strong><span class="sig-sub">PNG, JPG or JPEG. You may click here or drag the file into this box.</span></div>
-            </div>
-            <img id="sigPreview" class="sig-preview hidden" alt="Facilitator signature preview">
-        </div>
-        <input id="sigFileInput" type="file" accept="image/png,image/jpeg,image/jpg" class="hidden">
-        <div id="sigError" class="sig-error"></div>
-
-        <div class="button-row">
-            <button type="submit" id="submitBtn">Submit Claim Summary</button>
-            <button type="button" id="clearBtn" class="secondary-btn">New Claim</button>
-        </div>
-        <div class="button-row">
-            <button type="button" id="printBtn" class="secondary-btn">Print / Save PDF</button>
-            <button type="button" id="logoutBtn" class="danger-btn">Sign Out</button>
-        </div>
+        <div id="loading" class="loading">⏳ Submitting form... Please wait.</div>
+        <div id="errorMessage" class="error-message"></div>
+        <div id="successMessage" class="success-message"></div>
+        <button type="submit" id="submitBtn">Submit Claim Summary</button>
     </form>
 </div>
 
-<div class="claims-card hidden" id="claimsCard">
-    <h2>My Submitted Claims</h2>
-    <div class="claims-table-wrap">
-        <table class="claims-table">
-            <thead><tr><th>Claim</th><th>Course</th><th>Status</th><th>Action</th></tr></thead>
-            <tbody id="claimsBody"><tr><td colspan="4" class="empty">No claims loaded.</td></tr></tbody>
-        </table>
+<div class="pw-modal-overlay" id="pwModalOverlay" onclick="closePwModalOnBackdrop(event)">
+    <div class="pw-modal" role="dialog" aria-modal="true">
+        <button class="pw-close" id="pwCloseBtn" onclick="closePwModal()" aria-label="Close">×</button>
+        <h3 id="pwModalTitle">Change Password</h3>
+        <div class="hint">Enter your current password to confirm it is you, then choose a new one. Your new password must be at least 6 characters.</div>
+        <label class="sub-label" for="pwCurrent">Current password</label><input type="password" id="pwCurrent" autocomplete="current-password">
+        <label class="sub-label" for="pwNew">New password</label><input type="password" id="pwNew" autocomplete="new-password">
+        <label class="sub-label" for="pwConfirm">Confirm new password</label><input type="password" id="pwConfirm" autocomplete="new-password">
+        <div class="error-message" id="pwError"></div><div class="success-message" id="pwSuccess">✓ Password changed successfully.</div>
+        <div class="pw-actions" style="display:flex;gap:10px;margin-top:20px;"><button class="secondary" id="pwCancelBtn" onclick="closePwModal()">Cancel</button><button id="pwSaveBtn" onclick="submitPwChange()">Save password</button></div>
     </div>
 </div>
 
-<div id="previewOverlay" class="preview-overlay">
-    <div class="preview-modal" id="previewModal">
-        <div class="preview-header">
-            <div><h3>Review Claim Before Submission</h3><div class="preview-subtitle">Confirm the details below before saving to Firestore.</div></div>
-            <button type="button" class="preview-close" id="previewClose">×</button>
-        </div>
-        <div class="preview-body" id="previewBody"></div>
-        <div class="preview-footer">
-            <button type="button" class="secondary-btn" id="previewEditBtn">Edit</button>
-            <button type="button" id="previewConfirmBtn">Confirm and Save</button>
-        </div>
-    </div>
+<div class="preview-overlay" id="previewOverlay">
+  <div class="preview-modal" id="previewModal">
+    <div class="preview-header"><div><h3>Review Your Submission</h3><div class="preview-subtitle">Please check everything carefully before confirming.</div></div><button class="preview-close" onclick="closePreview()" aria-label="Close">×</button></div>
+    <div class="preview-body" id="previewBody"></div>
+    <div class="preview-footer"><button class="btn-edit" onclick="closePreview()">✏️ Edit</button><button class="btn-download" id="downloadPreviewPdfBtn" onclick="downloadPreviewPdf()">⬇️ Download PDF</button><button class="btn-confirm" id="confirmSubmitBtn" onclick="submitAndDownloadFromPreview()">✅ Submit &amp; Download PDF</button></div>
+  </div>
 </div>
 
-<div id="submitSuccessOverlay" class="submit-success-modal-overlay">
-    <div class="submit-success-modal">
-        <div class="submit-success-icon">✓</div>
-        <h3>Claim Saved Successfully</h3>
-        <p>Your undergraduate claim has been saved. It will be synchronised to the Google Sheet by the backend sync script.</p>
-        <p class="submit-success-note">You may print or save a PDF copy after closing this message.</p>
-        <button type="button" class="submit-success-close" id="successCloseBtn">Close</button>
-    </div>
+<div id="submitSuccessModal" class="submit-success-modal-overlay" role="dialog" aria-modal="true">
+    <div class="submit-success-modal"><div class="submit-success-icon">✓</div><h3>Form submitted successfully</h3><p id="submitSuccessBody">Your claim has been saved successfully.</p><button type="button" id="submitSuccessClose" class="submit-success-close">Close and continue</button></div>
 </div>
 
-<div id="passwordModal" class="pw-modal-overlay">
-    <div class="pw-modal">
-        <h3>Change Temporary Password</h3>
-        <div class="pw-subtitle">You signed in with the temporary password. Please create a new password before continuing.</div>
-        <label>Current Password</label>
-        <input type="password" id="currentPassword" value="123456">
-        <label>New Password</label>
-        <input type="password" id="newPassword" minlength="6">
-        <label>Confirm New Password</label>
-        <input type="password" id="confirmPassword" minlength="6">
-        <div id="pwError" class="pw-error"></div>
-        <div id="pwSuccess" class="pw-success"></div>
-        <div class="button-row"><button type="button" id="savePasswordBtn">Save Password</button></div>
-    </div>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, collection, setDoc, getDocs, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-
-const firebaseConfig = {
-    apiKey: "AIzaSyCzgOGc51Qr6DXnJ-zkczBtGniYNLf0jOw",
-    authDomain: "monitoringucc.firebaseapp.com",
-    projectId: "monitoringucc",
-    storageBucket: "monitoringucc.firebasestorage.app",
-    messagingSenderId: "210063574932",
-    appId: "1:210063574932:web:8ccd563312321dcd2af181"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-let db;
-try {
-    db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
-} catch (e) {
-    db = getFirestore(app);
-}
-
-const MAX_TOTAL_HOURS = 24;
-const $ = id => document.getElementById(id);
+<script>
+const MAX_CLAIM_HOURS = 24;
+const TEMP_PASSWORD_THAT_MUST_BE_CHANGED = '123456';
 let CURRENT_TUTOR = null;
 let CURRENT_EDIT_CLAIM_ID = '';
-let signatureDataUrl = '';
-let pendingPreviewPayload = null;
-let courseAssignments = [];
+let CURRENT_EDIT_DOC_ID = '';
+let DUPLICATE_NOTICE_CLAIM_ID = '';
+let DUPLICATE_CHECK_TIMER = null;
 
-function showBox(id, message) {
-    const el = $(id);
-    if (!el) return;
-    el.textContent = message || '';
-    el.style.display = message ? 'block' : 'none';
-}
-function hideBox(id) { showBox(id, ''); }
-function esc(v) { return String(v ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch])); }
-function clean(v) { return String(v || '').trim(); }
-function slug(v) { return clean(v).toUpperCase().normalize('NFKD').replace(/[^ -~]/g,'').replace(/&/g,' AND ').replace(/[^A-Z0-9]+/g,'-').replace(/^-+|-+$/g,'') || 'NA'; }
-function hmLabel(hours) { const m = Math.round((Number(hours)||0)*60); return Math.floor(m/60) + 'h ' + (m%60) + 'm'; }
-function formatTimeForDisplay(value) {
-    if (!value) return '';
-    const [hRaw, mRaw] = String(value).split(':').map(Number);
-    if (Number.isNaN(hRaw)) return value;
-    const period = hRaw >= 12 ? 'PM' : 'AM';
-    const h12 = ((hRaw + 11) % 12) + 1;
-    return h12 + ':' + String(mRaw || 0).padStart(2, '0') + ' ' + period;
-}
-function hoursBetween(start, end) {
-    if (!start || !end) return 0;
-    const [sh, sm] = start.split(':').map(Number);
-    const [eh, em] = end.split(':').map(Number);
-    const realDiff = (eh * 60 + em) - (sh * 60 + sm);
-    return realDiff > 0 ? realDiff / 60 : 0;
-}
-function courseCodeFromLabel(label) {
-    const s = clean(label);
-    const m = s.match(/^([A-Za-z]{2,}[A-Za-z0-9]*\d{2,4}[A-Za-z]?)\s*(?:[-:–—]|\s)\s*(.*)$/);
-    return m ? m[1].toUpperCase() : (s.split(/\s+/)[0] || s).toUpperCase();
-}
-function courseTitleFromLabel(label) {
-    const s = clean(label);
-    const code = courseCodeFromLabel(s);
-    return s.replace(new RegExp('^' + code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*[-:–—]?\\s*', 'i'), '').trim() || s;
-}
-function normalizeAssignment(c) {
-    if (typeof c === 'string') {
-        return { label: c, code: courseCodeFromLabel(c), title: courseTitleFromLabel(c), program: '', centre: '', raw: c };
+const $ = id => document.getElementById(id);
+function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function pval(v){const s=String(v||'').trim();return s?'<span class="pval">'+esc(s)+'</span>':'<span class="pval empty">—</span>';}
+function pitem(l,v){return '<div class="preview-item"><label>'+esc(l)+'</label>'+pval(v)+'</div>';}
+function selectedTeachingBlock(){return 'Face-to-Face';}
+function getSelectedBankName(){return '';}
+function normalizeClaimPart(value){return String(value||'').trim().toUpperCase().normalize('NFKD').replace(/[^\x20-\x7E]/g,'').replace(/&/g,' AND ').replace(/[^A-Z0-9]+/g,'-').replace(/^-+|-+$/g,'')||'NA';}
+function courseCodeFromLabel(course){const raw=String(course||'').trim(); if(!raw)return ''; const beforePipe=raw.split('|')[0].trim(); return (beforePipe.split(/\s+/)[0]||beforePipe||raw).trim();}
+function buildClaimKeyFromData(data){data=data||{};return [normalizeClaimPart(data.staffId||$('staffId')?.value||sessionStorage.getItem('tutorStaffId')),normalizeClaimPart(courseCodeFromLabel(data.course||$('course')?.value||$('courseSearchInput')?.value)),normalizeClaimPart(data.program||data.programme||$('program')?.value),normalizeClaimPart(data.studyCentre||data.centre||$('studyCentre')?.value),normalizeClaimPart(data.semester||(document.querySelector('input[name="semester"]:checked')||{}).value),normalizeClaimPart(data.block||selectedTeachingBlock())].join('__');}
+function buildDeterministicClaimId(data){return 'CLAIM-'+buildClaimKeyFromData(data);}
+function timestampToMillis(value){if(!value)return 0;if(typeof value.toMillis==='function')return value.toMillis();if(typeof value.seconds==='number')return value.seconds*1000;const parsed=Date.parse(value);return Number.isNaN(parsed)?0:parsed;}
+function formatClaimDate(value){const ms=timestampToMillis(value);return ms?new Date(ms).toLocaleString():'';}
+
+function createSearchableDropdown(config){
+    const input=$(config.inputId), dropdown=$(config.dropdownId), hidden=$(config.hiddenId);
+    function getData(){return config.getData()||[];}
+    function render(filter=''){
+        const lower=filter.toLowerCase().trim();
+        const list=getData().filter(item=>item.toLowerCase().includes(lower)).sort((a,b)=>a.localeCompare(b));
+        dropdown.innerHTML='';
+        if(!list.length){dropdown.innerHTML='<div class="no-result">No matching items</div>'; return;}
+        list.forEach(item=>{const div=document.createElement('div');div.className='option-item';div.textContent=item;div.onclick=()=>selectItem(item);dropdown.appendChild(div);});
     }
-    const code = c.code || c.courseCode || courseCodeFromLabel(c.label || c.course || c.title || '');
-    const title = c.title || c.courseTitle || courseTitleFromLabel(c.label || c.course || code);
-    const label = c.label || c.course || [code, title].filter(Boolean).join(' - ');
-    return {
-        label, code, title,
-        program: c.program || c.programme || c.department || '',
-        centre: c.centre || c.studyCentre || c.study_center || '',
-        travelFrom: c.travelFrom || '', travelTo: c.travelTo || '',
-        travelDistanceIn: c.travelDistanceIn || c.distanceIn || '',
-        travelDistanceOut: c.travelDistanceOut || c.distanceOut || '',
-        travelTotalDistance: c.travelTotalDistance || c.totalDistanceTravelled || c.totalTravelDistance || '',
-        raw: c
-    };
-}
-function selectedAssignment() {
-    const label = clean($('course').value);
-    return courseAssignments.find(c => c.label === label) || null;
+    function selectItem(value){input.value=value;hidden.value=value;dropdown.classList.remove('show');input.setCustomValidity(''); if(typeof config.onSelect==='function')config.onSelect(value);}
+    input.addEventListener('focus',()=>{render(input.value);dropdown.classList.add('show');});
+    input.addEventListener('input',function(){const typed=this.value.toLowerCase().trim();const exact=getData().find(item=>item.toLowerCase()===typed);hidden.value=exact||'';render(this.value);dropdown.classList.add('show');});
+    document.addEventListener('click',e=>{if(!input.contains(e.target)&&!dropdown.contains(e.target)){dropdown.classList.remove('show');const typed=input.value.toLowerCase().trim();const exact=getData().find(item=>item.toLowerCase()===typed);if(exact){input.value=exact;hidden.value=exact;input.setCustomValidity('');}else if(input.value.trim()){hidden.value='';input.setCustomValidity('Please select one of your assigned courses.');}}});
 }
 
-function createSearchableDropdown({ inputId, dropdownId, hiddenId, getData, onSelect }) {
-    const input = $(inputId), dropdown = $(dropdownId), hidden = $(hiddenId);
-    function render() {
-        const q = input.value.toLowerCase().trim();
-        const list = getData().filter(item => item.toLowerCase().includes(q));
-        dropdown.innerHTML = '';
-        if (!list.length) dropdown.innerHTML = '<div class="no-result">No assigned course found</div>';
-        list.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'option-item';
-            div.textContent = item;
-            div.addEventListener('mousedown', e => {
-                e.preventDefault();
-                input.value = item;
-                hidden.value = item;
-                hidden.setCustomValidity('');
-                input.setCustomValidity('');
-                dropdown.classList.remove('show');
-                if (onSelect) onSelect(item);
-            });
-            dropdown.appendChild(div);
-        });
-    }
-    input.addEventListener('focus', () => { render(); dropdown.classList.add('show'); });
-    input.addEventListener('input', () => { hidden.value=''; render(); dropdown.classList.add('show'); });
-    input.addEventListener('blur', () => {
-        const exact = getData().find(item => item.toLowerCase() === input.value.toLowerCase().trim());
-        if (exact) { input.value = exact; hidden.value = exact; if (onSelect) onSelect(exact); input.setCustomValidity(''); }
-        else if (input.value.trim()) { hidden.value = ''; input.setCustomValidity('Please select one of your assigned courses.'); }
-        dropdown.classList.remove('show');
-    });
-    document.addEventListener('click', e => { if (!input.contains(e.target) && !dropdown.contains(e.target)) dropdown.classList.remove('show'); });
-}
-function populateCourses() {
-    const raw = Array.isArray(CURRENT_TUTOR?.courses) ? CURRENT_TUTOR.courses : [];
-    courseAssignments = raw.map(normalizeAssignment).filter(c => c.label);
-}
-function tutorCourses() { return [...new Set(courseAssignments.map(c => c.label).filter(Boolean))]; }
-function onCourseSelected(label) {
-    const match = courseAssignments.find(c => c.label === label);
-    if (!match) return;
-    $('program').value = match.program || CURRENT_TUTOR?.program || CURRENT_TUTOR?.programme || '';
-    $('studyCentre').value = match.centre || CURRENT_TUTOR?.studyCentre || CURRENT_TUTOR?.centre || '';
-    $('travelFrom').value = match.travelFrom || '';
-    $('travelTo').value = match.travelTo || '';
-    $('travelDistanceIn').value = match.travelDistanceIn || '';
-    $('travelDistanceOut').value = match.travelDistanceOut || '';
-    $('travelTotalDistance').value = match.travelTotalDistance || '';
-}
+function courseLabelValue(c){if(!c)return ''; if(c.label)return String(c.label).trim(); const code=String(c.code||c.courseCode||'').trim(); const title=String(c.title||c.courseTitle||'').trim(); return title?(code+' - '+title):code;}
+function filteredTutorCourseAssignments(){if(!CURRENT_TUTOR||!Array.isArray(CURRENT_TUTOR.courses))return [];return CURRENT_TUTOR.courses.map(c=>Object.assign({},c,{label:courseLabelValue(c)})).filter(c=>c.label);}
+function tutorCourses(){return [...new Set(filteredTutorCourseAssignments().map(c=>c.label).filter(Boolean))];}
+function populateProgramDropdown(){const prog=$('program');prog.innerHTML='<option value="" disabled selected>Select programme</option>';const progs=[...new Set(filteredTutorCourseAssignments().map(c=>c.program||c.programme).filter(Boolean))];progs.forEach(p=>{const opt=document.createElement('option');opt.value=p;opt.textContent=p;prog.appendChild(opt);});if(progs.length===1)prog.value=progs[0];}
+function updateCourseAvailability(){const input=$('courseSearchInput'), hidden=$('course'), hint=$('courseHint');const courses=tutorCourses();if(!CURRENT_TUTOR){input.disabled=true;input.placeholder='Loading your courses…';hidden.value='';return;}if(!courses.length){input.disabled=true;input.placeholder='No courses assigned';hidden.value='';hint.textContent='No course has been assigned to you. Please contact the administrator.';return;}input.disabled=false;input.placeholder='🔍 Select the course you taught...';hint.textContent=courses.length+' course'+(courses.length===1?'':'s')+' available.';}
+function onCourseSelected(label){const match=filteredTutorCourseAssignments().find(c=>c.label===label);if(!match)return;const p=match.program||match.programme||'';const centre=match.centre||match.studyCentre||match.studyCenter||'';if(p){ensureSelectOption($('program'),p);$('program').value=p;}if(centre)$('studyCentre').value=centre;setTravelFields(match.travelFrom||match.from||match.origin||'',match.travelTo||match.to||match.destination||'',match.travelDistanceIn||match.distanceIn||'',match.travelDistanceOut||match.distanceOut||'',match.travelTotalDistance||match.totalDistanceTravelled||match.totalDistance||'');scheduleDuplicateCheck();}
+function ensureSelectOption(selectEl,value){if(!selectEl||!value)return;if(!Array.from(selectEl.options).some(o=>o.value===value)){const opt=document.createElement('option');opt.value=value;opt.textContent=value;selectEl.appendChild(opt);}}
 
-function sessionTimeCell(inputClass, label) {
-    return '<div class="time-entry"><input type="time" class="' + inputClass + '" aria-label="' + label + '"><div class="period-toggle"><button type="button" class="period-btn" data-period="AM">AM</button><button type="button" class="period-btn" data-period="PM">PM</button></div></div>';
+async function fillTutorFromLogin(){
+    const rawId=(sessionStorage.getItem('tutorStaffId')||'').trim().toUpperCase();
+    const fbName=(sessionStorage.getItem('tutorName')||'').trim();
+    $('staffId').value=rawId;
+    $('tutorName').value=fbName||rawId;
+    $('tutorHint').textContent='Signed in as '+rawId+' — loading your undergraduate course list…';
+    $('courseSearchInput').disabled=true;
+    try{
+        const fs=window.__firestore;
+        const snap=await fs.getDoc(fs.doc(fs.db,'ug_tutors',rawId));
+        if(snap.exists()) CURRENT_TUTOR=snap.data();
+    }catch(e){console.error('Could not load ug_tutors record:',e);}
+    if(CURRENT_TUTOR){$('tutorName').value=CURRENT_TUTOR.name||CURRENT_TUTOR.fullName||fbName||rawId;$('tutorHint').textContent='Signed in as '+rawId;}
+    else {$('tutorHint').textContent='No undergraduate record found for '+rawId+'. Contact the administrator.';}
+    populateProgramDropdown();updateCourseAvailability();loadMyClaims();applyMode();
 }
-function setTimePeriod(input, period) {
-    let h, m;
-    if (input.value) { const parts = input.value.split(':').map(Number); h = parts[0]; m = parts[1] || 0; }
-    else { h = period === 'PM' ? 13 : 8; m = 0; }
-    if (period === 'AM') { if (h >= 12) h -= 12; }
-    else { if (h < 12) h += 12; }
-    input.value = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
-    syncPeriodButtons(input.closest('tr'));
+window.fillTutorFromLogin=fillTutorFromLogin;
+
+function hoursBetween(start,end){if(!start||!end)return 0;const [sh,sm]=start.split(':').map(Number);const [eh,em]=end.split(':').map(Number);const diff=(eh*60+em)-(sh*60+sm);return diff>0?diff/60:0;}
+function hmLabel(decimalHours){const totalMins=Math.round(decimalHours*60);const h=Math.floor(totalMins/60),m=totalMins%60;if(h&&m)return h+'h '+m+'m';if(h)return h+'h';return m+'m';}
+function sessionTimeCell(inputClass,label){return '<div class="time-entry"><input type="time" class="'+inputClass+'" aria-label="'+label+'"><div class="period-toggle"><button type="button" class="period-btn" data-period="AM">AM</button><button type="button" class="period-btn" data-period="PM">PM</button></div></div>';}
+function setTimePeriod(input,period){let h,m;if(input.value){const parts=input.value.split(':').map(Number);h=parts[0];m=parts[1]||0;}else{h=period==='PM'?13:8;m=0;}if(period==='AM'){if(h>=12)h-=12;}else{if(h<12)h+=12;}input.value=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');}
+function syncPeriodButtons(scope){(scope||document).querySelectorAll('.time-entry').forEach(entry=>{const input=entry.querySelector('input[type="time"]');const hour=input&&input.value?Number(input.value.split(':')[0]):null;const period=hour===null?'':(hour>=12?'PM':'AM');entry.querySelectorAll('.period-btn').forEach(btn=>btn.classList.toggle('active',btn.dataset.period===period));});}
+function formatTimeForDisplay(value){if(!value)return '';let [h,m]=value.split(':').map(Number);const period=h>=12?'PM':'AM';h=h%12;if(h===0)h=12;return h+':'+String(m||0).padStart(2,'0')+' '+period;}
+function addSessionRow(target='f2f'){
+    const tbody=$('f2fRows');const tr=document.createElement('tr');
+    tr.innerHTML='<td><input type="date" class="s-date"></td><td>'+sessionTimeCell('s-start','Start time')+'</td><td>'+sessionTimeCell('s-end','End time')+'</td><td class="hrs-cell">0.00 <span class="hm">(0m)</span></td><td><button type="button" class="row-del" title="Remove">×</button></td>';
+    tbody.appendChild(tr);const recompute=()=>{syncPeriodButtons(tr);recomputeTotals();};
+    tr.querySelectorAll('input').forEach(inp=>{inp.addEventListener('change',recompute);inp.addEventListener('input',recompute);});
+    tr.querySelectorAll('.period-btn').forEach(btn=>btn.addEventListener('click',()=>{const input=btn.closest('.time-entry').querySelector('input[type="time"]');setTimePeriod(input,btn.dataset.period);recompute();}));
+    tr.querySelector('.row-del').addEventListener('click',()=>{tr.remove();recomputeTotals();});syncPeriodButtons(tr);recomputeTotals();
+}
+function ensureSessionRows(count=2){const tbody=$('f2fRows');while(tbody.children.length<count)addSessionRow('f2f');}
+function sumSection(){let total=0;$('f2fRows').querySelectorAll('tr').forEach(tr=>{const h=hoursBetween(tr.querySelector('.s-start').value,tr.querySelector('.s-end').value);tr.querySelector('.hrs-cell').innerHTML=h.toFixed(2)+' <span class="hm">('+hmLabel(h)+')</span>';total+=h;});return total;}
+function updateHoursLimitWarning(total){const over=Number(total||0)>MAX_CLAIM_HOURS+0.0001;const warning=$('hoursLimitWarning'),line=$('grandTotalLine'),btn=$('submitBtn');if(warning){warning.style.display=over?'block':'none';warning.innerHTML='<strong>Hours limit exceeded:</strong> Total teaching hours cannot exceed '+MAX_CLAIM_HOURS+'. Current total is '+Number(total).toFixed(2)+' hours.';}if(line)line.classList.toggle('over-limit',over);if(btn&&!btn.dataset.saving)btn.disabled=over;return !over;}
+function recomputeTotals(){const f2f=sumSection();$('f2fTotal').innerHTML=f2f.toFixed(2)+' <span class="hm">('+hmLabel(f2f)+')</span>';$('f2fHours').value=f2f.toFixed(2);$('onHours').value='0.00';$('grandTotal').innerHTML=f2f.toFixed(2)+' <span class="hm">('+hmLabel(f2f)+')</span>';$('totalHours').value=f2f.toFixed(2);updateHoursLimitWarning(f2f);}
+function applyMode(){document.querySelector('input[name="modeOfDelivery"][value="Face-to-Face"]').checked=true;$('f2fSection').style.display='block';ensureSessionRows(2);recomputeTotals();}
+function collectSessionItems(){const out=[];$('f2fRows').querySelectorAll('tr').forEach(tr=>{const d=tr.querySelector('.s-date').value,s=tr.querySelector('.s-start').value,e=tr.querySelector('.s-end').value,h=hoursBetween(s,e);if(d||s||e)out.push({date:d||'',start:s||'',end:e||'',startDisplay:formatTimeForDisplay(s)||'',endDisplay:formatTimeForDisplay(e)||'',hours:Number(h.toFixed(2)),hoursLabel:hmLabel(h)});});return out;}
+function collectSessions(){return collectSessionItems().map(item=>(item.date||'?')+' '+(item.startDisplay||'?')+'-'+(item.endDisplay||'?')).join('; ');}
+function setSessionRows(items){const tbody=$('f2fRows');tbody.innerHTML='';const rows=Array.isArray(items)&&items.length?items:[{},{}];rows.forEach(item=>{addSessionRow('f2f');const tr=tbody.lastElementChild;tr.querySelector('.s-date').value=item.date||'';tr.querySelector('.s-start').value=item.start||'';tr.querySelector('.s-end').value=item.end||'';syncPeriodButtons(tr);});ensureSessionRows(2);recomputeTotals();}
+
+function setTravelFields(from,to,dIn,dOut,total){populateTravelOptions('travelFrom',from);populateTravelOptions('travelTo',to);$('travelFrom').value=from||'';$('travelTo').value=to||'';$('travelDistanceIn').value=dIn||'';$('travelDistanceOut').value=dOut||'';$('travelTotalDistance').value=total||'';}
+function populateTravelOptions(id,value){const el=$(id);if(!el)return;el.innerHTML='<option value="">Not assigned</option>';if(value){const opt=document.createElement('option');opt.value=value;opt.textContent=value;el.appendChild(opt);}}
+
+function initSignatureUpload(){
+    const dropZone=$('sigDropZone'), empty=$('sigEmptyState'), preview=$('sigPreview'), remove=$('sigRemoveBtn'), file=$('sigFileInput'), hidden=$('facilitatorSignature'), err=$('sigError');
+    function showError(msg){err.textContent=msg;err.style.display='block';}
+    function clearError(){err.style.display='none';err.textContent='';}
+    function setImage(dataUrl){preview.src=dataUrl;preview.style.display='block';empty.style.display='none';remove.style.display='flex';dropZone.classList.add('has-image');hidden.value=dataUrl;}
+    function clearImage(){preview.removeAttribute('src');preview.style.display='none';empty.style.display='block';remove.style.display='none';dropZone.classList.remove('has-image');hidden.value='';file.value='';}
+    function processFile(f){clearError();if(!f)return;if(!/^image\/(png|jpeg|jpg)$/i.test(f.type)){showError('Please upload a PNG or JPEG image.');return;}if(f.size>5*1024*1024){showError('Image is too large.');return;}const reader=new FileReader();reader.onload=e=>{const img=new Image();img.onload=()=>{const canvas=document.createElement('canvas');let w=img.width,h=img.height,max=500;if(w>h&&w>max){h=Math.round(h*max/w);w=max;}else if(h>max){w=Math.round(w*max/h);h=max;}canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);let q=.92,data=canvas.toDataURL('image/jpeg',q);while(data.length>28000&&q>.3){q-=.1;data=canvas.toDataURL('image/jpeg',q);}if(data.length>28000){showError('Could not compress image enough. Try a smaller signature.');return;}setImage(data);};img.onerror=()=>showError('Could not read that image.');img.src=e.target.result;};reader.readAsDataURL(f);}
+    dropZone.addEventListener('click',e=>{if(e.target===remove)return;if(!hidden.value)file.click();});
+    file.addEventListener('change',function(){if(this.files&&this.files[0])processFile(this.files[0]);});
+    remove.addEventListener('click',e=>{e.stopPropagation();clearImage();clearError();});
+    ['dragenter','dragover'].forEach(evt=>dropZone.addEventListener(evt,e=>{e.preventDefault();if(!hidden.value)dropZone.classList.add('dragover');}));
+    ['dragleave','drop'].forEach(evt=>dropZone.addEventListener(evt,e=>{e.preventDefault();dropZone.classList.remove('dragover');}));
+    dropZone.addEventListener('drop',e=>{const f=e.dataTransfer.files&&e.dataTransfer.files[0];if(f&&!hidden.value)processFile(f);});
+    document.addEventListener('paste',e=>{if(hidden.value)return;const items=(e.clipboardData&&e.clipboardData.items)||[];for(let i=0;i<items.length;i++){if(items[i].type&&items[i].type.indexOf('image')===0){const f=items[i].getAsFile();if(f){e.preventDefault();processFile(f);}return;}}});
+}
+function setSignatureImageFromDataUrl(dataUrl){if(!dataUrl)return;$('sigPreview').src=dataUrl;$('sigPreview').style.display='block';$('sigEmptyState').style.display='none';$('sigRemoveBtn').style.display='flex';$('sigDropZone').classList.add('has-image');$('facilitatorSignature').value=dataUrl;}
+function clearSignatureUi(){$('facilitatorSignature').value='';$('sigPreview').removeAttribute('src');$('sigPreview').style.display='none';$('sigEmptyState').style.display='block';$('sigRemoveBtn').style.display='none';$('sigDropZone').classList.remove('has-image','dragover');$('sigDropZone').style.borderColor='';$('sigFileInput').value='';$('sigError').style.display='none';}
+
+function buildSessionTable(){const rows=$('f2fRows').querySelectorAll('tr');if(!rows.length)return '<span class="pval empty">No sessions recorded</span>';let html='<table class="preview-sessions"><thead><tr><th>Date</th><th>Start</th><th>End</th><th>Hours</th></tr></thead><tbody>';rows.forEach(tr=>{const d=tr.querySelector('.s-date').value,s=tr.querySelector('.s-start').value,e=tr.querySelector('.s-end').value,h=tr.querySelector('.hrs-cell').textContent;html+='<tr><td>'+esc(d||'—')+'</td><td>'+esc(formatTimeForDisplay(s)||'—')+'</td><td>'+esc(formatTimeForDisplay(e)||'—')+'</td><td>'+esc(h)+'</td></tr>';});return html+'</tbody></table>';}
+function showPreview(){recomputeTotals();const semester=(document.querySelector('input[name="semester"]:checked')||{}).value||'',staffId=$('staffId').value,tutorName=$('tutorName').value,course=$('courseSearchInput').value,program=$('program').value,studyCentre=$('studyCentre').value,f2fTotal=$('f2fTotal').textContent,grandTotal=$('grandTotal').textContent,travelFrom=$('travelFrom').value,travelTo=$('travelTo').value,remarks=$('remarks').value,sigSrc=$('sigPreview').src;let html='';html+='<div class="preview-section"><div class="preview-section-title">Facilitator</div><div class="preview-grid">'+pitem('Staff ID',staffId)+pitem('Name',tutorName)+'</div></div>';html+='<div class="preview-section"><div class="preview-section-title">Course Details</div><div class="preview-grid single">'+pitem('Course',course)+'</div><div class="preview-grid" style="margin-top:8px;">'+pitem('Programme',program)+pitem('Study Centre',studyCentre)+'</div></div>';html+='<div class="preview-section"><div class="preview-section-title">Schedule</div><div class="preview-grid">'+pitem('Mode of Delivery','Face-to-Face')+pitem('Semester',semester)+pitem('Teaching Type','Face-to-Face')+'</div></div>';html+='<div class="preview-section"><div class="preview-section-title">Face-to-Face Sessions</div>'+buildSessionTable()+'<div style="margin:6px 0 14px;font-size:13px;color:#555;">Total face-to-face hours: <strong>'+esc(f2fTotal)+'</strong></div>';if(travelFrom||travelTo){html+='<div class="preview-grid">'+pitem('Travelling from',travelFrom)+pitem('Travelling to',travelTo)+'</div>';}html+='</div>';html+='<div class="preview-total">Grand total teaching hours: '+esc(grandTotal)+'</div>';if(remarks.trim())html+='<div class="preview-section"><div class="preview-section-title">Remarks</div><div class="preview-grid single">'+pitem('',remarks)+'</div></div>';html+='<div class="preview-section"><div class="preview-section-title">Signature</div>';if($('facilitatorSignature').value&&sigSrc)html+='<img src="'+sigSrc+'" class="preview-sig" alt="Signature">';else html+='<span class="pval empty">No signature uploaded</span>';html+='</div>';$('previewBody').innerHTML=html;$('confirmSubmitBtn').disabled=false;$('previewOverlay').classList.add('open');}
+function closePreview(){$('previewOverlay').classList.remove('open');}
+
+function prepareFormData(){const data={};new FormData($('reportForm')).forEach((v,k)=>data[k]=v);data.formType='UndergraduateFacilitatorClaim';data.action=CURRENT_EDIT_CLAIM_ID?'updateClaim':'submitClaim';data.claimId=CURRENT_EDIT_CLAIM_ID||'';data.firestoreDocId=CURRENT_EDIT_DOC_ID||'';data.claimStatus='Submitted';data.modeOfDelivery='Face-to-Face';data.block='Face-to-Face';data.staffId=$('staffId').value.trim().toUpperCase();data.tutorName=$('tutorName').value;data.course=$('course').value;data.program=$('program').value;data.studyCentre=$('studyCentre').value;data.semester=(document.querySelector('input[name="semester"]:checked')||{}).value||'';recomputeTotals();data.f2fHours=$('f2fHours').value;data.f2fSessions=collectSessions();data.f2fSessionItemsJson=JSON.stringify(collectSessionItems());data.onHours='0.00';data.onSessions='';data.onSessionItemsJson='[]';data.totalHours=$('totalHours').value;data.travelFrom=$('travelFrom').value;data.travelTo=$('travelTo').value;data.travelDistanceIn=$('travelDistanceIn').value;data.travelDistanceOut=$('travelDistanceOut').value;data.travelTotalDistance=$('travelTotalDistance').value;data.bankName='';data.bankBranch='';data.accountName='';data.accountNumber='';data.ghanaCardNumber='';data.remarks=$('remarks').value;data.facilitatorSignature=$('facilitatorSignature').value;data.claimKey=buildClaimKeyFromData(data);data.uniqueClaimKey=data.claimKey;return data;}
+function validateForm(){let ok=true;document.querySelectorAll('[required]').forEach(f=>f.style.borderColor='');document.querySelectorAll('[required]').forEach(f=>{if(!String(f.value||'').trim()){f.style.borderColor='red';ok=false;}});if(!$('course').value||!tutorCourses().includes($('course').value)){alert('Please select one of your assigned courses.');return false;}if(!$('facilitatorSignature').value.trim()){$('sigDropZone').style.borderColor='red';alert('Please upload your facilitator signature.');return false;}recomputeTotals();const total=parseFloat($('totalHours').value||'0');if(total<=0){alert('Add at least one teaching session with valid start/end times.');return false;}if(total>MAX_CLAIM_HOURS){alert('Total teaching hours cannot exceed '+MAX_CLAIM_HOURS+'.');return false;}return ok;}
+function hideMessages(){['errorMessage','successMessage'].forEach(id=>$(id).style.display='none');}
+function showSuccessMessage(t){const msg=$('successMessage');msg.innerHTML='✅ <strong>Success!</strong> '+(t||'Claim saved.');msg.style.display='block';}
+function showErrorMessage(m){const msg=$('errorMessage');msg.innerHTML='❌ <strong>Error:</strong> '+esc(m);msg.style.display='block';}
+function showSubmitSuccessPopup(message){return new Promise(resolve=>{const overlay=$('submitSuccessModal'),body=$('submitSuccessBody'),close=$('submitSuccessClose');body.textContent=message||'Your claim has been saved successfully.';overlay.classList.add('active');const fn=()=>{overlay.classList.remove('active');close.removeEventListener('click',fn);resolve();};close.addEventListener('click',fn);setTimeout(()=>close.focus(),50);});}
+
+function getCurrentClaimIdentityData(){return {staffId:$('staffId').value.trim().toUpperCase(),course:$('course').value.trim(),program:$('program').value.trim(),studyCentre:$('studyCentre').value.trim(),semester:(document.querySelector('input[name="semester"]:checked')||{}).value||'',block:selectedTeachingBlock()};}
+function hasClaimIdentityFields(data){return !!(data&&data.staffId&&data.course&&data.program&&data.studyCentre&&data.semester&&data.block);}
+function describeClaimIdentity(data){return [data.course,data.program||data.programme,data.studyCentre||data.centre,data.semester,data.block].filter(Boolean).join(' • ');}
+async function findExistingClaimForSameCourse(data,currentDocId){if(!hasClaimIdentityFields(data))return null;const fs=window.__firestore;const key=buildClaimKeyFromData(data),det=buildDeterministicClaimId(data),current=String(currentDocId||CURRENT_EDIT_DOC_ID||CURRENT_EDIT_CLAIM_ID||'').trim();try{const exact=await fs.getDoc(fs.doc(fs.db,'ug_claims',det));if(exact.exists()&&exact.id!==current){const d=exact.data()||{};if(String(d.claimStatus||'Submitted').toLowerCase()!=='cancelled')return {id:exact.id,data:d};}}catch(e){console.warn('Exact duplicate check skipped:',e);}try{const uid=window.__currentUserUid||'';const q=uid?fs.query(fs.collection(fs.db,'ug_claims'),fs.where('uid','==',uid)):fs.query(fs.collection(fs.db,'ug_claims'),fs.where('staffId','==',data.staffId));const snap=await fs.getDocs(q);let found=null;snap.forEach(docSnap=>{if(found||docSnap.id===current)return;const d=docSnap.data()||{};if(String(d.claimStatus||'Submitted').toLowerCase()==='cancelled')return;const dKey=d.claimKey||buildClaimKeyFromData(d);if(dKey===key)found={id:docSnap.id,data:d};});return found;}catch(e){console.warn('Duplicate scan skipped:',e);return null;}}
+function showDuplicateNotice(existing,identityData){DUPLICATE_NOTICE_CLAIM_ID=existing.id||existing.claimId||'';$('duplicateNoticeText').textContent='You have already submitted a claim for '+(describeClaimIdentity(existing.data)||describeClaimIdentity(identityData)||'this course')+'. Please open and edit the existing claim instead of submitting a new one.';$('duplicateNotice').style.display='block';}
+function clearDuplicateNotice(){DUPLICATE_NOTICE_CLAIM_ID='';$('duplicateNotice').style.display='none';}
+async function openDuplicateClaimFromNotice(){if(DUPLICATE_NOTICE_CLAIM_ID)await loadClaimForEdit(DUPLICATE_NOTICE_CLAIM_ID);}
+async function checkDuplicateForCurrentSelection(){const data=getCurrentClaimIdentityData();if(!hasClaimIdentityFields(data)||CURRENT_EDIT_CLAIM_ID){clearDuplicateNotice();return null;}const existing=await findExistingClaimForSameCourse(data);if(existing)showDuplicateNotice(existing,data);else clearDuplicateNotice();return existing;}
+function scheduleDuplicateCheck(){if(DUPLICATE_CHECK_TIMER)clearTimeout(DUPLICATE_CHECK_TIMER);DUPLICATE_CHECK_TIMER=setTimeout(()=>checkDuplicateForCurrentSelection().catch(console.warn),650);}
+
+async function saveClaimToFirestore(data){const fs=window.__firestore;if(!fs||!fs.db)throw new Error('Firestore is not ready. Refresh and try again.');data.staffId=data.staffId.trim().toUpperCase();const duplicate=await findExistingClaimForSameCourse(data,CURRENT_EDIT_DOC_ID||CURRENT_EDIT_CLAIM_ID);if(duplicate){showDuplicateNotice(duplicate,data);throw new Error('You have already submitted a claim for this course, programme, centre, and semester. Open the existing claim and edit it.');}const isEdit=!!CURRENT_EDIT_CLAIM_ID;const claimId=isEdit?CURRENT_EDIT_CLAIM_ID:buildDeterministicClaimId(data);const claimKey=buildClaimKeyFromData(data);const payload=Object.assign({},data,{claimId,firestoreDocId:claimId,claimKey,uniqueClaimKey:claimKey,claimStatus:'Submitted',modeOfDelivery:'Face-to-Face',block:'Face-to-Face',uid:window.__currentUserUid||'',tutorDocPath:'ug_tutors/'+data.staffId,f2fSessionItems:collectSessionItems(),onSessionItems:[],source:'ug-tutor-report',sheetSyncStatus:'pending',updatedAt:fs.serverTimestamp()});if(!isEdit)payload.createdAt=fs.serverTimestamp();await fs.setDoc(fs.doc(fs.db,'ug_claims',claimId),payload,{merge:true});CURRENT_EDIT_CLAIM_ID=claimId;CURRENT_EDIT_DOC_ID=claimId;return claimId;}
+async function submitAndDownloadFromPreview(){const btn=$('confirmSubmitBtn'),old=btn.textContent;btn.disabled=true;btn.textContent='⏳ Submitting…';hideMessages();try{if(!validateForm())return;const data=prepareFormData();$('loading').style.display='block';const id=await saveClaimToFirestore(data);data.claimId=id;data.firestoreDocId=id;$('loading').style.display='none';showSuccessMessage('Claim saved to Firestore. Preparing your PDF download now.');btn.textContent='⬇️ Preparing PDF…';await downloadPreviewPdf();closePreview();await showSubmitSuccessPopup('Your claim has been successfully submitted and your PDF download has started. The Google Sheet copy will be created automatically by the system.');await loadMyClaims();resetForm();}catch(e){$('loading').style.display='none';showErrorMessage(e.message||e);closePreview();}finally{btn.disabled=false;btn.textContent=old||'✅ Submit & Download PDF';updateHoursLimitWarning(parseFloat($('totalHours').value||'0'));}}
+function setupFormSubmission(form){form.addEventListener('submit',e=>{e.preventDefault();if(sessionStorage.getItem('forcePasswordChange')==='1'){openPwModal(true);return;}if(!validateForm())return;showPreview();});}
+
+async function loadMyClaims(){const staffId=($('staffId').value||sessionStorage.getItem('tutorStaffId')||'').trim().toUpperCase(),list=$('claimsList'),fs=window.__firestore;list.innerHTML='';if(!staffId||!fs){$('claimsStatus').textContent='Sign in first so your claims can be loaded.';return;}$('claimsStatus').textContent='Loading your submitted claims...';try{const uid=window.__currentUserUid||'';const q=uid?fs.query(fs.collection(fs.db,'ug_claims'),fs.where('uid','==',uid)):fs.query(fs.collection(fs.db,'ug_claims'),fs.where('staffId','==',staffId));const snap=await fs.getDocs(q);const claims=[];snap.forEach(docSnap=>claims.push({id:docSnap.id,data:docSnap.data()||{}}));claims.sort((a,b)=>timestampToMillis(b.data.updatedAt||b.data.createdAt)-timestampToMillis(a.data.updatedAt||a.data.createdAt));renderClaimsList(claims);}catch(err){console.error(err);$('claimsStatus').textContent='Could not load claims: '+(err.message||err);}}
+function renderClaimsList(claims){const list=$('claimsList');list.innerHTML='';if(!claims.length){$('claimsStatus').textContent='No submitted claims found yet.';return;}$('claimsStatus').textContent=claims.length+' claim(s) found.';claims.forEach(item=>{const d=item.data||{};const div=document.createElement('div');div.className='claim-item';const meta=[d.claimId||item.id,d.semester||'',d.block||'',d.totalHours?('Total hours: '+d.totalHours):'',formatClaimDate(d.updatedAt||d.createdAt)?('Updated: '+formatClaimDate(d.updatedAt||d.createdAt)):''].filter(Boolean).join(' • ');div.innerHTML='<div class="claim-main"><div class="claim-title"></div><div class="claim-meta"></div></div><div class="claim-button-row"><button type="button" class="download-claim-pdf-btn">Download PDF</button><button type="button" class="edit-claim-btn">Edit</button></div>';div.querySelector('.claim-title').textContent=d.course||'Untitled course';div.querySelector('.claim-meta').textContent=meta;div.querySelector('.download-claim-pdf-btn').addEventListener('click',()=>downloadSubmittedClaimPdf(item.id));div.querySelector('.edit-claim-btn').addEventListener('click',()=>loadClaimForEdit(item.id));list.appendChild(div);});}
+async function loadClaimForEdit(id){const fs=window.__firestore;try{$('claimsStatus').textContent='Opening claim...';const snap=await fs.getDoc(fs.doc(fs.db,'ug_claims',id));if(!snap.exists()){$('claimsStatus').textContent='Claim not found.';return;}const data=snap.data()||{};const loggedStaffId=$('staffId').value.trim().toUpperCase(),uid=window.__currentUserUid||'';if((data.uid&&uid&&data.uid!==uid)||(data.staffId&&data.staffId!==loggedStaffId)){alert('You cannot edit a claim that belongs to another tutor.');return;}fillFormFromClaim(data,id);$('claimsStatus').textContent='Claim loaded for editing.';$('reportForm').scrollIntoView({behavior:'smooth',block:'start'});}catch(e){console.error(e);$('claimsStatus').textContent='Could not open claim: '+(e.message||e);}}
+function fillFormFromClaim(data,id){CURRENT_EDIT_DOC_ID=id||data.claimId||'';CURRENT_EDIT_CLAIM_ID=data.claimId||id||'';$('courseSearchInput').value=data.course||'';$('course').value=data.course||'';ensureSelectOption($('program'),data.program||data.programme||'');$('program').value=data.program||data.programme||'';$('studyCentre').value=data.studyCentre||'';document.querySelectorAll('input[name="semester"]').forEach(r=>r.checked=(r.value===(data.semester||'Second Semester')));setTravelFields(data.travelFrom||'',data.travelTo||'',data.travelDistanceIn||'',data.travelDistanceOut||'',data.travelTotalDistance||'');setSessionRows(data.f2fSessionItems||[]);$('remarks').value=data.remarks||'';clearSignatureUi();setSignatureImageFromDataUrl(data.facilitatorSignature||data.facilitatorSignatureUrl||'');showEditMode(CURRENT_EDIT_CLAIM_ID);}
+function showEditMode(claimId){$('editClaimLabel').textContent=claimId||'';$('editNotice').style.display='block';$('submitBtn').textContent='Update Claim Summary';}
+function clearEditMode(){CURRENT_EDIT_CLAIM_ID='';CURRENT_EDIT_DOC_ID='';$('editNotice').style.display='none';$('editClaimLabel').textContent='';$('submitBtn').textContent='Submit Claim Summary';}
+function resetForm(){$('reportForm').reset();$('courseSearchInput').value='';$('course').value='';$('studyCentre').value='';$('f2fRows').innerHTML='';document.querySelector('input[name="semester"][value="Second Semester"]').checked=true;document.querySelector('input[name="modeOfDelivery"][value="Face-to-Face"]').checked=true;setTravelFields('','','','','');clearSignatureUi();clearEditMode();clearDuplicateNotice();applyMode();fillTutorFromLogin();hideMessages();}
+
+function captureFormStateForClaimPdfDownload(){return {editClaimId:CURRENT_EDIT_CLAIM_ID,editDocId:CURRENT_EDIT_DOC_ID,courseSearchInput:$('courseSearchInput').value,course:$('course').value,program:$('program').value,studyCentre:$('studyCentre').value,semester:(document.querySelector('input[name="semester"]:checked')||{}).value||'',sessions:collectSessionItems(),travelFrom:$('travelFrom').value,travelTo:$('travelTo').value,travelDistanceIn:$('travelDistanceIn').value,travelDistanceOut:$('travelDistanceOut').value,travelTotalDistance:$('travelTotalDistance').value,remarks:$('remarks').value,signature:$('facilitatorSignature').value};}
+function restoreFormStateAfterClaimPdfDownload(s){if(!s)return;CURRENT_EDIT_CLAIM_ID=s.editClaimId||'';CURRENT_EDIT_DOC_ID=s.editDocId||'';$('courseSearchInput').value=s.courseSearchInput||'';$('course').value=s.course||'';ensureSelectOption($('program'),s.program||'');$('program').value=s.program||'';$('studyCentre').value=s.studyCentre||'';document.querySelectorAll('input[name="semester"]').forEach(r=>r.checked=(r.value===s.semester));setTravelFields(s.travelFrom||'',s.travelTo||'',s.travelDistanceIn||'',s.travelDistanceOut||'',s.travelTotalDistance||'');setSessionRows(s.sessions||[]);$('remarks').value=s.remarks||'';clearSignatureUi();setSignatureImageFromDataUrl(s.signature||'');if(CURRENT_EDIT_CLAIM_ID)showEditMode(CURRENT_EDIT_CLAIM_ID);else clearEditMode();recomputeTotals();}
+async function downloadSubmittedClaimPdf(id){const fs=window.__firestore;const state=captureFormStateForClaimPdfDownload();try{const snap=await fs.getDoc(fs.doc(fs.db,'ug_claims',id));if(!snap.exists())throw new Error('Claim not found.');fillFormFromClaim(snap.data()||{},id);await new Promise(r=>setTimeout(r,80));await downloadPreviewPdf();}catch(e){alert('Could not download PDF: '+(e.message||e));}finally{restoreFormStateAfterClaimPdfDownload(state);}}
+
+async function downloadPreviewPdf(){
     recomputeTotals();
-}
-function syncPeriodButtons(row) {
-    if (!row) return;
-    row.querySelectorAll('.time-entry').forEach(wrap => {
-        const input = wrap.querySelector('input[type="time"]');
-        const h = input.value ? Number(input.value.split(':')[0]) : null;
-        wrap.querySelectorAll('.period-btn').forEach(btn => btn.classList.toggle('active', h !== null && ((btn.dataset.period === 'AM' && h < 12) || (btn.dataset.period === 'PM' && h >= 12))));
-    });
-}
-function addSessionRow(target='f2f') {
-    const tbody = $('f2fRows');
-    const tr = document.createElement('tr');
-    tr.innerHTML = '<td><input type="date" class="s-date"></td><td>' + sessionTimeCell('s-start','Start time') + '</td><td>' + sessionTimeCell('s-end','End time') + '</td><td class="hrs-cell">0.00</td><td><button type="button" class="row-del" aria-label="Remove session">×</button></td>';
-    tbody.appendChild(tr);
-    tr.querySelectorAll('input').forEach(i => i.addEventListener('input', recomputeTotals));
-    tr.querySelectorAll('.period-btn').forEach(btn => btn.addEventListener('click', () => setTimePeriod(btn.closest('.time-entry').querySelector('input'), btn.dataset.period)));
-    tr.querySelector('.row-del').addEventListener('click', () => { tr.remove(); ensureSessionRows(); recomputeTotals(); });
-    return tr;
-}
-function ensureSessionRows() { while ($('f2fRows').children.length < 2) addSessionRow(); }
-function collectSessionItems() {
-    const out = [];
-    $('f2fRows').querySelectorAll('tr').forEach(tr => {
-        const d = tr.querySelector('.s-date').value;
-        const s = tr.querySelector('.s-start').value;
-        const e = tr.querySelector('.s-end').value;
-        const hours = hoursBetween(s, e);
-        if (d || s || e) out.push({ date:d||'', start:s||'', end:e||'', startDisplay:formatTimeForDisplay(s)||'', endDisplay:formatTimeForDisplay(e)||'', hours:Number(hours.toFixed(2)), hoursLabel:hmLabel(hours) });
-    });
-    return out;
-}
-function setSessionRows(items) {
-    $('f2fRows').innerHTML = '';
-    const rows = Array.isArray(items) && items.length ? items : [{},{}];
-    rows.forEach(item => {
-        const tr = addSessionRow();
-        tr.querySelector('.s-date').value = item.date || '';
-        tr.querySelector('.s-start').value = item.start || '';
-        tr.querySelector('.s-end').value = item.end || '';
-        syncPeriodButtons(tr);
-    });
-    ensureSessionRows();
-    recomputeTotals();
-}
-function recomputeTotals() {
-    let total = 0;
-    $('f2fRows').querySelectorAll('tr').forEach(tr => {
-        const h = hoursBetween(tr.querySelector('.s-start').value, tr.querySelector('.s-end').value);
-        tr.querySelector('.hrs-cell').innerHTML = h.toFixed(2) + ' <span class="hm">(' + hmLabel(h) + ')</span>';
-        total += h;
-        syncPeriodButtons(tr);
-    });
-    $('f2fTotal').innerHTML = total.toFixed(2) + ' <span class="hm">(' + hmLabel(total) + ')</span>';
-    $('grandTotal').innerHTML = total.toFixed(2) + ' <span class="hm">(' + hmLabel(total) + ')</span>';
-    $('f2fHours').value = total.toFixed(2);
-    $('totalHours').value = total.toFixed(2);
-    $('f2fSessions').value = collectSessionItems().map(x => [x.date, x.startDisplay, '-', x.endDisplay].join(' ')).join('; ');
-    const over = total > MAX_TOTAL_HOURS;
-    $('grandTotalBox').classList.toggle('over-limit', over);
-    $('hoursLimitWarning').style.display = over ? 'block' : 'none';
-    $('hoursLimitWarning').innerHTML = over ? '<strong>Total hours exceed ' + MAX_TOTAL_HOURS + ' hours.</strong> Please verify the session times before submitting.' : '';
+    const title='UNDERGRADUATE FACILITATOR CLAIM SUMMARY';
+    const lines=[];const add=(t='')=>lines.push(String(t));
+    add('UNIVERSITY OF CAPE COAST (UCC)');add('College of Distance Education (CoDE)');add(title);add('Generated: '+new Date().toLocaleString());add('');
+    add('FACILITATOR');add('Staff ID: '+$('staffId').value);add('Name: '+$('tutorName').value);add('');
+    add('COURSE DETAILS');add('Course: '+($('courseSearchInput').value||$('course').value));add('Programme: '+$('program').value);add('Study Centre: '+$('studyCentre').value);add('Mode of Delivery: Face-to-Face');add('Semester: '+((document.querySelector('input[name="semester"]:checked')||{}).value||''));add('');
+    add('FACE-TO-FACE SESSIONS');collectSessionItems().forEach((r,i)=>add((i+1)+'. '+(r.date||'-')+' | '+(r.startDisplay||'-')+' - '+(r.endDisplay||'-')+' | '+r.hours+' hrs'));
+    add('Total Face-to-Face Hours: '+$('f2fTotal').textContent.replace(/\s+/g,' '));add('Grand Total Teaching Hours: '+$('grandTotal').textContent.replace(/\s+/g,' '));
+    if($('travelFrom').value||$('travelTo').value){add('');add('FACILITATOR MOVEMENT');add('Travelling From: '+$('travelFrom').value);add('Travelling To: '+$('travelTo').value);}
+    if($('remarks').value.trim()){add('');add('REMARKS');add($('remarks').value.trim());}
+    add('');add('SIGNATURE: '+($('facilitatorSignature').value?'Uploaded':'No signature uploaded'));
+    const pageW=595.28,pageH=841.89,margin=50,bottom=50;let y=pageH-margin;const pages=[[]];
+    function escPdf(v){return String(v||'').normalize('NFKD').replace(/[^\x20-\x7E]/g,'').replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)');}
+    function curr(){return pages[pages.length-1];}
+    function newPage(){pages.push([]);y=pageH-margin;}
+    function wrap(text,size,width){text=String(text||'');const max=Math.max(20,Math.floor(width/(size*.52)));const words=text.split(' ');const out=[];let line='';words.forEach(w=>{const c=line?line+' '+w:w;if(c.length>max&&line){out.push(line);line=w;}else line=c;});if(line)out.push(line);return out.length?out:[''];}
+    function put(text,size=10,bold=false){wrap(text,size,pageW-margin*2).forEach(part=>{if(y<bottom+14)newPage();curr().push('BT /'+(bold?'F2':'F1')+' '+size+' Tf 1 0 0 1 '+margin+' '+y.toFixed(2)+' Tm ('+escPdf(part)+') Tj ET');y-=size+4;});}
+    lines.forEach((l,i)=>{if(l===''){y-=8;return;}const section=['FACILITATOR','COURSE DETAILS','FACE-TO-FACE SESSIONS','FACILITATOR MOVEMENT','REMARKS'].includes(l);put(l,section?12:(i<3?13:10),section||i<3);});
+    pages.forEach((cmds,i)=>cmds.push('BT /F1 8 Tf 1 0 0 1 '+(pageW-margin-55)+' 28 Tm (Page '+(i+1)+' of '+pages.length+') Tj ET'));
+    const objs=[];const obj=s=>{objs.push(s);return objs.length;};obj('<< /Type /Catalog /Pages 2 0 R >>');obj('');obj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');obj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');const pageIds=[];pages.forEach(cmds=>{const stream=cmds.join('\n');const contentId=obj('<< /Length '+stream.length+' >>\nstream\n'+stream+'\nendstream');const pageId=obj('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+pageW+' '+pageH+'] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents '+contentId+' 0 R >>');pageIds.push(pageId);});objs[1]='<< /Type /Pages /Kids ['+pageIds.map(id=>id+' 0 R').join(' ')+'] /Count '+pageIds.length+' >>';
+    let pdf='%PDF-1.4\n';const offsets=[0];objs.forEach((body,idx)=>{offsets.push(pdf.length);pdf+=(idx+1)+' 0 obj\n'+body+'\nendobj\n';});const xrefStart=pdf.length;pdf+='xref\n0 '+(objs.length+1)+'\n0000000000 65535 f \n';for(let i=1;i<=objs.length;i++)pdf+=String(offsets[i]).padStart(10,'0')+' 00000 n \n';pdf+='trailer\n<< /Size '+(objs.length+1)+' /Root 1 0 R >>\nstartxref\n'+xrefStart+'\n%%EOF';
+    const blob=new Blob([pdf],{type:'application/pdf'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=($('staffId').value||'UG')+'-'+courseCodeFromLabel($('course').value)+'-claim.pdf';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
-function initSignatureUpload() {
-    const zone = $('sigDropZone'), input = $('sigFileInput'), preview = $('sigPreview'), placeholder = $('sigPlaceholder'), remove = $('sigRemoveBtn');
-    function setSig(dataUrl) {
-        signatureDataUrl = dataUrl || '';
-        $('facilitatorSignature').value = signatureDataUrl;
-        if (signatureDataUrl) { preview.src = signatureDataUrl; preview.classList.remove('hidden'); placeholder.classList.add('hidden'); zone.classList.add('has-image'); }
-        else { preview.src = ''; preview.classList.add('hidden'); placeholder.classList.remove('hidden'); zone.classList.remove('has-image'); }
-        $('sigError').textContent = '';
-    }
-    function handleFile(file) {
-        if (!file) return;
-        if (!/^image\/(png|jpeg|jpg)$/i.test(file.type)) { $('sigError').textContent = 'Please upload a PNG or JPG image.'; return; }
-        if (file.size > 3 * 1024 * 1024) { $('sigError').textContent = 'Signature image is too large. Use an image below 3 MB.'; return; }
-        const reader = new FileReader();
-        reader.onload = e => setSig(e.target.result);
-        reader.readAsDataURL(file);
-    }
-    zone.addEventListener('click', e => { if (e.target !== remove) input.click(); });
-    zone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
-    input.addEventListener('change', () => handleFile(input.files[0]));
-    ['dragenter','dragover'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.add('dragover'); }));
-    ['dragleave','drop'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.remove('dragover'); }));
-    zone.addEventListener('drop', e => handleFile(e.dataTransfer.files[0]));
-    remove.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); input.value=''; setSig(''); });
-    window.setSignatureData = setSig;
-}
+function openPwModal(forced=false){const forcedMode=forced||sessionStorage.getItem('forcePasswordChange')==='1';$('pwCurrent').value=forcedMode?TEMP_PASSWORD_THAT_MUST_BE_CHANGED:'';$('pwCurrent').readOnly=forcedMode;$('pwNew').value='';$('pwConfirm').value='';$('pwError').style.display='none';$('pwSuccess').style.display='none';$('pwModalTitle').textContent=forcedMode?'Change Temporary Password':'Change Password';$('pwCloseBtn').style.display=forcedMode?'none':'';$('pwCancelBtn').style.display=forcedMode?'none':'';$('pwModalOverlay').classList.add('open');setTimeout(()=>forcedMode?$('pwNew').focus():$('pwCurrent').focus(),50);}
+function closePwModal(){if(sessionStorage.getItem('forcePasswordChange')==='1'){showPwError('You must change the temporary password before continuing.');return;}$('pwModalOverlay').classList.remove('open');}
+function closePwModalOnBackdrop(e){if(e.target===$('pwModalOverlay'))closePwModal();}
+function showPwError(msg){$('pwError').textContent=msg;$('pwError').style.display='block';}
+async function submitPwChange(){const current=$('pwCurrent').value,newPw=$('pwNew').value,confirm=$('pwConfirm').value,btn=$('pwSaveBtn');$('pwError').style.display='none';if(!current)return showPwError('Please enter your current password.');if(!newPw)return showPwError('Please enter a new password.');if(newPw.length<6)return showPwError('New password must be at least 6 characters.');if(newPw!==confirm)return showPwError('New passwords do not match.');if(newPw===current)return showPwError('New password must be different from your current one.');btn.disabled=true;btn.textContent='Saving…';const result=await window.changePassword(current,newPw);btn.disabled=false;btn.textContent='Save password';if(result.ok){sessionStorage.removeItem('forcePasswordChange');$('pwSuccess').style.display='block';setTimeout(()=>window.logout(),1600);}else showPwError(result.msg);}
 
-function validateForm() {
-    let ok = true;
-    document.querySelectorAll('[required]').forEach(f => f.style.borderColor = '');
-    document.querySelectorAll('[required]').forEach(f => { if (!clean(f.value)) { f.style.borderColor = 'red'; ok = false; } });
-    if (!$('course').value || !tutorCourses().includes($('course').value)) { $('courseSearchInput').style.borderColor = 'red'; ok = false; }
-    if (!collectSessionItems().length) { alert('Enter at least one face-to-face teaching session.'); ok = false; }
-    if (!signatureDataUrl) { $('sigDropZone').style.borderColor = 'red'; $('sigError').textContent = 'Please upload your signature image.'; ok = false; }
-    const total = Number($('totalHours').value || 0);
-    if (total <= 0) { alert('Total teaching hours must be more than zero.'); ok = false; }
-    return ok;
-}
-function buildClaimId(data) {
-    return ['UG', slug(data.staffId), slug(data.courseCode), slug(data.program), slug(data.studyCentre), slug(data.semester), 'FACE-TO-FACE'].join('__');
-}
-function gatherFormData() {
-    const data = {};
-    new FormData($('reportForm')).forEach((value, key) => data[key] = value);
-    const assign = selectedAssignment();
-    data.staffId = clean(data.staffId).toUpperCase();
-    data.tutorName = clean(data.tutorName);
-    data.course = clean(data.course);
-    data.courseCode = assign?.code || courseCodeFromLabel(data.course);
-    data.courseTitle = assign?.title || courseTitleFromLabel(data.course);
-    data.program = clean(data.program);
-    data.studyCentre = clean(data.studyCentre);
-    data.semester = clean(data.semester);
-    data.academicYear = clean(data.academicYear) || '2025/2026';
-    data.modeOfDelivery = 'Face-to-Face';
-    data.block = 'Face-to-Face';
-    data.f2fHours = Number($('f2fHours').value || 0);
-    data.onHours = 0;
-    data.totalHours = Number($('totalHours').value || 0);
-    data.f2fSessionItems = collectSessionItems();
-    data.onSessionItems = [];
-    data.f2fSessions = data.f2fSessionItems.map(x => [x.date, x.startDisplay, '-', x.endDisplay].join(' ')).join('; ');
-    data.onSessions = '';
-    data.facilitatorSignature = signatureDataUrl;
-    data.claimId = CURRENT_EDIT_CLAIM_ID || buildClaimId(data);
-    data.firestoreDocId = data.claimId;
-    data.claimStatus = data.claimStatus || 'Submitted';
-    data.uid = auth.currentUser?.uid || '';
-    data.tutorDocPath = 'ug_tutors/' + data.staffId;
-    data.source = 'ug-tutor-report';
-    data.sheetSyncStatus = 'pending';
-    return data;
-}
-function makePreviewHtml(d) {
-    const rows = d.f2fSessionItems.length ? d.f2fSessionItems.map(x => '<tr><td>'+esc(x.date)+'</td><td>'+esc(x.startDisplay)+'</td><td>'+esc(x.endDisplay)+'</td><td>'+esc(x.hoursLabel)+'</td></tr>').join('') : '<tr><td colspan="4">No sessions entered</td></tr>';
-    return '<div class="preview-section"><div class="preview-section-title">Facilitator and Course</div><div class="preview-grid">' +
-        item('Staff ID', d.staffId) + item('Facilitator Name', d.tutorName) + item('Course', d.course) + item('Programme', d.program) + item('Study Centre', d.studyCentre) + item('Semester', d.semester) + item('Academic Year', d.academicYear) + item('Mode of Delivery', d.modeOfDelivery) +
-        '</div></div><div class="preview-section"><div class="preview-section-title">Face-to-Face Sessions</div><table class="preview-sessions"><thead><tr><th>Date</th><th>Start</th><th>End</th><th>Hours</th></tr></thead><tbody>' + rows + '</tbody></table><div class="preview-total">Total hours: ' + esc(d.totalHours.toFixed(2)) + ' (' + esc(hmLabel(d.totalHours)) + ')</div></div>' +
-        '<div class="preview-section"><div class="preview-section-title">Signature and Remarks</div><div class="preview-grid">' + item('Remarks', d.remarks || '') + '<div class="preview-item"><label>Facilitator Signature</label><div><img class="preview-sig" src="' + esc(d.facilitatorSignature) + '" alt="Signature"></div></div></div></div>';
-}
-function item(label, value) { return '<div class="preview-item"><label>' + esc(label) + '</label><div class="pval' + (!value ? ' empty' : '') + '">' + esc(value || '—') + '</div></div>'; }
-function openPreview() { pendingPreviewPayload = gatherFormData(); $('previewBody').innerHTML = makePreviewHtml(pendingPreviewPayload); $('previewOverlay').classList.add('open'); }
-function closePreview() { $('previewOverlay').classList.remove('open'); }
+window.openPwModal=openPwModal;window.closePwModal=closePwModal;window.closePwModalOnBackdrop=closePwModalOnBackdrop;window.submitPwChange=submitPwChange;window.closePreview=closePreview;window.submitAndDownloadFromPreview=submitAndDownloadFromPreview;window.downloadPreviewPdf=downloadPreviewPdf;window.openDuplicateClaimFromNotice=openDuplicateClaimFromNotice;window.loadMyClaims=loadMyClaims;
 
-async function saveClaimToFirestore(data) {
-    const ref = doc(db, 'ug_claims', data.claimId);
-    const existing = await getDoc(ref);
-    if (existing.exists() && !CURRENT_EDIT_CLAIM_ID) throw new Error('A claim already exists for this course, programme, centre and semester. Open it from My Submitted Claims to edit it.');
-    const payload = Object.assign({}, data, { updatedAt: serverTimestamp(), action: CURRENT_EDIT_CLAIM_ID ? 'updateClaim' : 'submitClaim' });
-    if (!CURRENT_EDIT_CLAIM_ID) payload.createdAt = serverTimestamp();
-    await setDoc(ref, payload, { merge: true });
-    CURRENT_EDIT_CLAIM_ID = data.claimId;
-    $('editClaimLabel').textContent = data.claimId;
-    $('editNotice').style.display = 'block';
-    $('submitBtn').textContent = 'Update Claim Summary';
-}
-async function submitConfirmedClaim() {
-    if (!pendingPreviewPayload) return;
-    const btn = $('previewConfirmBtn');
-    btn.disabled = true;
-    btn.textContent = 'Saving...';
-    try {
-        await saveClaimToFirestore(pendingPreviewPayload);
-        closePreview();
-        $('submitSuccessOverlay').classList.add('active');
-        showBox('messageBox', 'Claim saved successfully.');
-        await loadMyClaims();
-    } catch (err) {
-        alert(err.message || String(err));
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'Confirm and Save';
-    }
-}
-
-function resetForm() {
-    const sid = $('staffId').value, name = $('tutorName').value;
-    $('reportForm').reset();
-    $('staffId').value = sid; $('tutorName').value = name;
-    $('modeOfDelivery').value = 'Face-to-Face'; $('block').value = 'Face-to-Face'; $('academicYear').value = '2025/2026';
-    $('course').value = ''; $('courseSearchInput').value = ''; $('program').value = ''; $('studyCentre').value = '';
-    CURRENT_EDIT_CLAIM_ID = '';
-    $('editNotice').style.display = 'none';
-    $('submitBtn').textContent = 'Submit Claim Summary';
-    if (window.setSignatureData) window.setSignatureData('');
-    setSessionRows([{},{}]);
-    hideBox('messageBox'); hideBox('errorBox');
-}
-async function openClaim(id) {
-    const snap = await getDoc(doc(db, 'ug_claims', id));
-    if (!snap.exists()) return;
-    const d = snap.data();
-    CURRENT_EDIT_CLAIM_ID = id;
-    $('editClaimLabel').textContent = id;
-    $('editNotice').style.display = 'block';
-    $('submitBtn').textContent = 'Update Claim Summary';
-    $('course').value = d.course || '';
-    $('courseSearchInput').value = d.course || '';
-    $('program').value = d.program || '';
-    $('studyCentre').value = d.studyCentre || '';
-    $('semester').value = d.semester || '';
-    $('academicYear').value = d.academicYear || '2025/2026';
-    $('remarks').value = d.remarks || '';
-    $('travelFrom').value = d.travelFrom || '';
-    $('travelTo').value = d.travelTo || '';
-    $('travelDistanceIn').value = d.travelDistanceIn || '';
-    $('travelDistanceOut').value = d.travelDistanceOut || '';
-    $('travelTotalDistance').value = d.travelTotalDistance || '';
-    if (window.setSignatureData) window.setSignatureData(d.facilitatorSignature || d.facilitatorSignatureUrl || '');
-    setSessionRows(d.f2fSessionItems || []);
-    window.scrollTo({ top: $('formContainer').offsetTop - 10, behavior:'smooth' });
-}
-async function loadMyClaims() {
-    const body = $('claimsBody');
-    body.innerHTML = '<tr><td colspan="4" class="empty">Loading claims…</td></tr>';
-    try {
-        const q = query(collection(db, 'ug_claims'), where('uid', '==', auth.currentUser.uid));
-        const snap = await getDocs(q);
-        const rows = [];
-        snap.forEach(s => rows.push({ id:s.id, ...s.data() }));
-        rows.sort((a,b) => Number(b.updatedAt?.seconds || b.createdAt?.seconds || 0) - Number(a.updatedAt?.seconds || a.createdAt?.seconds || 0));
-        if (!rows.length) { body.innerHTML = '<tr><td colspan="4" class="empty">No submitted claims found.</td></tr>'; return; }
-        body.innerHTML = rows.map(r => '<tr><td><strong>' + esc(r.claimId || r.id) + '</strong><br><span class="hm">' + esc(r.semester || '') + '</span></td><td>' + esc(r.course || '') + '<br><span class="hm">' + esc(r.program || '') + ' • ' + esc(r.studyCentre || '') + '</span></td><td>' + esc(r.claimStatus || 'Submitted') + '</td><td><button type="button" class="mini-btn secondary-btn" data-edit="' + esc(r.id) + '">Open</button></td></tr>').join('');
-        body.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', () => openClaim(btn.dataset.edit)));
-    } catch (err) {
-        body.innerHTML = '<tr><td colspan="4" class="empty">' + esc(err.message || err) + '</td></tr>';
-    }
-}
-async function fillTutorFromLogin(user) {
-    const rawId = clean(sessionStorage.getItem('tutorStaffId')).toUpperCase();
-    if (!rawId || sessionStorage.getItem('tutorPortal') !== 'ug') { location.replace('index.html'); return; }
-    $('staffId').value = rawId;
-    const snap = await getDoc(doc(db, 'ug_tutors', rawId));
-    if (!snap.exists()) throw new Error('Your undergraduate tutor record was not found. Contact the administrator.');
-    const rec = snap.data() || {};
-    if (rec.uid && rec.uid !== user.uid) throw new Error('This login is not linked to the selected undergraduate Staff ID.');
-    CURRENT_TUTOR = rec;
-    $('tutorName').value = rec.name || rec.fullName || sessionStorage.getItem('tutorName') || rawId;
-    populateCourses();
-    if (courseAssignments.length === 1) {
-        $('course').value = courseAssignments[0].label;
-        $('courseSearchInput').value = courseAssignments[0].label;
-        onCourseSelected(courseAssignments[0].label);
-    }
-    ensureSessionRows();
-    recomputeTotals();
-    hideBox('loadingBox'); hideBox('errorBox');
-    $('reportForm').classList.remove('hidden');
-    $('claimsCard').classList.remove('hidden');
-    await loadMyClaims();
-    if (sessionStorage.getItem('forcePasswordChange') === '1') $('passwordModal').classList.add('open');
-}
-
-createSearchableDropdown({ inputId:'courseSearchInput', dropdownId:'courseDropdown', hiddenId:'course', getData:tutorCourses, onSelect:onCourseSelected });
-initSignatureUpload();
-$('f2fRows').addEventListener('input', recomputeTotals);
-$('reportForm').addEventListener('submit', e => { e.preventDefault(); if (sessionStorage.getItem('forcePasswordChange') === '1') { $('passwordModal').classList.add('open'); return; } if (!validateForm()) return; openPreview(); });
-$('previewClose').addEventListener('click', closePreview);
-$('previewEditBtn').addEventListener('click', closePreview);
-$('previewConfirmBtn').addEventListener('click', submitConfirmedClaim);
-$('successCloseBtn').addEventListener('click', () => $('submitSuccessOverlay').classList.remove('active'));
-$('clearBtn').addEventListener('click', resetForm);
-$('printBtn').addEventListener('click', () => window.print());
-document.querySelector('.add-row-btn').addEventListener('click', () => addSessionRow());
-$('logoutBtn').addEventListener('click', async () => { sessionStorage.clear(); await signOut(auth); location.replace('index.html'); });
-$('savePasswordBtn').addEventListener('click', async () => {
-    const err = $('pwError'), ok = $('pwSuccess'); err.style.display='none'; ok.style.display='none';
-    const current = $('currentPassword').value, next = $('newPassword').value, confirm = $('confirmPassword').value;
-    if (next.length < 6) { err.textContent = 'New password must be at least 6 characters.'; err.style.display='block'; return; }
-    if (next !== confirm) { err.textContent = 'The new passwords do not match.'; err.style.display='block'; return; }
-    try {
-        const cred = EmailAuthProvider.credential(auth.currentUser.email, current);
-        await reauthenticateWithCredential(auth.currentUser, cred);
-        await updatePassword(auth.currentUser, next);
-        sessionStorage.removeItem('forcePasswordChange');
-        ok.textContent = 'Password changed successfully.'; ok.style.display='block';
-        setTimeout(() => $('passwordModal').classList.remove('open'), 700);
-    } catch (e) {
-        err.textContent = e.code === 'auth/invalid-credential' ? 'Current password is incorrect.' : (e.message || 'Could not change password.');
-        err.style.display='block';
-    }
-});
-
-onAuthStateChanged(auth, async user => {
-    if (!user) { location.replace('index.html'); return; }
-    try { await fillTutorFromLogin(user); }
-    catch (err) { hideBox('loadingBox'); showBox('errorBox', err.message || String(err)); console.error(err); }
+document.addEventListener('DOMContentLoaded',()=>{
+    createSearchableDropdown({inputId:'courseSearchInput',dropdownId:'courseDropdown',hiddenId:'course',getData:tutorCourses,onSelect:onCourseSelected});
+    setupFormSubmission($('reportForm'));initSignatureUpload();applyMode();
+    document.querySelectorAll('.add-row-btn').forEach(btn=>btn.addEventListener('click',()=>addSessionRow('f2f')));
+    ['courseSearchInput','program','studyCentre'].forEach(id=>{const el=$(id);if(el){el.addEventListener('input',scheduleDuplicateCheck);el.addEventListener('change',scheduleDuplicateCheck);}});
+    document.querySelectorAll('input[name="semester"]').forEach(r=>r.addEventListener('change',scheduleDuplicateCheck));
+    $('refreshClaimsBtn').addEventListener('click',loadMyClaims);$('newClaimBtn').addEventListener('click',()=>{clearEditMode();resetForm();});$('cancelEditBtn').addEventListener('click',()=>{clearEditMode();resetForm();});$('openDuplicateClaimBtn').addEventListener('click',openDuplicateClaimFromNotice);$('hideDuplicateNoticeBtn').addEventListener('click',clearDuplicateNotice);
+    $('previewOverlay').addEventListener('click',e=>{if(e.target===$('previewOverlay'))closePreview();});
+    if(sessionStorage.getItem('forcePasswordChange')==='1')setTimeout(()=>openPwModal(true),300);
 });
 </script>
 </body>
