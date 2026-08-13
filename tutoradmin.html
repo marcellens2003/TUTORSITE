@@ -201,6 +201,13 @@
   }
   .pill-row { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
   .pill { background:#eef2ff; color:#263c8a; border-radius:999px; padding:3px 8px; font-size:11px; font-weight:600; }
+
+  .course-builder { border: 1px solid #e9edf3; background:#fbfdff; border-radius: 12px; padding: 12px; margin-top: 8px; }
+  .course-builder .mini-title { font-size: 13px; font-weight: 800; color:#002147; margin: 2px 0 8px; }
+  .course-builder details { margin-top: 12px; }
+  .course-builder summary { cursor: pointer; font-weight: 700; color:#475467; font-size: 13px; }
+  .course-list-actions { white-space: nowrap; }
+  .course-list-empty { color:#98a2b3; font-style: italic; padding: 12px; }
 </style>
 </head>
 <body>
@@ -291,10 +298,90 @@
           <textarea id="programs" placeholder="One per line, e.g.&#10;MED Mathematics Education&#10;MPhil Information Technology Education"></textarea>
           <div class="hint">Leave blank when editing if you want to keep existing programmes unchanged.</div>
 
-          <label for="courses">Courses</label>
-          <textarea id="courses" placeholder="One per line using: CODE | Title | Programme | Study centre | Block | Mode | Travel From | Travel To&#10;Example:&#10;EMA803D | Curriculum Development in Mathematics Education | MED Mathematics Education | Accra | Block 1 | Blended | Accra | Kumasi"></textarea>
-          <div class="hint">
-            Each course assignment can include Block for record keeping, but tutors can choose the block themselves on the claim form. For face-to-face/blended rows, add Mode, Travel From, and Travel To so the distance is saved to claims and the Sheet without tutors seeing it.
+          <label>Courses</label>
+          <div class="course-builder">
+            <div class="mini-title">Add one course assignment</div>
+            <div class="row">
+              <div>
+                <label for="courseCodeInput">Course code</label>
+                <input id="courseCodeInput" type="text" placeholder="e.g. BUS805D" autocapitalize="characters">
+              </div>
+              <div>
+                <label for="courseTitleInput">Course title</label>
+                <input id="courseTitleInput" type="text" placeholder="e.g. Accounting and Finance for Managers">
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <label for="courseProgrammeInput">Programme</label>
+                <input id="courseProgrammeInput" type="text" placeholder="e.g. MBA Accounting">
+              </div>
+              <div>
+                <label for="courseCentreInput">Study centre</label>
+                <input id="courseCentreInput" type="text" list="centreOptions" placeholder="e.g. Papafio - Accra">
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <label for="courseBlockSelect">Block</label>
+                <select id="courseBlockSelect">
+                  <option value="">Select block</option>
+                  <option value="Block 1">Block 1</option>
+                  <option value="Block 2">Block 2</option>
+                  <option value="Block 3">Block 3</option>
+                </select>
+              </div>
+              <div>
+                <label for="courseModeSelect">Mode of delivery</label>
+                <select id="courseModeSelect">
+                  <option value="">Select mode</option>
+                  <option value="Blended">Blended</option>
+                  <option value="Purely Online">Purely Online</option>
+                </select>
+              </div>
+            </div>
+            <div class="row" id="courseTravelRow">
+              <div>
+                <label for="courseTravelFromInput">Travelling from</label>
+                <input id="courseTravelFromInput" type="text" list="centreOptions" placeholder="e.g. Cape Coast">
+              </div>
+              <div>
+                <label for="courseTravelToInput">Travelling to</label>
+                <input id="courseTravelToInput" type="text" list="centreOptions" placeholder="e.g. Accra">
+              </div>
+            </div>
+            <datalist id="centreOptions">
+              <option value="Accra">
+              <option value="Papafio - Accra">
+              <option value="Cape Coast">
+              <option value="Kumasi">
+              <option value="St. Louis, Kumasi">
+              <option value="Tamale">
+              <option value="Takoradi">
+              <option value="Ho">
+              <option value="Koforidua">
+              <option value="Sunyani">
+              <option value="Tema">
+              <option value="Bolga">
+              <option value="Wa">
+              <option value="UCC">
+              <option value="Purely Online">
+            </datalist>
+            <div class="toolbar" style="margin-top:14px;margin-bottom:8px;">
+              <button id="addCourseBtn" type="button">Add course to tutor</button>
+              <button id="clearCourseEntryBtn" type="button" class="subtle">Clear course fields</button>
+            </div>
+            <div class="hint">
+              Use separate boxes instead of typing with <code>|</code>. For Purely Online, travel fields are ignored. For Blended, add Travelling From and Travelling To when known. Distance is calculated later and hidden from tutors.
+            </div>
+            <div id="courseBuilderList" class="table-wrap" style="margin-top:12px;display:none;max-height:260px;"></div>
+            <details>
+              <summary>Advanced: paste/edit course lines</summary>
+              <textarea id="courses" placeholder="Optional advanced format: CODE | Title | Programme | Study centre | Block | Mode | Travel From | Travel To"></textarea>
+              <div class="toolbar" style="margin-top:10px;margin-bottom:0;">
+                <button id="loadCourseLinesBtn" type="button" class="subtle">Load these lines into the course form</button>
+              </div>
+            </details>
           </div>
 
           <label class="inline-check">
@@ -499,6 +586,7 @@
   var auth, db, secondaryApp, secondaryAuth;
   var tutors = [];
   var lastVerifiedLogin = null;
+  var courseBuilderRows = [];
 
   var TUTOR_DOMAIN = 'tutors.ucc.local';
   var AUTH_CONSOLE_URL = 'https://console.firebase.google.com/project/monitoringucc/authentication/users';
@@ -601,6 +689,123 @@
     return Array.isArray(programs) ? programs.join('\n') : '';
   }
 
+
+  function clearCourseEntryFields() {
+    var ids = ['courseCodeInput','courseTitleInput','courseProgrammeInput','courseCentreInput','courseTravelFromInput','courseTravelToInput'];
+    ids.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    var block = document.getElementById('courseBlockSelect');
+    var mode = document.getElementById('courseModeSelect');
+    if (block) block.value = '';
+    if (mode) mode.value = '';
+    updateCourseTravelVisibility();
+  }
+
+  function syncCourseTextareaFromBuilder(force) {
+    var textarea = document.getElementById('courses');
+    if (!textarea) return;
+    if (courseBuilderRows.length || force) textarea.value = courseTextFromDoc(courseBuilderRows);
+  }
+
+  function updateCourseTravelVisibility() {
+    var mode = document.getElementById('courseModeSelect');
+    var row = document.getElementById('courseTravelRow');
+    if (!mode || !row) return;
+    var isOnline = normalizeDeliveryModeForBulk(mode.value, '') === 'Purely Online';
+    row.style.opacity = isOnline ? '.45' : '1';
+    row.style.pointerEvents = isOnline ? 'none' : 'auto';
+    if (isOnline) {
+      document.getElementById('courseTravelFromInput').value = '';
+      document.getElementById('courseTravelToInput').value = '';
+    }
+  }
+
+  function renderCourseBuilderRows() {
+    var box = document.getElementById('courseBuilderList');
+    if (!box) return;
+    syncCourseTextareaFromBuilder(true);
+    if (!courseBuilderRows.length) {
+      box.style.display = 'block';
+      box.innerHTML = '<div class="course-list-empty">No course has been added yet.</div>';
+      return;
+    }
+    box.style.display = 'block';
+    box.innerHTML = '<table><thead><tr><th>Course</th><th>Programme</th><th>Centre / Block</th><th>Mode / Travel</th><th>Action</th></tr></thead><tbody>' +
+      courseBuilderRows.map(function (c, idx) {
+        var travel = (c.travelFrom || c.travelTo) ? escapeHTML((c.travelFrom || '') + (c.travelTo ? ' → ' + c.travelTo : '')) : '<span class="badge neutral">No travel</span>';
+        return '<tr>' +
+          '<td><strong>' + escapeHTML(c.code || '') + '</strong><br>' + escapeHTML(c.title || '') + '</td>' +
+          '<td>' + escapeHTML(c.program || '') + '</td>' +
+          '<td>' + escapeHTML(c.centre || '') + '<br><span class="pill">' + escapeHTML(c.block || 'No block') + '</span></td>' +
+          '<td>' + escapeHTML(c.mode || '') + '<br>' + travel + '</td>' +
+          '<td class="course-list-actions"><button type="button" class="small subtle editCourseRowBtn" data-index="' + idx + '">Edit</button> <button type="button" class="small danger removeCourseRowBtn" data-index="' + idx + '">Remove</button></td>' +
+        '</tr>';
+      }).join('') + '</tbody></table>';
+  }
+
+  function loadCoursesIntoBuilder(courses) {
+    courseBuilderRows = mergeCourseArrays([], Array.isArray(courses) ? courses : []);
+    renderCourseBuilderRows();
+  }
+
+  function readCourseEntryForm() {
+    var code = document.getElementById('courseCodeInput').value.trim().toUpperCase();
+    var title = document.getElementById('courseTitleInput').value.trim();
+    var program = document.getElementById('courseProgrammeInput').value.trim();
+    var centre = document.getElementById('courseCentreInput').value.trim();
+    var block = document.getElementById('courseBlockSelect').value;
+    var mode = document.getElementById('courseModeSelect').value;
+    var travelFrom = document.getElementById('courseTravelFromInput').value.trim();
+    var travelTo = document.getElementById('courseTravelToInput').value.trim();
+    return normalizeCourseForBulk(code, title, program, centre, block, mode, travelFrom, travelTo);
+  }
+
+  function addCourseFromForm() {
+    var course = readCourseEntryForm();
+    if (!(course.code || course.title)) {
+      setBox('saveResult', '❌ Enter at least a course code or course title before adding the course.', 'err');
+      return;
+    }
+    courseBuilderRows = mergeCourseArrays(courseBuilderRows, [course]);
+    renderCourseBuilderRows();
+    clearCourseEntryFields();
+    clearBox('saveResult');
+  }
+
+  function editCourseBuilderRow(index) {
+    index = Number(index);
+    if (!(index >= 0) || !courseBuilderRows[index]) return;
+    var c = courseBuilderRows[index];
+    document.getElementById('courseCodeInput').value = c.code || '';
+    document.getElementById('courseTitleInput').value = c.title || '';
+    document.getElementById('courseProgrammeInput').value = c.program || '';
+    document.getElementById('courseCentreInput').value = c.centre || '';
+    document.getElementById('courseBlockSelect').value = normalizeBlockForBulk(c.block || '');
+    document.getElementById('courseModeSelect').value = normalizeDeliveryModeForBulk(c.mode || '', c.centre || '');
+    document.getElementById('courseTravelFromInput').value = c.travelFrom || '';
+    document.getElementById('courseTravelToInput').value = c.travelTo || '';
+    courseBuilderRows.splice(index, 1);
+    renderCourseBuilderRows();
+    updateCourseTravelVisibility();
+  }
+
+  function removeCourseBuilderRow(index) {
+    index = Number(index);
+    if (!(index >= 0) || !courseBuilderRows[index]) return;
+    courseBuilderRows.splice(index, 1);
+    renderCourseBuilderRows();
+  }
+
+  function loadAdvancedCourseLinesIntoBuilder() {
+    var text = document.getElementById('courses').value || '';
+    var parsed = parseCourseLines(text);
+    courseBuilderRows = mergeCourseArrays([], parsed);
+    renderCourseBuilderRows();
+    setBox('saveResult', '✅ Loaded ' + parsed.length + ' course line(s) into the course form.', parsed.length ? 'ok' : 'warn');
+  }
+
   function setBox(id, html, cls) {
     var el = document.getElementById(id);
     el.style.display = 'block';
@@ -691,6 +896,7 @@
   }
 
   function buildTutorFieldsFromForm(existingDoc) {
+    if (courseBuilderRows.length) syncCourseTextareaFromBuilder(true);
     var name = document.getElementById('tutorName').value.trim();
     var programText = document.getElementById('programs').value;
     var courseText = document.getElementById('courses').value;
@@ -806,6 +1012,8 @@
     document.getElementById('tutorName').value = '';
     document.getElementById('programs').value = '';
     document.getElementById('courses').value = '';
+    loadCoursesIntoBuilder([]);
+    clearCourseEntryFields();
     document.getElementById('clearUidOnPasswordMismatch').checked = true;
     updateEmailPreview();
     clearBox('saveResult');
@@ -821,7 +1029,7 @@
     if (doc) {
       document.getElementById('tutorName').value = doc.name || '';
       document.getElementById('programs').value = programsTextFromDoc(doc.programs);
-      document.getElementById('courses').value = courseTextFromDoc(doc.courses);
+      loadCoursesIntoBuilder(doc.courses);
       setBox('saveResult',
         '<strong>Loaded ' + escapeHTML(sid) + '.</strong><br>' +
         'You can update the directory details. Enter a password only if you want to create or verify the login.',
@@ -830,6 +1038,7 @@
       document.getElementById('tutorName').value = '';
       document.getElementById('programs').value = '';
       document.getElementById('courses').value = '';
+      loadCoursesIntoBuilder([]);
       setBox('saveResult', '<strong>No Firestore record found for ' + escapeHTML(sid) + '.</strong><br>Fill the details and save to add this tutor.', '');
     }
 
@@ -1585,6 +1794,18 @@
     document.getElementById('staffId').addEventListener('input', updateEmailPreview);
     document.getElementById('saveTutorBtn').addEventListener('click', saveTutor);
     document.getElementById('clearFormBtn').addEventListener('click', clearTutorForm);
+    document.getElementById('addCourseBtn').addEventListener('click', addCourseFromForm);
+    document.getElementById('clearCourseEntryBtn').addEventListener('click', clearCourseEntryFields);
+    document.getElementById('courseModeSelect').addEventListener('change', updateCourseTravelVisibility);
+    document.getElementById('loadCourseLinesBtn').addEventListener('click', loadAdvancedCourseLinesIntoBuilder);
+    document.getElementById('courseBuilderList').addEventListener('click', function (e) {
+      var edit = e.target.closest('.editCourseRowBtn');
+      var remove = e.target.closest('.removeCourseRowBtn');
+      if (edit) editCourseBuilderRow(edit.getAttribute('data-index'));
+      if (remove) removeCourseBuilderRow(remove.getAttribute('data-index'));
+    });
+    renderCourseBuilderRows();
+    updateCourseTravelVisibility();
     document.getElementById('bulkPreviewBtn').addEventListener('click', renderBulkPreview);
     document.getElementById('bulkImportBtn').addEventListener('click', importBulkTutors);
     document.getElementById('bulkClearBtn').addEventListener('click', clearBulkImport);
