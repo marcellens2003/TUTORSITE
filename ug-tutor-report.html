@@ -481,18 +481,50 @@ function ensureSelectOption(selectEl,value){if(!selectEl||!value)return;if(!Arra
 async function fillTutorFromLogin(){
     const rawId=(sessionStorage.getItem('tutorStaffId')||'').trim().toUpperCase();
     const fbName=(sessionStorage.getItem('tutorName')||'').trim();
-    $('staffId').value=rawId;
-    $('tutorName').value=fbName||rawId;
-    $('tutorHint').textContent='Signed in as '+rawId+' — loading your undergraduate course list…';
-    $('courseSearchInput').disabled=true;
+    const idField=$('staffId'), nameField=$('tutorName'), hint=$('tutorHint'), courseInput=$('courseSearchInput');
+    CURRENT_TUTOR=null;
+    if(idField) idField.value=rawId;
+    if(nameField) nameField.value=fbName||rawId;
+    if(hint) hint.textContent='Signed in as '+rawId+' — loading your undergraduate course list…';
+    if(courseInput){courseInput.disabled=true;courseInput.placeholder='⏳ Loading your courses…';}
+
     try{
         const fs=window.__firestore;
-        const snap=await fs.getDoc(fs.doc(fs.db,'ug_tutors',rawId));
-        if(snap.exists()) CURRENT_TUTOR=snap.data();
-    }catch(e){console.error('Could not load ug_tutors record:',e);}
-    if(CURRENT_TUTOR){$('tutorName').value=CURRENT_TUTOR.name||CURRENT_TUTOR.fullName||fbName||rawId;$('tutorHint').textContent='Signed in as '+rawId;}
-    else {$('tutorHint').textContent='No undergraduate record found for '+rawId+'. Contact the administrator.';}
-    populateProgramDropdown();updateCourseAvailability();loadMyClaims();applyMode();
+        if(!fs || !fs.db) throw new Error('Firestore is not ready yet. Refresh and try again.');
+        if(!rawId) throw new Error('No Staff ID found in the login session. Sign out and sign in again.');
+
+        const ref=fs.doc(fs.db,'ug_tutors',rawId);
+        const snap=await fs.getDoc(ref);
+        if(!snap.exists()){
+            if(hint) hint.textContent='No undergraduate record found for '+rawId+'. Check that the document ID under ug_tutors is exactly '+rawId+'.';
+        }else{
+            const rec=snap.data()||{};
+            const recordUid=String(rec.uid||'').trim();
+            const loggedUid=String(window.__currentUserUid||'').trim();
+            if(recordUid && loggedUid && recordUid!==loggedUid){
+                if(hint) hint.textContent='Undergraduate record found, but the UID does not match this login account. Contact the administrator.';
+                console.error('UG tutor UID mismatch',{staffId:rawId,recordUid,loggedUid});
+            }else{
+                CURRENT_TUTOR=rec;
+            }
+        }
+    }catch(e){
+        console.error('Could not load ug_tutors/'+rawId+' from Firestore:',e);
+        const code=e && e.code ? ' ('+e.code+')' : '';
+        const message=e && e.message ? e.message : String(e);
+        if(hint) hint.textContent='Could not load undergraduate record for '+rawId+code+': '+message;
+    }
+
+    if(CURRENT_TUTOR){
+        if(nameField) nameField.value=CURRENT_TUTOR.name||CURRENT_TUTOR.fullName||fbName||rawId;
+        if(hint) hint.textContent='Signed in as '+rawId+' — undergraduate record loaded.';
+    }
+
+    if(courseInput){courseInput.disabled=false;courseInput.placeholder='🔍 Select the course you taught...';}
+    populateProgramDropdown();
+    updateCourseAvailability();
+    loadMyClaims();
+    applyMode();
 }
 window.fillTutorFromLogin=fillTutorFromLogin;
 
