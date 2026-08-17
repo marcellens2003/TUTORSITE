@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Tutor Admin — CoDE Facilitator Accounts</title>
+<title>Undergraduate Monitor/Tutor Admin — CoDE Claims</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -127,19 +127,19 @@
 <div class="page">
   <div class="topbar">
     <div class="brand">
-      <h1>Tutor Account Admin</h1>
-      <p>University of Cape Coast — College of Distance Education facilitator claim system</p>
+      <h1>Undergraduate Monitor & Tutor Admin</h1>
+      <p>University of Cape Coast — Undergraduate monitor claim-entry system</p>
     </div>
     <div class="top-actions">
-      <a class="link-btn subtle" href="index.html" target="_blank" rel="noopener">Open Tutor Login</a>
-      <a class="link-btn subtle" href="ug-tutor-report.html" target="_blank" rel="noopener">Open Report Form</a>
+      <a class="link-btn subtle" href="index.html" target="_blank" rel="noopener">Open Login</a>
+      <a class="link-btn subtle" href="ug-tutor-report.html" target="_blank" rel="noopener">Open Monitor Form</a>
       <button id="logoutBtn" class="danger" style="display:none;">Sign out</button>
     </div>
   </div>
 
   <div class="notice warn">
     <strong>LOCAL USE ONLY.</strong> Keep this file on your computer and do not publish it publicly.
-    It creates tutor login accounts using the same Staff ID → login email rule used by the tutor login page:
+    Undergraduate tutors are now Firestore records only. Monitors are the login users and use the same Staff ID → login email rule:
     <code>staff-id@tutors.ucc.local</code>.
   </div>
 
@@ -149,7 +149,7 @@
     <h2>Sign in to Firebase</h2>
     <div class="subtitle">
       Use your Firebase administrator account for the <code>monitoringucc</code> project.
-      This signs you into the admin page only. Tutor accounts are created using a separate background Firebase session.
+      This signs you into the admin page only. Monitor login accounts are created using a separate background Firebase session.
     </div>
     <div class="row" style="align-items:flex-end;">
       <div>
@@ -170,32 +170,27 @@
     <div class="grid">
       <div>
         <div class="card">
-          <h2>Teaching type</h2>
+          <h2>Undergraduate workflow</h2>
           <div class="subtitle">
-            The undergraduate form now lets tutors choose <strong>Face-to-Face</strong> or <strong>Purely Online</strong> on the claim form.
+            Monitors log in, search for any undergraduate tutor, select that tutor's course, and submit the claim on the tutor's behalf.
           </div>
           <div class="helper-box ok">
-            Course access is controlled only by the tutor's assigned course list. No active block filter is used on this admin page.
+            Tutors remain in <code>ug_tutors</code> as course records only. Monitors are managed in <code>ug_monitors</code> and are the only undergraduate users who need Firebase Authentication accounts.
           </div>
         </div>
 
         <div class="card">
-          <h2>Add / update one tutor</h2>
+          <h2>Add / update one tutor course record</h2>
           <div class="subtitle">
-            Use this for new facilitators and for repairing a tutor's Firestore record. If the login account already exists,
-            this page will test the password you type. If it is not the real password, it will warn you clearly instead of pretending the password was changed.
+            Use this for new facilitators and course-assignment updates. Undergraduate tutors do not need login accounts; monitors will search and select them on the claim form.
           </div>
 
           <div class="row">
             <div>
               <label for="staffId">Staff ID *</label>
               <input id="staffId" type="text" placeholder="e.g. 10344" autocapitalize="characters" spellcheck="false">
-              <div class="hint" id="emailPreview">Login email will appear here.</div>
-            </div>
-            <div>
-              <label for="loginPassword">Login password</label>
-              <input id="loginPassword" type="text" value="123456" placeholder="min 6 characters">
-              <div class="hint">For a new login, this becomes the password. For an existing login, it is only verified; it cannot overwrite an unknown old password.</div>
+              <div class="hint" id="emailPreview">Tutor records are saved in ug_tutors. No tutor login account will be created.</div>
+              <input id="loginPassword" type="hidden" value="123456">
             </div>
           </div>
 
@@ -261,16 +256,13 @@
             </details>
           </div>
 
-          <label class="inline-check">
-            <input id="clearUidOnPasswordMismatch" type="checkbox" checked>
-            <span>
-              If the login already exists but the typed password is wrong, clear the stored UID in Firestore.
-              This helps remove UID-mismatch lockouts, but the tutor must still use their correct existing password or you must recreate the Auth user.
-            </span>
+          <label class="inline-check" style="display:none;">
+            <input id="clearUidOnPasswordMismatch" type="checkbox">
+            <span>Tutor login repair is no longer used for undergraduate tutors.</span>
           </label>
 
           <div class="toolbar" style="margin-top:16px;">
-            <button id="saveTutorBtn">Save tutor / create login</button>
+            <button id="saveTutorBtn">Save tutor course record</button>
             <button id="clearFormBtn" class="subtle">Clear form</button>
           </div>
 
@@ -278,26 +270,21 @@
         </div>
 
         <div class="card">
-          <h2>Bulk add / update tutors from Excel</h2>
+          <h2>Bulk add / update tutor course records from Excel</h2>
           <div class="subtitle">
-            Copy rows from Excel and paste them here. The page will group multiple course rows under the same Staff ID automatically.
+            Copy rows from Excel and paste them here. The page will group multiple course rows under the same Staff ID automatically. No tutor Auth accounts will be created.
           </div>
 
           <div class="helper-box">
             <strong>Recommended column order:</strong><br>
-            <code>Staff ID</code> | <code>Full Name</code> | <code>Course Code</code> | <code>Course Title</code> | <code>Programme</code> | <code>Study Centre</code> | <code>Password</code>
-            <div class="hint">Password is optional. When blank, the default password below will be used. Course codes are kept exactly as pasted, including the final <strong>D</strong>.</div>
+            <code>Staff ID</code> | <code>Full Name</code> | <code>Course Code</code> | <code>Course Title</code> | <code>Programme</code> | <code>Study Centre</code>
+            <div class="hint">Course codes are kept exactly as pasted, including the final <strong>D</strong>. If your file still has a Password column, it will simply be ignored for tutors.</div>
           </div>
 
           <label for="bulkPaste">Paste tutor/course rows from Excel</label>
-          <textarea id="bulkPaste" style="min-height:170px;" placeholder="Staff ID&#9;Full Name&#9;Course Code&#9;Course Title&#9;Programme&#9;Study Centre&#9;Password&#10;10344&#9;Dr Regina Esi Turkson&#9;INF212D&#9;Algorithm&#9;Education&#9;Online&#9;123456"></textarea>
+          <textarea id="bulkPaste" style="min-height:170px;" placeholder="Staff ID&#9;Full Name&#9;Course Code&#9;Course Title&#9;Programme&#9;Study Centre&#10;10344&#9;Dr Regina Esi Turkson&#9;INF212D&#9;Algorithm&#9;Education&#9;Online"></textarea>
 
           <div class="row">
-            <div>
-              <label for="bulkDefaultPassword">Default password</label>
-              <input id="bulkDefaultPassword" type="text" value="123456" placeholder="e.g. 123456">
-              <div class="hint">Used when the pasted row has no password column/value.</div>
-            </div>
             <div>
               <label for="bulkCourseMode">Course update mode</label>
               <select id="bulkCourseMode">
@@ -307,29 +294,14 @@
               <div class="hint">Use replace only when your pasted list is the full correct course list for those tutors.</div>
             </div>
           </div>
-
-          <div class="row">
-            <div>
-              <label for="bulkStart">Start from tutor #</label>
-              <input id="bulkStart" type="number" min="1" value="1">
-              <div class="hint">Use the next tutor number shown after a batch stops.</div>
-            </div>
-            <div>
-              <label for="bulkLimit">Max new accounts this run</label>
-              <input id="bulkLimit" type="number" min="1" value="80">
-              <div class="hint">Recommended: keep this at 80 or less to avoid Firebase signup limits.</div>
-            </div>
-          </div>
-
-          <label class="inline-check">
-            <input id="bulkCreateLogin" type="checkbox">
-            <span>Create or verify tutor login accounts while importing.</span>
-          </label>
-          <div class="hint">Recommended: leave this unticked for large course uploads. Firestore course records will still be updated. Tick it only when you are ready to create/check login accounts in safe batches.</div>
+          <input id="bulkDefaultPassword" type="hidden" value="123456">
+          <input id="bulkStart" type="hidden" value="1">
+          <input id="bulkLimit" type="hidden" value="80">
+          <input id="bulkCreateLogin" type="checkbox" style="display:none;">
 
           <div class="toolbar" style="margin-top:16px;">
             <button id="bulkPreviewBtn">Preview bulk import</button>
-            <button id="bulkImportBtn" disabled>Import batch</button>
+            <button id="bulkImportBtn" disabled>Import tutor records</button>
             <button id="bulkClearBtn" class="subtle">Clear bulk box</button>
           </div>
 
@@ -340,9 +312,88 @@
 
       <div>
         <div class="card">
-          <h2>Test a tutor login</h2>
+          <h2>Add / update one monitor account</h2>
           <div class="subtitle">
-            This checks whether a Staff ID and password can actually sign in, then checks whether the Firestore record exists and whether the stored UID matches.
+            Monitors are the undergraduate login users. This creates/verifies the Firebase Authentication account and stores the monitor record in <code>ug_monitors</code>.
+          </div>
+          <div class="row">
+            <div>
+              <label for="monitorStaffIdInput">Monitor Staff ID *</label>
+              <input id="monitorStaffIdInput" type="text" placeholder="e.g. NSC25/109" autocapitalize="characters" spellcheck="false">
+              <div class="hint" id="monitorEmailPreview">Monitor login email will appear here.</div>
+            </div>
+            <div>
+              <label for="monitorPasswordInput">Password</label>
+              <input id="monitorPasswordInput" type="text" value="123456" placeholder="min 6 characters">
+              <div class="hint">For existing monitor accounts, the password is verified. It cannot overwrite an unknown old password.</div>
+            </div>
+          </div>
+          <label for="monitorNameInput">Full name *</label>
+          <input id="monitorNameInput" type="text" placeholder="e.g. Freda Kumi">
+          <label for="monitorDepartmentInput">Department / Unit</label>
+          <input id="monitorDepartmentInput" type="text" placeholder="e.g. E-Learning">
+          <label class="inline-check">
+            <input id="monitorActiveInput" type="checkbox" checked>
+            <span>Active monitor account</span>
+          </label>
+          <div class="toolbar" style="margin-top:16px;">
+            <button id="saveMonitorBtn">Save monitor / create login</button>
+            <button id="clearMonitorBtn" class="subtle">Clear monitor form</button>
+          </div>
+          <div id="monitorSaveResult" class="helper-box" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+          <h2>Bulk add / update monitors from Excel</h2>
+          <div class="subtitle">
+            Paste the monitor attendance-list data here. Repeated Staff IDs are grouped into one monitor account.
+          </div>
+          <div class="helper-box">
+            <strong>Recommended column order:</strong><br>
+            <code>Staff ID</code> | <code>Full Name</code> | <code>Department/Unit</code> | <code>Password</code>
+            <div class="hint">Password is optional. Blank passwords use <code>123456</code>. Keep the Staff ID format exactly, for example <code>NSC25/109</code>.</div>
+          </div>
+          <label for="monitorBulkPaste">Paste monitor rows from Excel</label>
+          <textarea id="monitorBulkPaste" style="min-height:130px;" placeholder="Staff ID&#9;Full Name&#9;Department/Unit&#9;Password&#10;NSC25/109&#9;Freda Kumi&#9;E-Learning&#9;123456"></textarea>
+          <div class="row">
+            <div>
+              <label for="monitorBulkStart">Start from monitor #</label>
+              <input id="monitorBulkStart" type="number" min="1" value="1">
+            </div>
+            <div>
+              <label for="monitorBulkLimit">Max new accounts this run</label>
+              <input id="monitorBulkLimit" type="number" min="1" value="80">
+              <div class="hint">Recommended: 80 or less to stay below Firebase signup limits.</div>
+            </div>
+          </div>
+          <div class="toolbar" style="margin-top:16px;">
+            <button id="monitorBulkPreviewBtn">Preview monitor import</button>
+            <button id="monitorBulkImportBtn" disabled>Import monitor batch</button>
+            <button id="monitorBulkClearBtn" class="subtle">Clear monitor box</button>
+          </div>
+          <div id="monitorBulkResult" class="helper-box" style="display:none;"></div>
+          <div id="monitorBulkPreview" class="table-wrap" style="display:none;max-height:300px;margin-top:12px;"></div>
+        </div>
+
+        <div class="card">
+          <h2>Existing monitors</h2>
+          <div class="toolbar">
+            <input id="monitorSearchBox" type="text" placeholder="Search monitors by name, Staff ID, department...">
+            <button id="refreshMonitorsBtn" class="subtle">Refresh</button>
+            <span class="count" id="monitorCount">0 monitors</span>
+          </div>
+          <div class="table-wrap" style="max-height:330px;">
+            <table>
+              <thead><tr><th>Monitor</th><th>Department</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="monitorsBody"><tr><td colspan="4" class="empty">Sign in to load monitors.</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Test a monitor login</h2>
+          <div class="subtitle">
+            This checks whether a monitor Staff ID and password can sign in, then checks whether the ug_monitors record exists and whether the stored UID matches.
           </div>
           <div class="row">
             <div>
@@ -351,7 +402,7 @@
             </div>
             <div>
               <label for="testPassword">Password</label>
-              <input id="testPassword" type="text" placeholder="Tutor password">
+              <input id="testPassword" type="text" placeholder="Monitor password">
             </div>
             <div style="flex:0 0 auto;display:flex;align-items:flex-end;">
               <button id="testLoginBtn">Test login</button>
@@ -367,7 +418,7 @@
         <div class="card">
           <h2>Change password when current password is known</h2>
           <div class="subtitle">
-            Browser pages cannot reset an unknown Firebase password. This tool works only when you know the tutor's current password.
+            Browser pages cannot reset an unknown Firebase password. This tool works only when you know the monitor's current password.
           </div>
           <div class="row">
             <div>
@@ -376,7 +427,7 @@
             </div>
             <div>
               <label for="pwCurrent">Current password</label>
-              <input id="pwCurrent" type="text" placeholder="Current tutor password">
+              <input id="pwCurrent" type="text" placeholder="Current monitor password">
             </div>
           </div>
           <div class="row">
@@ -392,7 +443,7 @@
         </div>
 
         <div class="card">
-          <h2>Existing tutors</h2>
+          <h2>Existing tutor records</h2>
           <div class="subtitle">Search, review, and load tutor records for editing.</div>
           <div class="toolbar">
             <input id="searchBox" type="search" placeholder="Search by name, Staff ID, programme, centre, or course">
@@ -402,7 +453,7 @@
           <div class="table-wrap" style="margin-top:10px;">
             <table>
               <thead>
-                <tr><th>Tutor</th><th>Courses</th><th>Auth</th><th>Actions</th></tr>
+                <tr><th>Tutor</th><th>Courses</th><th>Record</th><th>Actions</th></tr>
               </thead>
               <tbody id="tutorsBody"><tr><td colspan="4" class="empty">Sign in to load tutors.</td></tr></tbody>
             </table>
@@ -433,6 +484,7 @@ const firebaseConfig = {
 };
 
 const TUTOR_COLLECTION = 'ug_tutors';
+const MONITOR_COLLECTION = 'ug_monitors';
 const TUTOR_DOMAIN = 'tutors.ucc.local';
 const DEFAULT_PASSWORD = '123456';
 
@@ -442,8 +494,10 @@ const db = getFirestore(app);
 const $ = id => document.getElementById(id);
 
 let allTutors = [];
+let allMonitors = [];
 let courseBuffer = [];
 let bulkPreviewGroups = [];
+let monitorBulkGroups = [];
 let lastTest = null;
 
 function normalizeText(value) { return String(value == null ? '' : value).trim(); }
@@ -686,39 +740,34 @@ function loadPastedCourses(replace) {
 
 function updateEmailPreview() {
   const staffId = normalizeStaffId($('staffId').value);
-  $('emailPreview').textContent = staffId ? 'Login email: ' + tutorEmail(staffId) : 'Login email will appear here.';
+  $('emailPreview').textContent = staffId ? 'Tutor record ID: ' + staffId + ' — no tutor login account will be created.' : 'Tutor records are saved in ug_tutors. No tutor login account will be created.';
+}
+function updateMonitorEmailPreview() {
+  const staffId = normalizeStaffId($('monitorStaffIdInput').value);
+  $('monitorEmailPreview').textContent = staffId ? 'Monitor login email: ' + tutorEmail(staffId) : 'Monitor login email will appear here.';
 }
 
 async function saveTutorFromForm() {
   const btn = $('saveTutorBtn');
   const staffId = normalizeStaffId($('staffId').value);
   const name = normalizeText($('tutorName').value);
-  const password = normalizeText($('loginPassword').value) || DEFAULT_PASSWORD;
   if (!staffId || !name) return setBox('saveResult', 'Staff ID and full name are required.', 'err');
-  if (password.length < 6) return setBox('saveResult', 'Password must be at least 6 characters.', 'err');
   if (!courseBuffer.length) return setBox('saveResult', 'Add at least one course assignment.', 'err');
   disableButton(btn, true, 'Saving…');
   try {
-    const ref = doc(db, TUTOR_COLLECTION, staffId);
-    const snap = await getDoc(ref);
-    const existing = snap.exists() ? (snap.data() || {}) : {};
-    const loginResult = await createOrVerifyTutorLogin(staffId, password, existing, {
-      clearUidOnPasswordMismatch: $('clearUidOnPasswordMismatch').checked
-    });
-    const uid = loginResult.uid;
     await saveTutorDoc(staffId, {
       name,
       programs: splitMultiline($('programs').value),
       courses: courseBuffer
-    }, uid, false);
-    setBox('saveResult', '<strong>Saved.</strong><br>' + escapeHTML(loginResult.message) + '<br>Courses saved: <strong>' + courseBuffer.length + '</strong>', loginResult.status.includes('mismatch') ? 'warn' : 'ok');
-    log('Saved ' + staffId + ' — ' + name + ' (' + loginResult.status + ').', loginResult.status.includes('mismatch') ? 'warn' : 'ok');
+    }, undefined, false);
+    setBox('saveResult', '<strong>Tutor course record saved.</strong><br>No tutor login account was created. Monitors will be able to search and select this tutor.', 'ok');
+    log('Saved tutor course record ' + staffId + ' — ' + name + '.', 'ok');
     await loadTutors();
   } catch (err) {
     setBox('saveResult', escapeHTML(err.message || err), 'err');
     log('Save failed for ' + staffId + ': ' + (err.message || err), 'err');
   } finally {
-    disableButton(btn, false, 'Save tutor / create login');
+    disableButton(btn, false, 'Save tutor course record');
   }
 }
 
@@ -785,7 +834,7 @@ function renderBulkPreview() {
   }
   box.style.display = 'block';
   box.innerHTML = '<table><thead><tr><th>#</th><th>Staff ID</th><th>Name</th><th>Courses</th><th>Rows</th></tr></thead><tbody>' +
-    bulkPreviewGroups.map((g, i) => '<tr><td>' + (i+1) + '</td><td><strong>' + escapeHTML(g.staffId) + '</strong><br><span class="hint">' + escapeHTML(tutorEmail(g.staffId)) + '</span></td><td>' + escapeHTML(g.name) + '</td><td>' + g.courses.map(c => escapeHTML(c.label)).join('<br>') + '</td><td>' + escapeHTML(g.sourceRows.join(', ')) + '</td></tr>').join('') +
+    bulkPreviewGroups.map((g, i) => '<tr><td>' + (i+1) + '</td><td><strong>' + escapeHTML(g.staffId) + '</strong></td><td>' + escapeHTML(g.name) + '</td><td>' + g.courses.map(c => escapeHTML(c.label)).join('<br>') + '</td><td>' + escapeHTML(g.sourceRows.join(', ')) + '</td></tr>').join('') +
     '</tbody></table>';
 }
 
@@ -796,7 +845,7 @@ function previewBulkImport() {
     $('bulkImportBtn').disabled = !bulkPreviewGroups.length;
     $('bulkStart').max = String(bulkPreviewGroups.length || 1);
     const rows = bulkPreviewGroups.reduce((n, g) => n + g.courses.length, 0);
-    setBox('bulkResult', '<strong>Preview ready.</strong><br>Tutors: <strong>' + bulkPreviewGroups.length + '</strong><br>Course rows: <strong>' + rows + '</strong><br>Use Start from tutor # and Max new accounts for safe batches.', 'ok');
+    setBox('bulkResult', '<strong>Preview ready.</strong><br>Tutors: <strong>' + bulkPreviewGroups.length + '</strong><br>Course rows: <strong>' + rows + '</strong><br>No tutor login accounts will be created.', 'ok');
     log('Bulk preview ready: ' + bulkPreviewGroups.length + ' tutor(s), ' + rows + ' course row(s).', 'ok');
   } catch (err) {
     setBox('bulkResult', escapeHTML(err.message || err), 'err');
@@ -804,84 +853,41 @@ function previewBulkImport() {
   }
 }
 
-async function tutorNeedsNewAuth(staffId) {
-  const snap = await getDoc(doc(db, TUTOR_COLLECTION, normalizeStaffId(staffId)));
-  if (!snap.exists()) return true;
-  const data = snap.data() || {};
-  return !normalizeText(data.uid);
-}
-
 async function importBulk() {
   if (!bulkPreviewGroups.length) return;
   const btn = $('bulkImportBtn');
-  const start = Math.max(1, Number($('bulkStart').value || 1));
-  const maxNew = Math.max(1, Number($('bulkLimit').value || 80));
-  const createLogin = $('bulkCreateLogin').checked;
   const merge = $('bulkCourseMode').value !== 'replace';
-  let processed = 0, firestoreSaved = 0, created = 0, verified = 0, skippedAuth = 0, warnings = 0, failed = 0;
+  let processed = 0, firestoreSaved = 0, failed = 0;
   const messages = [];
-  let stopped = false;
-  let next = start;
   disableButton(btn, true, 'Importing…');
   try {
-    for (let i = start - 1; i < bulkPreviewGroups.length; i++) {
+    for (let i = 0; i < bulkPreviewGroups.length; i++) {
       const group = bulkPreviewGroups[i];
-      next = i + 1;
-      log('Processing #' + (i+1) + ' ' + group.staffId + ' — ' + group.name + '...', '');
-      let uidToStore;
-      let authNote = 'course update only';
+      log('Saving tutor record #' + (i+1) + ' ' + group.staffId + ' — ' + group.name + '...', '');
       try {
-        const ref = doc(db, TUTOR_COLLECTION, group.staffId);
-        const snap = await getDoc(ref);
-        const existing = snap.exists() ? (snap.data() || {}) : {};
-        if (createLogin) {
-          const needsNew = !normalizeText(existing.uid);
-          if (needsNew && created >= maxNew) {
-            stopped = true;
-            next = i + 1;
-            break;
-          }
-          const loginResult = await createOrVerifyTutorLogin(group.staffId, group.password, existing, { clearUidOnPasswordMismatch: false });
-          uidToStore = loginResult.uid;
-          authNote = loginResult.status;
-          if (loginResult.status === 'created') created++;
-          else if (loginResult.status === 'verified') verified++;
-          else warnings++;
-        } else {
-          uidToStore = existing.uid !== undefined ? existing.uid : undefined;
-          skippedAuth++;
-        }
-        await saveTutorDoc(group.staffId, { name: group.name, courses: group.courses, programs: [] }, uidToStore, merge);
+        await saveTutorDoc(group.staffId, { name: group.name, courses: group.courses, programs: [] }, undefined, merge);
         processed++;
         firestoreSaved++;
-        log('Bulk saved ' + group.staffId + ' (' + authNote + ').', authNote.indexOf('mismatch') > -1 ? 'warn' : 'ok');
-        next = i + 2;
+        log('Saved tutor course record ' + group.staffId + '.', 'ok');
       } catch (err) {
         processed++;
         failed++;
         const msg = group.staffId + ': ' + (err.message || err);
         messages.push(msg);
         log('Bulk import failed for ' + msg, 'err');
-        next = i + 2;
       }
     }
-    if (next > bulkPreviewGroups.length) next = bulkPreviewGroups.length + 1;
-    $('bulkStart').value = String(Math.min(next, Math.max(1, bulkPreviewGroups.length)));
-    let html = '<strong>Bulk import batch complete.</strong><br>' +
+    let html = '<strong>Tutor-course import complete.</strong><br>' +
       'Processed tutors: <strong>' + processed + '</strong><br>' +
-      'Firestore records saved: <strong>' + firestoreSaved + '</strong><br>' +
-      'Logins created: <strong>' + created + '</strong><br>' +
-      'Existing logins verified: <strong>' + verified + '</strong><br>' +
-      'Auth skipped: <strong>' + skippedAuth + '</strong><br>' +
-      'Warnings: <strong>' + warnings + '</strong><br>' +
+      'Firestore tutor records saved: <strong>' + firestoreSaved + '</strong><br>' +
+      'Tutor Auth accounts created: <strong>0</strong><br>' +
       'Failed: <strong>' + failed + '</strong>';
-    if (stopped) html += '<br><br><strong>Stopped before tutor #' + next + '</strong> to respect the new-account limit. Wait about an hour, then continue from tutor #' + next + '.';
-    if (!createLogin) html += '<br><br><strong>Note:</strong> Login creation/checking was unticked, so this run updated only Firestore tutor/course records.';
+    html += '<br><br><strong>Note:</strong> Undergraduate tutors are records only. Monitors use login accounts.';
     if (messages.length) html += '<br><br>' + escapeHTML(messages.slice(0, 10).join('\n'));
     setBox('bulkResult', html, failed ? 'warn' : 'ok');
     await loadTutors();
   } finally {
-    disableButton(btn, false, 'Import batch');
+    disableButton(btn, false, 'Import tutor records');
   }
 }
 
@@ -906,15 +912,15 @@ async function testTutorLogin() {
     const uid = session.user.uid;
     await signOut(session.auth).catch(() => {});
     await deleteApp(session.app).catch(() => {});
-    const snap = await getDoc(doc(db, TUTOR_COLLECTION, staffId));
+    const snap = await getDoc(doc(db, MONITOR_COLLECTION, staffId));
     const data = snap.exists() ? (snap.data() || {}) : null;
     const storedUid = data ? normalizeText(data.uid) : '';
     lastTest = { staffId, uid, storedUid, exists: !!data };
     let html = '<strong>Login works.</strong><br>Auth UID: <code>' + escapeHTML(uid) + '</code>';
-    if (!data) html += '<br><span class="badge err">No Firestore tutor record</span>';
+    if (!data) html += '<br><span class="badge err">No Firestore monitor record</span>';
     else if (!storedUid) html += '<br><span class="badge warn">Firestore record has no UID</span>';
     else if (storedUid !== uid) html += '<br><span class="badge err">UID mismatch</span><br>Stored UID: <code>' + escapeHTML(storedUid) + '</code>';
-    else html += '<br><span class="badge ok">Firestore UID matches</span><br>Courses: <strong>' + ((data.courses || []).length) + '</strong>';
+    else html += '<br><span class="badge ok">Firestore UID matches</span><br>Department: <strong>' + escapeHTML(data.department || data.unit || '') + '</strong>';
     setBox('testResult', html, (!data || !storedUid || storedUid !== uid) ? 'warn' : 'ok');
     $('repairActions').style.display = 'flex';
     log('Test login succeeded for ' + staffId + '.', 'ok');
@@ -928,18 +934,18 @@ async function testTutorLogin() {
 
 async function syncTestUid() {
   if (!lastTest) return;
-  await setDoc(doc(db, TUTOR_COLLECTION, lastTest.staffId), { staffId: lastTest.staffId, uid: lastTest.uid, updatedAt: serverTimestamp() }, { merge: true });
+  await setDoc(doc(db, MONITOR_COLLECTION, lastTest.staffId), { staffId: lastTest.staffId, uid: lastTest.uid, updatedAt: serverTimestamp() }, { merge: true });
   setBox('testResult', 'Stored verified UID for <strong>' + escapeHTML(lastTest.staffId) + '</strong>.', 'ok');
   log('Stored verified UID for ' + lastTest.staffId + '.', 'ok');
-  await loadTutors();
+  await loadMonitors();
 }
 
 async function removeTestUid() {
   if (!lastTest) return;
-  await updateDoc(doc(db, TUTOR_COLLECTION, lastTest.staffId), { uid: '', updatedAt: serverTimestamp() });
+  await updateDoc(doc(db, MONITOR_COLLECTION, lastTest.staffId), { uid: '', updatedAt: serverTimestamp() });
   setBox('testResult', 'Removed stored UID for <strong>' + escapeHTML(lastTest.staffId) + '</strong>.', 'warn');
   log('Removed UID for ' + lastTest.staffId + '.', 'warn');
-  await loadTutors();
+  await loadMonitors();
 }
 
 async function changeKnownPassword() {
@@ -955,7 +961,7 @@ async function changeKnownPassword() {
     session = await signInSecondary(tutorEmail(staffId), currentPassword, 'password');
     await updatePassword(session.user, newPassword);
     const uid = session.user.uid;
-    await setDoc(doc(db, TUTOR_COLLECTION, staffId), { uid, passwordChangedAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true });
+    await setDoc(doc(db, MONITOR_COLLECTION, staffId), { uid, passwordChangedAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true });
     setBox('pwResult', 'Password changed successfully for <strong>' + escapeHTML(staffId) + '</strong>.', 'ok');
     log('Changed password for ' + staffId + '.', 'ok');
   } catch (err) {
@@ -1002,9 +1008,9 @@ function renderTutors() {
   body.innerHTML = filtered.map(t => {
     const staffId = normalizeStaffId(t.staffId || t.id);
     return '<tr>' +
-      '<td><strong>' + escapeHTML(staffId) + '</strong><br>' + escapeHTML(t.name || '') + '<div class="hint">' + escapeHTML(tutorEmail(staffId)) + '</div></td>' +
+      '<td><strong>' + escapeHTML(staffId) + '</strong><br>' + escapeHTML(t.name || '') + '<div class="hint">No tutor login required</div></td>' +
       '<td>' + courseListHtml(t) + '</td>' +
-      '<td>' + (t.uid ? '<span class="badge ok">UID saved</span>' : '<span class="badge warn">No UID</span>') + '</td>' +
+      '<td><span class="badge neutral">Firestore record</span></td>' +
       '<td><button class="small subtle" data-edit="' + escapeHTML(t.id) + '">Edit</button></td>' +
     '</tr>';
   }).join('');
@@ -1024,6 +1030,220 @@ function loadTutorIntoForm(id) {
   clearBox('saveResult');
   window.scrollTo({ top: 0, behavior: 'smooth' });
   log('Loaded ' + (tutor.staffId || tutor.id) + ' into the edit form.', 'ok');
+}
+
+
+async function saveMonitorDoc(staffId, data, uidToStore) {
+  const sid = normalizeStaffId(staffId);
+  const ref = doc(db, MONITOR_COLLECTION, sid);
+  const snap = await getDoc(ref);
+  const existing = snap.exists() ? (snap.data() || {}) : {};
+  const payload = {
+    staffId: sid,
+    name: normalizeText(data.name || existing.name || sid),
+    department: normalizeText(data.department || data.unit || existing.department || existing.unit || ''),
+    unit: normalizeText(data.department || data.unit || existing.department || existing.unit || ''),
+    isActive: data.isActive !== false,
+    active: data.isActive !== false,
+    role: 'ug_monitor',
+    updatedAt: serverTimestamp()
+  };
+  if (!existing.createdAt) payload.createdAt = serverTimestamp();
+  if (uidToStore !== undefined) payload.uid = uidToStore;
+  else if (existing.uid) payload.uid = existing.uid;
+  await setDoc(ref, payload, { merge: true });
+  if (payload.uid) {
+    await setDoc(doc(db, 'ug_monitor_uids', payload.uid), {
+      uid: payload.uid,
+      staffId: sid,
+      name: payload.name,
+      department: payload.department,
+      isActive: payload.isActive,
+      active: payload.active,
+      role: 'ug_monitor',
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+  }
+  return { existed: snap.exists(), uid: payload.uid || '' };
+}
+
+async function saveMonitorFromForm() {
+  const btn = $('saveMonitorBtn');
+  const staffId = normalizeStaffId($('monitorStaffIdInput').value);
+  const name = normalizeText($('monitorNameInput').value);
+  const department = normalizeText($('monitorDepartmentInput').value);
+  const password = normalizeText($('monitorPasswordInput').value) || DEFAULT_PASSWORD;
+  if (!staffId || !name) return setBox('monitorSaveResult', 'Monitor Staff ID and full name are required.', 'err');
+  if (password.length < 6) return setBox('monitorSaveResult', 'Password must be at least 6 characters.', 'err');
+  disableButton(btn, true, 'Saving…');
+  try {
+    const snap = await getDoc(doc(db, MONITOR_COLLECTION, staffId));
+    const existing = snap.exists() ? (snap.data() || {}) : {};
+    const loginResult = await createOrVerifyTutorLogin(staffId, password, existing, { clearUidOnPasswordMismatch: false });
+    await saveMonitorDoc(staffId, { name, department, isActive: $('monitorActiveInput').checked }, loginResult.uid);
+    setBox('monitorSaveResult', '<strong>Monitor saved.</strong><br>' + escapeHTML(loginResult.message) + '<br>Login email: <code>' + escapeHTML(tutorEmail(staffId)) + '</code>', loginResult.status.includes('mismatch') ? 'warn' : 'ok');
+    log('Saved monitor ' + staffId + ' — ' + name + ' (' + loginResult.status + ').', loginResult.status.includes('mismatch') ? 'warn' : 'ok');
+    await loadMonitors();
+  } catch (err) {
+    setBox('monitorSaveResult', escapeHTML(err.message || err), 'err');
+    log('Monitor save failed for ' + staffId + ': ' + (err.message || err), 'err');
+  } finally {
+    disableButton(btn, false, 'Save monitor / create login');
+  }
+}
+
+function clearMonitorForm() {
+  ['monitorStaffIdInput','monitorNameInput','monitorDepartmentInput'].forEach(id => { if ($(id)) $(id).value = ''; });
+  $('monitorPasswordInput').value = DEFAULT_PASSWORD;
+  $('monitorActiveInput').checked = true;
+  updateMonitorEmailPreview();
+  clearBox('monitorSaveResult');
+}
+
+function parseMonitorBulkRows() {
+  const text = $('monitorBulkPaste').value.replace(/\r/g, '');
+  const lines = text.split('\n').filter(line => normalizeText(line));
+  if (!lines.length) throw new Error('Paste monitor rows from Excel first.');
+  const first = splitRow(lines[0]).map(normalizeText);
+  const start = /staff id|full name|department|unit|password/i.test(first.map(headerKey).join(' ')) ? 1 : 0;
+  const groups = new Map();
+  for (let i = start; i < lines.length; i++) {
+    const cells = splitRow(lines[i]).map(normalizeText);
+    // Accept either Staff ID | Full Name | Department | Password or S/N | Name | Staff ID | Department | Signature.
+    let staffId='', name='', department='', password='';
+    if (/^\d+$/.test(cells[0] || '') && cells.length >= 4) {
+      name = cells[1]; staffId = cells[2]; department = cells[3]; password = cells[4] || DEFAULT_PASSWORD;
+    } else {
+      staffId = cells[0]; name = cells[1]; department = cells[2]; password = cells[3] || DEFAULT_PASSWORD;
+    }
+    staffId = normalizeStaffId(staffId);
+    if (!staffId || !name) continue;
+    if (!groups.has(staffId)) groups.set(staffId, { staffId, name, department, password, sourceRows: [] });
+    const group = groups.get(staffId);
+    group.name = group.name || name;
+    group.department = group.department || department;
+    if (password) group.password = password;
+    group.sourceRows.push(i + 1);
+  }
+  return Array.from(groups.values());
+}
+
+function renderMonitorBulkPreview() {
+  const box = $('monitorBulkPreview');
+  if (!monitorBulkGroups.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.style.display = 'block';
+  box.innerHTML = '<table><thead><tr><th>#</th><th>Staff ID</th><th>Name</th><th>Department</th><th>Login Email</th><th>Rows</th></tr></thead><tbody>' +
+    monitorBulkGroups.map((g,i)=>'<tr><td>'+(i+1)+'</td><td><strong>'+escapeHTML(g.staffId)+'</strong></td><td>'+escapeHTML(g.name)+'</td><td>'+escapeHTML(g.department||'')+'</td><td><span class="hint">'+escapeHTML(tutorEmail(g.staffId))+'</span></td><td>'+escapeHTML(g.sourceRows.join(', '))+'</td></tr>').join('') +
+    '</tbody></table>';
+}
+
+function previewMonitorBulkImport() {
+  try {
+    monitorBulkGroups = parseMonitorBulkRows();
+    renderMonitorBulkPreview();
+    $('monitorBulkImportBtn').disabled = !monitorBulkGroups.length;
+    $('monitorBulkStart').max = String(monitorBulkGroups.length || 1);
+    setBox('monitorBulkResult', '<strong>Preview ready.</strong><br>Monitors: <strong>' + monitorBulkGroups.length + '</strong><br>Use Start from monitor # and Max new accounts for safe batches.', 'ok');
+    log('Monitor bulk preview ready: ' + monitorBulkGroups.length + ' monitor(s).', 'ok');
+  } catch (err) {
+    setBox('monitorBulkResult', escapeHTML(err.message || err), 'err');
+    log('Monitor bulk preview failed: ' + (err.message || err), 'err');
+  }
+}
+
+async function importMonitorBulk() {
+  if (!monitorBulkGroups.length) return;
+  const btn = $('monitorBulkImportBtn');
+  const start = Math.max(1, Number($('monitorBulkStart').value || 1));
+  const maxNew = Math.max(1, Number($('monitorBulkLimit').value || 80));
+  let processed=0, saved=0, created=0, verified=0, warnings=0, failed=0, next=start, stopped=false;
+  const messages=[];
+  disableButton(btn, true, 'Importing…');
+  try {
+    for (let i=start-1; i<monitorBulkGroups.length; i++) {
+      const group = monitorBulkGroups[i];
+      next = i + 1;
+      try {
+        const snap = await getDoc(doc(db, MONITOR_COLLECTION, group.staffId));
+        const existing = snap.exists() ? (snap.data() || {}) : {};
+        const needsNew = !normalizeText(existing.uid);
+        if (needsNew && created >= maxNew) { stopped = true; next = i + 1; break; }
+        const loginResult = await createOrVerifyTutorLogin(group.staffId, group.password || DEFAULT_PASSWORD, existing, { clearUidOnPasswordMismatch: false });
+        if (loginResult.status === 'created') created++; else if (loginResult.status === 'verified') verified++; else warnings++;
+        await saveMonitorDoc(group.staffId, { name: group.name, department: group.department, isActive: true }, loginResult.uid);
+        processed++; saved++; next = i + 2;
+        log('Saved monitor ' + group.staffId + ' (' + loginResult.status + ').', loginResult.status.includes('mismatch') ? 'warn' : 'ok');
+      } catch (err) {
+        processed++; failed++; next = i + 2;
+        const msg = group.staffId + ': ' + (err.message || err); messages.push(msg); log('Monitor import failed for ' + msg, 'err');
+      }
+    }
+    if (next > monitorBulkGroups.length) next = monitorBulkGroups.length + 1;
+    $('monitorBulkStart').value = String(Math.min(next, Math.max(1, monitorBulkGroups.length)));
+    let html = '<strong>Monitor import batch complete.</strong><br>' +
+      'Processed monitors: <strong>'+processed+'</strong><br>'+
+      'Firestore monitor records saved: <strong>'+saved+'</strong><br>'+
+      'New Auth accounts created: <strong>'+created+'</strong><br>'+
+      'Existing logins verified: <strong>'+verified+'</strong><br>'+
+      'Warnings: <strong>'+warnings+'</strong><br>'+
+      'Failed: <strong>'+failed+'</strong>';
+    if (stopped) html += '<br><br><strong>Stopped before monitor #'+next+'</strong> to respect the new-account limit. Wait about an hour, then continue from monitor #'+next+'.';
+    if (messages.length) html += '<br><br>'+escapeHTML(messages.slice(0,10).join('\n'));
+    setBox('monitorBulkResult', html, failed ? 'warn' : 'ok');
+    await loadMonitors();
+  } finally {
+    disableButton(btn, false, 'Import monitor batch');
+  }
+}
+
+function clearMonitorBulkImport() {
+  $('monitorBulkPaste').value = '';
+  monitorBulkGroups = [];
+  renderMonitorBulkPreview();
+  $('monitorBulkImportBtn').disabled = true;
+  clearBox('monitorBulkResult');
+}
+
+async function loadMonitors() {
+  const snap = await getDocs(collection(db, MONITOR_COLLECTION));
+  allMonitors = [];
+  snap.forEach(s => allMonitors.push({ id: s.id, ...(s.data() || {}) }));
+  allMonitors.sort((a,b)=>String(a.staffId||a.id).localeCompare(String(b.staffId||b.id), undefined, {numeric:true}));
+  renderMonitors();
+  log('Loaded ' + allMonitors.length + ' monitor records.', 'ok');
+}
+
+function renderMonitors() {
+  const q = normalizeText($('monitorSearchBox').value).toLowerCase();
+  const filtered = allMonitors.filter(m => [m.staffId,m.id,m.name,m.department,m.unit,m.uid].join(' ').toLowerCase().includes(q));
+  $('monitorCount').textContent = filtered.length + ' of ' + allMonitors.length + ' monitors';
+  const body = $('monitorsBody');
+  if (!filtered.length) { body.innerHTML = '<tr><td colspan="4" class="empty">No matching monitors.</td></tr>'; return; }
+  body.innerHTML = filtered.map(m=>{
+    const staffId = normalizeStaffId(m.staffId || m.id);
+    const active = !(m.isActive === false || m.active === false);
+    return '<tr>'+
+      '<td><strong>'+escapeHTML(staffId)+'</strong><br>'+escapeHTML(m.name||'')+'<div class="hint">'+escapeHTML(tutorEmail(staffId))+'</div></td>'+
+      '<td>'+escapeHTML(m.department||m.unit||'')+'</td>'+
+      '<td>'+(m.uid?'<span class="badge ok">UID saved</span>':'<span class="badge warn">No UID</span>')+' '+(active?'<span class="badge ok">Active</span>':'<span class="badge err">Inactive</span>')+'</td>'+
+      '<td><button class="small subtle" data-edit-monitor="'+escapeHTML(m.id)+'">Edit</button></td>'+
+    '</tr>';
+  }).join('');
+  body.querySelectorAll('[data-edit-monitor]').forEach(btn=>btn.addEventListener('click',()=>loadMonitorIntoForm(btn.dataset.editMonitor)));
+}
+
+function loadMonitorIntoForm(id) {
+  const m = allMonitors.find(x => String(x.id) === String(id));
+  if (!m) return;
+  $('monitorStaffIdInput').value = normalizeStaffId(m.staffId || m.id);
+  $('monitorNameInput').value = m.name || '';
+  $('monitorDepartmentInput').value = m.department || m.unit || '';
+  $('monitorPasswordInput').value = '';
+  $('monitorActiveInput').checked = !(m.isActive === false || m.active === false);
+  updateMonitorEmailPreview();
+  clearBox('monitorSaveResult');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  log('Loaded monitor ' + (m.staffId || m.id) + ' into the edit form.', 'ok');
 }
 
 $('loginBtn').addEventListener('click', async () => {
@@ -1048,8 +1268,9 @@ onAuthStateChanged(auth, async user => {
     $('loginCard').style.display = 'none';
     document.querySelector('.needs-auth').classList.add('visible');
     $('logoutBtn').style.display = 'inline-flex';
-    setStatus('Administrator access confirmed. Managing ' + TUTOR_COLLECTION + '.', 'ready');
+    setStatus('Administrator access confirmed. Managing tutor records and monitor accounts.', 'ready');
     await loadTutors();
+    await loadMonitors();
   } catch (err) {
     setStatus(err.message || String(err), 'fail');
     await signOut(auth);
@@ -1066,6 +1287,14 @@ $('clearFormBtn').addEventListener('click', clearTutorForm);
 $('bulkPreviewBtn').addEventListener('click', previewBulkImport);
 $('bulkImportBtn').addEventListener('click', importBulk);
 $('bulkClearBtn').addEventListener('click', clearBulkImport);
+$('monitorStaffIdInput').addEventListener('input', updateMonitorEmailPreview);
+$('saveMonitorBtn').addEventListener('click', saveMonitorFromForm);
+$('clearMonitorBtn').addEventListener('click', clearMonitorForm);
+$('monitorBulkPreviewBtn').addEventListener('click', previewMonitorBulkImport);
+$('monitorBulkImportBtn').addEventListener('click', importMonitorBulk);
+$('monitorBulkClearBtn').addEventListener('click', clearMonitorBulkImport);
+$('monitorSearchBox').addEventListener('input', renderMonitors);
+$('refreshMonitorsBtn').addEventListener('click', loadMonitors);
 $('testLoginBtn').addEventListener('click', testTutorLogin);
 $('syncUidBtn').addEventListener('click', syncTestUid);
 $('removeUidBtn').addEventListener('click', removeTestUid);
@@ -1075,6 +1304,7 @@ $('refreshBtn').addEventListener('click', loadTutors);
 
 renderCourseBuffer();
 updateEmailPreview();
+updateMonitorEmailPreview();
 </script>
 </body>
 </html>
