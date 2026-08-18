@@ -277,7 +277,7 @@
     };
     const COLLECTIONS = {
       pg: "tutors",
-      ug: "ug_tutors"
+      ug: "ug_monitors"
     };
     const AUTH_DOMAIN = "tutors.ucc.local";
     const TEMPORARY_PASSWORD = "123456";
@@ -314,12 +314,27 @@
       return value.trim().toUpperCase();
     }
 
+    function safeMonitorDocId(staffId) {
+      const cleaned = normalizeStaffId(staffId)
+        .replace(/[\/]+/g, "-")
+        .replace(/[^A-Z0-9_.-]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+      return cleaned || staffIdToEmail(staffId).split("@")[0] || "monitor";
+    }
+
+    function collectionDocId(portal, staffId) {
+      return portal === "ug" ? safeMonitorDocId(staffId) : staffId;
+    }
+
     function clearStoredSession() {
       [
         "tutorStaffId",
         "tutorName",
         "tutorPortal",
         "tutorCollection",
+        "monitorStaffId",
+        "monitorName",
+        "monitorCollection",
         "forcePasswordChange"
       ].forEach(key => sessionStorage.removeItem(key));
     }
@@ -351,7 +366,7 @@
 
     async function getTutorRecordSafely(portal, staffId, uid) {
       try {
-        const snapshot = await getDoc(doc(db, COLLECTIONS[portal], staffId));
+        const snapshot = await getDoc(doc(db, COLLECTIONS[portal], collectionDocId(portal, staffId)));
         return {
           portal,
           record: recordBelongsToUser(snapshot, uid),
@@ -362,7 +377,7 @@
         // Firestore rules may deny the collection that does not contain the tutor.
         // Do not fail the whole login if the other collection verifies correctly.
         const denied = error && (error.code === "permission-denied" || error.code === "firestore/permission-denied");
-        console.warn(`Could not check ${COLLECTIONS[portal]}/${staffId}:`, error);
+        console.warn(`Could not check ${COLLECTIONS[portal]}/${collectionDocId(portal, staffId)}:`, error);
         return {
           portal,
           record: null,
@@ -373,10 +388,23 @@
     }
 
     function savePortalSession(portal, staffId, data, passwordWasTemporary) {
-      sessionStorage.setItem("tutorStaffId", staffId);
-      sessionStorage.setItem("tutorName", data.name || data.fullName || staffId);
+      const displayName = data.name || data.fullName || staffId;
       sessionStorage.setItem("tutorPortal", portal);
       sessionStorage.setItem("tutorCollection", COLLECTIONS[portal]);
+
+      if (portal === "ug") {
+        sessionStorage.setItem("monitorStaffId", staffId);
+        sessionStorage.setItem("monitorName", displayName);
+        sessionStorage.setItem("monitorCollection", COLLECTIONS[portal]);
+        sessionStorage.setItem("tutorStaffId", "");
+        sessionStorage.setItem("tutorName", "");
+      } else {
+        sessionStorage.setItem("tutorStaffId", staffId);
+        sessionStorage.setItem("tutorName", displayName);
+        sessionStorage.removeItem("monitorStaffId");
+        sessionStorage.removeItem("monitorName");
+        sessionStorage.removeItem("monitorCollection");
+      }
 
       if (passwordWasTemporary) {
         sessionStorage.setItem("forcePasswordChange", "1");
@@ -429,7 +457,7 @@
         if (pgRecord && ugRecord) {
           await signOut(auth);
           setLoading(false);
-          showError("This Staff ID appears in both facilitator directories. The administrator must correct the duplicate Staff ID before you can continue.");
+          showError("This Staff ID appears in both the facilitator and undergraduate monitor directories. The administrator must correct the duplicate Staff ID before you can continue.");
           return;
         }
 
@@ -446,11 +474,11 @@
         setLoading(false);
 
         if (pgResult.permissionDenied || ugResult.permissionDenied) {
-          showError("The login was accepted, but Firestore blocked the tutor record check. Publish the updated Firestore rules and confirm this Staff ID exists in the correct tutor collection.");
+          showError("The login was accepted, but Firestore blocked the account record check. Publish the updated Firestore rules and confirm this Staff ID exists in the correct collection.");
           return;
         }
 
-        showError("Your account signed in, but this Staff ID was not found in the facilitator directories. Contact the administrator.");
+        showError("Your account signed in, but this Staff ID was not found in the facilitator or monitor directories. Contact the administrator.");
         return;
       } catch (error) {
         console.error(error);
