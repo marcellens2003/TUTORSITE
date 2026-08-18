@@ -504,6 +504,14 @@ function normalizeText(value) { return String(value == null ? '' : value).trim()
 function normalizeStaffId(value) { return normalizeText(value).toUpperCase(); }
 function escapeHTML(value) { return normalizeText(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch])); }
 function slugStaffId(staffId) { return normalizeStaffId(staffId).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }
+function safeMonitorDocId(staffId) {
+  const cleaned = normalizeStaffId(staffId)
+    .replace(/[\/]+/g, '-')
+    .replace(/[^A-Z0-9_.-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return cleaned || slugStaffId(staffId) || 'monitor';
+}
+function monitorDocRef(staffId) { return doc(db, MONITOR_COLLECTION, safeMonitorDocId(staffId)); }
 function tutorEmail(staffId) { return slugStaffId(staffId) + '@' + TUTOR_DOMAIN; }
 function setStatus(message, type='loading') { const el = $('status'); el.textContent = message; el.className = 'status ' + type; }
 function setBox(id, html, type='') { const el = $(id); el.style.display = 'block'; el.className = 'helper-box' + (type ? ' ' + type : ''); el.innerHTML = html; }
@@ -912,7 +920,7 @@ async function testTutorLogin() {
     const uid = session.user.uid;
     await signOut(session.auth).catch(() => {});
     await deleteApp(session.app).catch(() => {});
-    const snap = await getDoc(doc(db, MONITOR_COLLECTION, staffId));
+    const snap = await getDoc(monitorDocRef(staffId));
     const data = snap.exists() ? (snap.data() || {}) : null;
     const storedUid = data ? normalizeText(data.uid) : '';
     lastTest = { staffId, uid, storedUid, exists: !!data };
@@ -934,7 +942,7 @@ async function testTutorLogin() {
 
 async function syncTestUid() {
   if (!lastTest) return;
-  await setDoc(doc(db, MONITOR_COLLECTION, lastTest.staffId), { staffId: lastTest.staffId, uid: lastTest.uid, updatedAt: serverTimestamp() }, { merge: true });
+  await setDoc(monitorDocRef(lastTest.staffId), { staffId: lastTest.staffId, uid: lastTest.uid, updatedAt: serverTimestamp() }, { merge: true });
   setBox('testResult', 'Stored verified UID for <strong>' + escapeHTML(lastTest.staffId) + '</strong>.', 'ok');
   log('Stored verified UID for ' + lastTest.staffId + '.', 'ok');
   await loadMonitors();
@@ -942,7 +950,7 @@ async function syncTestUid() {
 
 async function removeTestUid() {
   if (!lastTest) return;
-  await updateDoc(doc(db, MONITOR_COLLECTION, lastTest.staffId), { uid: '', updatedAt: serverTimestamp() });
+  await updateDoc(monitorDocRef(lastTest.staffId), { uid: '', updatedAt: serverTimestamp() });
   setBox('testResult', 'Removed stored UID for <strong>' + escapeHTML(lastTest.staffId) + '</strong>.', 'warn');
   log('Removed UID for ' + lastTest.staffId + '.', 'warn');
   await loadMonitors();
@@ -961,7 +969,7 @@ async function changeKnownPassword() {
     session = await signInSecondary(tutorEmail(staffId), currentPassword, 'password');
     await updatePassword(session.user, newPassword);
     const uid = session.user.uid;
-    await setDoc(doc(db, MONITOR_COLLECTION, staffId), { uid, passwordChangedAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true });
+    await setDoc(monitorDocRef(staffId), { uid, passwordChangedAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true });
     setBox('pwResult', 'Password changed successfully for <strong>' + escapeHTML(staffId) + '</strong>.', 'ok');
     log('Changed password for ' + staffId + '.', 'ok');
   } catch (err) {
@@ -1035,7 +1043,7 @@ function loadTutorIntoForm(id) {
 
 async function saveMonitorDoc(staffId, data, uidToStore) {
   const sid = normalizeStaffId(staffId);
-  const ref = doc(db, MONITOR_COLLECTION, sid);
+  const ref = monitorDocRef(sid);
   const snap = await getDoc(ref);
   const existing = snap.exists() ? (snap.data() || {}) : {};
   const payload = {
@@ -1077,7 +1085,7 @@ async function saveMonitorFromForm() {
   if (password.length < 6) return setBox('monitorSaveResult', 'Password must be at least 6 characters.', 'err');
   disableButton(btn, true, 'Saving…');
   try {
-    const snap = await getDoc(doc(db, MONITOR_COLLECTION, staffId));
+    const snap = await getDoc(monitorDocRef(staffId));
     const existing = snap.exists() ? (snap.data() || {}) : {};
     const loginResult = await createOrVerifyTutorLogin(staffId, password, existing, { clearUidOnPasswordMismatch: false });
     await saveMonitorDoc(staffId, { name, department, isActive: $('monitorActiveInput').checked }, loginResult.uid);
@@ -1164,7 +1172,7 @@ async function importMonitorBulk() {
       const group = monitorBulkGroups[i];
       next = i + 1;
       try {
-        const snap = await getDoc(doc(db, MONITOR_COLLECTION, group.staffId));
+        const snap = await getDoc(monitorDocRef(group.staffId));
         const existing = snap.exists() ? (snap.data() || {}) : {};
         const needsNew = !normalizeText(existing.uid);
         if (needsNew && created >= maxNew) { stopped = true; next = i + 1; break; }
