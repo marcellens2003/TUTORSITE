@@ -84,8 +84,9 @@
         textarea { resize:vertical; min-height:100px; }
         .searchable-select-wrapper { position: relative; width: 100%; margin-top: 6px; }
         .searchable-input { width: 100%; padding: 11px; font-size: 15px; border: 1px solid #ccc; border-radius: 6px; outline: none; background-color: white; transition: border 0.3s; cursor: text; }
-        .dropdown-options { position: absolute; top: calc(100% + 4px); left: 0; right: 0; max-height: 280px; overflow-y: auto; background: white; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 6px 16px rgba(0,0,0,0.15); z-index: 999; display: none; }
-        .dropdown-options.show { display: block; }
+        /* Search results are kept in normal document flow so they cannot be hidden behind later form fields. */
+        .dropdown-options { position: relative; top: auto; left: auto; right: auto; width: 100%; margin-top: 4px; max-height: 280px; overflow-y: auto; background: white; border: 1px solid #b9c7da; border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.16); z-index: 50; display: none; visibility: visible; }
+        .dropdown-options.show { display: block !important; visibility: visible !important; }
         .option-item { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f0f0f0; transition: background 0.15s; font-size: 15px; }
         .option-item:hover { background-color: #e6f2ff; }
         .no-result { padding: 12px; color: #666; font-style: italic; text-align: center; }
@@ -474,70 +475,109 @@ function safeMonitorDocId(staffId){const cleaned=String(staffId||'').trim().toUp
 function createSearchableDropdown(config){
     const input=$(config.inputId), dropdown=$(config.dropdownId), hidden=$(config.hiddenId);
     if(!input || !dropdown || !hidden) return;
-    function getData(){return (config.getData()||[]).filter(Boolean);}
+
+    function getData(){ return (config.getData()||[]).filter(Boolean); }
+    function normalized(value){ return String(value||'').toLowerCase().trim(); }
+    function showDropdown(){
+        if(input.disabled) return;
+        dropdown.classList.add('show');
+        dropdown.style.display='block';
+        dropdown.style.visibility='visible';
+    }
+    function hideDropdown(){
+        dropdown.classList.remove('show');
+        dropdown.style.display='none';
+    }
     function render(filter=''){
         const all=getData();
-        const lower=String(filter||'').toLowerCase().trim();
-        const list=all.filter(item=>String(item).toLowerCase().includes(lower)).sort((a,b)=>a.localeCompare(b));
+        const lower=normalized(filter);
+        const list=all
+            .filter(item=>normalized(item).includes(lower))
+            .sort((a,b)=>a.localeCompare(b));
+
         dropdown.innerHTML='';
         if(!all.length){
             dropdown.innerHTML='<div class="no-result">'+(input.disabled?'Facilitator list is still loading…':'No facilitator records are available.')+'</div>';
             return;
         }
-        if(!list.length){dropdown.innerHTML='<div class="no-result">No matching facilitator found</div>'; return;}
-        list.slice(0,150).forEach(item=>{
+        if(!list.length){
+            dropdown.innerHTML='<div class="no-result">No matching facilitator found</div>';
+            return;
+        }
+
+        const limit = lower ? 40 : 20;
+        list.slice(0,limit).forEach(item=>{
             const div=document.createElement('div');
             div.className='option-item';
             div.textContent=item;
             div.setAttribute('role','option');
+            div.tabIndex=0;
             div.addEventListener('mousedown',e=>e.preventDefault());
             div.addEventListener('click',()=>selectItem(item));
+            div.addEventListener('keydown',e=>{
+                if(e.key==='Enter' || e.key===' '){ e.preventDefault(); selectItem(item); }
+            });
             dropdown.appendChild(div);
         });
-        if(list.length>150){
+        if(list.length>limit){
             const more=document.createElement('div');
             more.className='no-result';
-            more.textContent='Keep typing to narrow '+list.length+' matches.';
+            more.textContent='Showing '+limit+' of '+list.length+' matches. Keep typing to narrow the list.';
             dropdown.appendChild(more);
         }
     }
     function openDropdown(){
         if(input.disabled) return;
         render(input.value);
-        dropdown.classList.add('show');
+        showDropdown();
     }
     function selectItem(value){
         input.value=value;
         hidden.value=value;
-        dropdown.classList.remove('show');
+        hidden.dataset.lastSelected=value;
+        hideDropdown();
         input.setCustomValidity('');
         if(typeof config.onSelect==='function') config.onSelect(value);
     }
+
     input.addEventListener('focus',openDropdown);
     input.addEventListener('click',openDropdown);
-    input.addEventListener('keydown',e=>{
-        if(e.key==='ArrowDown' || e.key==='Enter') openDropdown();
-        if(e.key==='Escape') dropdown.classList.remove('show');
-    });
     input.addEventListener('input',function(){
-        const typed=this.value.toLowerCase().trim();
-        const exact=getData().find(item=>item.toLowerCase()===typed);
+        const typed=normalized(this.value);
+        const exact=getData().find(item=>normalized(item)===typed);
         hidden.value=exact||'';
         render(this.value);
-        dropdown.classList.add('show');
+        showDropdown();
         if(exact && typeof config.onExactMatch==='function') config.onExactMatch(exact);
+    });
+    input.addEventListener('keydown',e=>{
+        if(e.key==='Escape') hideDropdown();
+        if(e.key==='ArrowDown'){
+            e.preventDefault();
+            openDropdown();
+            const first=dropdown.querySelector('.option-item');
+            if(first) first.focus();
+        }
+        if(e.key==='Enter'){
+            const typed=normalized(input.value);
+            const matches=getData().filter(item=>normalized(item).includes(typed));
+            const exact=matches.find(item=>normalized(item)===typed);
+            if(exact){ e.preventDefault(); selectItem(exact); }
+            else if(matches.length===1){ e.preventDefault(); selectItem(matches[0]); }
+            else openDropdown();
+        }
     });
     input.addEventListener('dropdown-data-updated',()=>{
         if(document.activeElement===input){
             render(input.value);
-            dropdown.classList.add('show');
+            showDropdown();
         }
     });
     document.addEventListener('click',e=>{
         if(!input.contains(e.target)&&!dropdown.contains(e.target)){
-            dropdown.classList.remove('show');
-            const typed=input.value.toLowerCase().trim();
-            const exact=getData().find(item=>item.toLowerCase()===typed);
+            hideDropdown();
+            const typed=normalized(input.value);
+            const exact=getData().find(item=>normalized(item)===typed);
             if(exact){
                 input.value=exact;
                 hidden.value=exact;
@@ -553,7 +593,6 @@ function createSearchableDropdown(config){
         }
     });
 }
-
 function courseLabelValue(c){if(!c)return ''; if(c.label)return String(c.label).trim(); const code=String(c.code||c.courseCode||'').trim(); const title=String(c.title||c.courseTitle||'').trim(); return title?(code+' - '+title):code;}
 function filteredTutorCourseAssignments(){if(!CURRENT_TUTOR||!Array.isArray(CURRENT_TUTOR.courses))return [];return CURRENT_TUTOR.courses.map(c=>Object.assign({},c,{label:courseLabelValue(c)})).filter(c=>c.label);}
 function tutorCourses(){return [...new Set(filteredTutorCourseAssignments().map(c=>c.label).filter(Boolean))];}
