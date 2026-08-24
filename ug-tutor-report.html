@@ -473,18 +473,85 @@ function safeMonitorDocId(staffId){const cleaned=String(staffId||'').trim().toUp
 
 function createSearchableDropdown(config){
     const input=$(config.inputId), dropdown=$(config.dropdownId), hidden=$(config.hiddenId);
-    function getData(){return config.getData()||[];}
+    if(!input || !dropdown || !hidden) return;
+    function getData(){return (config.getData()||[]).filter(Boolean);}
     function render(filter=''){
-        const lower=filter.toLowerCase().trim();
-        const list=getData().filter(item=>item.toLowerCase().includes(lower)).sort((a,b)=>a.localeCompare(b));
+        const all=getData();
+        const lower=String(filter||'').toLowerCase().trim();
+        const list=all.filter(item=>String(item).toLowerCase().includes(lower)).sort((a,b)=>a.localeCompare(b));
         dropdown.innerHTML='';
-        if(!list.length){dropdown.innerHTML='<div class="no-result">No matching items</div>'; return;}
-        list.forEach(item=>{const div=document.createElement('div');div.className='option-item';div.textContent=item;div.onclick=()=>selectItem(item);dropdown.appendChild(div);});
+        if(!all.length){
+            dropdown.innerHTML='<div class="no-result">'+(input.disabled?'Facilitator list is still loading…':'No facilitator records are available.')+'</div>';
+            return;
+        }
+        if(!list.length){dropdown.innerHTML='<div class="no-result">No matching facilitator found</div>'; return;}
+        list.slice(0,150).forEach(item=>{
+            const div=document.createElement('div');
+            div.className='option-item';
+            div.textContent=item;
+            div.setAttribute('role','option');
+            div.addEventListener('mousedown',e=>e.preventDefault());
+            div.addEventListener('click',()=>selectItem(item));
+            dropdown.appendChild(div);
+        });
+        if(list.length>150){
+            const more=document.createElement('div');
+            more.className='no-result';
+            more.textContent='Keep typing to narrow '+list.length+' matches.';
+            dropdown.appendChild(more);
+        }
     }
-    function selectItem(value){input.value=value;hidden.value=value;dropdown.classList.remove('show');input.setCustomValidity(''); if(typeof config.onSelect==='function')config.onSelect(value);}
-    input.addEventListener('focus',()=>{render(input.value);dropdown.classList.add('show');});
-    input.addEventListener('input',function(){const typed=this.value.toLowerCase().trim();const exact=getData().find(item=>item.toLowerCase()===typed);hidden.value=exact||'';render(this.value);dropdown.classList.add('show');});
-    document.addEventListener('click',e=>{if(!input.contains(e.target)&&!dropdown.contains(e.target)){dropdown.classList.remove('show');const typed=input.value.toLowerCase().trim();const exact=getData().find(item=>item.toLowerCase()===typed);if(exact){input.value=exact;hidden.value=exact;input.setCustomValidity('');}else if(input.value.trim()){hidden.value='';input.setCustomValidity('Please select one of your assigned courses.');}}});
+    function openDropdown(){
+        if(input.disabled) return;
+        render(input.value);
+        dropdown.classList.add('show');
+    }
+    function selectItem(value){
+        input.value=value;
+        hidden.value=value;
+        dropdown.classList.remove('show');
+        input.setCustomValidity('');
+        if(typeof config.onSelect==='function') config.onSelect(value);
+    }
+    input.addEventListener('focus',openDropdown);
+    input.addEventListener('click',openDropdown);
+    input.addEventListener('keydown',e=>{
+        if(e.key==='ArrowDown' || e.key==='Enter') openDropdown();
+        if(e.key==='Escape') dropdown.classList.remove('show');
+    });
+    input.addEventListener('input',function(){
+        const typed=this.value.toLowerCase().trim();
+        const exact=getData().find(item=>item.toLowerCase()===typed);
+        hidden.value=exact||'';
+        render(this.value);
+        dropdown.classList.add('show');
+        if(exact && typeof config.onExactMatch==='function') config.onExactMatch(exact);
+    });
+    input.addEventListener('dropdown-data-updated',()=>{
+        if(document.activeElement===input){
+            render(input.value);
+            dropdown.classList.add('show');
+        }
+    });
+    document.addEventListener('click',e=>{
+        if(!input.contains(e.target)&&!dropdown.contains(e.target)){
+            dropdown.classList.remove('show');
+            const typed=input.value.toLowerCase().trim();
+            const exact=getData().find(item=>item.toLowerCase()===typed);
+            if(exact){
+                input.value=exact;
+                hidden.value=exact;
+                input.setCustomValidity('');
+                if(typeof config.onSelect==='function' && hidden.dataset.lastSelected!==exact){
+                    hidden.dataset.lastSelected=exact;
+                    config.onSelect(exact);
+                }
+            }else if(input.value.trim()){
+                hidden.value='';
+                input.setCustomValidity(config.invalidMessage||'Please select an item from the list.');
+            }
+        }
+    });
 }
 
 function courseLabelValue(c){if(!c)return ''; if(c.label)return String(c.label).trim(); const code=String(c.code||c.courseCode||'').trim(); const title=String(c.title||c.courseTitle||'').trim(); return title?(code+' - '+title):code;}
@@ -501,7 +568,7 @@ function onCourseSelected(label){const match=filteredTutorCourseAssignments().fi
 function ensureSelectOption(selectEl,value){if(!selectEl||!value)return;if(!Array.from(selectEl.options).some(o=>o.value===value)){const opt=document.createElement('option');opt.value=value;opt.textContent=value;selectEl.appendChild(opt);}}
 function setSelectedTutor(tutor){CURRENT_TUTOR=tutor||null;resetCourseSelection();if(CURRENT_TUTOR){const staffId=tutorDisplayId(CURRENT_TUTOR),name=tutorDisplayName(CURRENT_TUTOR)||staffId;$('selectedTutorId').value=staffId;$('staffId').value=staffId;$('tutorName').value=name;$('tutorHint').textContent='Selected facilitator: '+name+' ('+staffId+').';populateProgramDropdown();}else{$('selectedTutorId').value='';$('staffId').value='';$('tutorName').value='';$('tutorHint').textContent='Select a facilitator to load their courses.';}updateCourseAvailability();scheduleDuplicateCheck();}
 function onTutorSelected(label){const selected=ALL_TUTORS.find(t=>t.optionLabel===label);setSelectedTutor(selected||null);}
-async function loadAllTutorsForMonitor(){const fs=window.__firestore;if(!fs||!fs.db)throw new Error('Firestore is not ready. Refresh and try again.');const snap=await fs.getDocs(fs.collection(fs.db,'ug_tutors'));const tutors=[];snap.forEach(docSnap=>{const data=docSnap.data()||{};const id=String(data.staffId||docSnap.id||'').trim().toUpperCase();const t=Object.assign({},data,{docId:docSnap.id,staffId:id});t.optionLabel=tutorOptionLabel(t);if(id&&t.optionLabel)tutors.push(t);});tutors.sort((a,b)=>tutorOptionLabel(a).localeCompare(tutorOptionLabel(b)));ALL_TUTORS=tutors;}
+async function loadAllTutorsForMonitor(){const fs=window.__firestore;if(!fs||!fs.db)throw new Error('Firestore is not ready. Refresh and try again.');const snap=await fs.getDocs(fs.collection(fs.db,'ug_tutors'));const tutors=[];snap.forEach(docSnap=>{const data=docSnap.data()||{};const id=String(data.staffId||docSnap.id||'').trim().toUpperCase();const t=Object.assign({},data,{docId:docSnap.id,staffId:id});t.optionLabel=tutorOptionLabel(t);if(id&&t.optionLabel)tutors.push(t);});tutors.sort((a,b)=>tutorOptionLabel(a).localeCompare(tutorOptionLabel(b)));ALL_TUTORS=tutors;const search=$('tutorSearchInput');if(search)search.dispatchEvent(new Event('dropdown-data-updated'));}
 async function fillTutorFromLogin(){
     const rawId=(sessionStorage.getItem('monitorStaffId')||sessionStorage.getItem('tutorStaffId')||'').trim().toUpperCase();
     const fbName=(sessionStorage.getItem('monitorName')||sessionStorage.getItem('tutorName')||'').trim();
@@ -761,8 +828,8 @@ async function submitPwChange(){const current=$('pwCurrent').value,newPw=$('pwNe
 window.openPwModal=openPwModal;window.closePwModal=closePwModal;window.closePwModalOnBackdrop=closePwModalOnBackdrop;window.submitPwChange=submitPwChange;window.closePreview=closePreview;window.submitAndDownloadFromPreview=submitAndDownloadFromPreview;window.downloadPreviewPdf=downloadPreviewPdf;window.openDuplicateClaimFromNotice=openDuplicateClaimFromNotice;window.loadMyClaims=loadMyClaims;
 
 document.addEventListener('DOMContentLoaded',()=>{
-    createSearchableDropdown({inputId:'tutorSearchInput',dropdownId:'tutorDropdown',hiddenId:'selectedTutorId',getData:tutorOptions,onSelect:onTutorSelected});
-    createSearchableDropdown({inputId:'courseSearchInput',dropdownId:'courseDropdown',hiddenId:'course',getData:tutorCourses,onSelect:onCourseSelected});
+    createSearchableDropdown({inputId:'tutorSearchInput',dropdownId:'tutorDropdown',hiddenId:'selectedTutorId',getData:tutorOptions,onSelect:onTutorSelected,invalidMessage:'Please select a facilitator from the list.'});
+    createSearchableDropdown({inputId:'courseSearchInput',dropdownId:'courseDropdown',hiddenId:'course',getData:tutorCourses,onSelect:onCourseSelected,invalidMessage:'Please select one of the facilitator\'s assigned courses.'});
     setupFormSubmission($('reportForm'));initSignatureUpload();applyMode();
     document.querySelectorAll('input[name="modeOfDelivery"]').forEach(r=>r.addEventListener('change',applyMode));
     document.querySelectorAll('.add-row-btn').forEach(btn=>btn.addEventListener('click',()=>addSessionRow(btn.getAttribute('data-target')||'f2f')));
