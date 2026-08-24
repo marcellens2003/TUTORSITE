@@ -317,8 +317,8 @@
 
         <div class="field-label">SEARCH / SELECT FACILITATOR *</div>
         <div id="tutorSearchContainer" class="searchable-select-wrapper">
-            <input type="text" id="tutorSearchInput" class="searchable-input" placeholder="Loading tutors…" autocomplete="off" required>
-            <div id="tutorDropdown" class="dropdown-options"></div>
+            <input type="text" id="tutorSearchInput" class="searchable-input" placeholder="Loading tutors…" autocomplete="off" list="tutorDatalist" required>
+            <datalist id="tutorDatalist"></datalist>
             <input type="hidden" id="selectedTutorId" name="selectedTutorId" required>
         </div>
         <div class="hint" id="tutorSearchHint">Search by tutor name or Staff ID. No monitor-to-tutor assignment is required.</div>
@@ -340,8 +340,8 @@
 
         <div class="field-label">COURSE CODE & TITLE *</div>
         <div id="courseSearchContainer" class="searchable-select-wrapper">
-            <input type="text" id="courseSearchInput" class="searchable-input" placeholder="Select a tutor first…" autocomplete="off" required>
-            <div id="courseDropdown" class="dropdown-options"></div>
+            <input type="text" id="courseSearchInput" class="searchable-input" placeholder="Select a tutor first…" autocomplete="off" list="courseDatalist" required>
+            <datalist id="courseDatalist"></datalist>
             <input type="hidden" id="course" name="course" required>
         </div>
         <div class="hint" id="courseHint">Courses will appear after you select a facilitator.</div>
@@ -600,14 +600,83 @@ function tutorDisplayName(t){return String((t&&(t.name||t.fullName||t.tutorName)
 function tutorDisplayId(t){return String((t&&(t.staffId||t.id||t.docId))||'').trim().toUpperCase();}
 function tutorOptionLabel(t){const name=tutorDisplayName(t)||'Unnamed Tutor';const id=tutorDisplayId(t);return id ? (name+' — '+id) : name;}
 function tutorOptions(){return ALL_TUTORS.map(t=>t.optionLabel).filter(Boolean);}
+function populateTutorDatalist(){
+    const dl=$('tutorDatalist');
+    if(!dl)return;
+    dl.innerHTML='';
+    ALL_TUTORS.forEach(t=>{
+        const label=tutorOptionLabel(t);
+        if(!label)return;
+        const opt=document.createElement('option');
+        opt.value=label;
+        dl.appendChild(opt);
+    });
+}
+function populateCourseDatalist(){
+    const dl=$('courseDatalist');
+    if(!dl)return;
+    dl.innerHTML='';
+    tutorCourses().forEach(label=>{
+        const opt=document.createElement('option');
+        opt.value=label;
+        dl.appendChild(opt);
+    });
+}
+function findTutorByTypedLabel(value){
+    const typed=String(value||'').trim().toLowerCase();
+    if(!typed)return null;
+    return ALL_TUTORS.find(t=>String(t.optionLabel||tutorOptionLabel(t)).trim().toLowerCase()===typed)||null;
+}
+function setupNativeSearchInputs(){
+    const tutorInput=$('tutorSearchInput');
+    const courseInput=$('courseSearchInput');
+    if(tutorInput){
+        const chooseTutor=()=>{
+            const match=findTutorByTypedLabel(tutorInput.value);
+            if(match){
+                tutorInput.setCustomValidity('');
+                setSelectedTutor(match);
+            }else{
+                $('selectedTutorId').value='';
+                if(CURRENT_TUTOR) setSelectedTutor(null);
+            }
+        };
+        tutorInput.addEventListener('input',chooseTutor);
+        tutorInput.addEventListener('change',chooseTutor);
+        tutorInput.addEventListener('blur',()=>{
+            const match=findTutorByTypedLabel(tutorInput.value);
+            tutorInput.setCustomValidity(tutorInput.value.trim()&&!match?'Please select a facilitator from the suggestions.':'');
+        });
+    }
+    if(courseInput){
+        const chooseCourse=()=>{
+            const typed=String(courseInput.value||'').trim().toLowerCase();
+            const label=tutorCourses().find(x=>String(x).trim().toLowerCase()===typed)||'';
+            if(label){
+                courseInput.setCustomValidity('');
+                $('course').value=label;
+                onCourseSelected(label);
+            }else{
+                $('course').value='';
+            }
+        };
+        courseInput.addEventListener('input',chooseCourse);
+        courseInput.addEventListener('change',chooseCourse);
+        courseInput.addEventListener('blur',()=>{
+            const typed=String(courseInput.value||'').trim().toLowerCase();
+            const ok=tutorCourses().some(x=>String(x).trim().toLowerCase()===typed);
+            courseInput.setCustomValidity(courseInput.value.trim()&&!ok?'Please select one of this facilitator\'s assigned courses.':'');
+        });
+    }
+}
 function populateProgramDropdown(){const prog=$('program');prog.innerHTML='<option value="" disabled selected>Select programme</option>';const progs=[...new Set(filteredTutorCourseAssignments().map(c=>c.program||c.programme).filter(Boolean))];progs.forEach(p=>{const opt=document.createElement('option');opt.value=p;opt.textContent=p;prog.appendChild(opt);});if(progs.length===1)prog.value=progs[0];}
-function updateCourseAvailability(){const input=$('courseSearchInput'), hidden=$('course'), hint=$('courseHint');const courses=tutorCourses();if(!CURRENT_TUTOR){input.disabled=true;input.placeholder='Select a facilitator first…';hidden.value='';hint.textContent='Select a facilitator first. Their assigned courses will appear here.';return;}if(!courses.length){input.disabled=true;input.placeholder='No courses assigned';hidden.value='';hint.textContent='No course has been assigned to the selected facilitator. Please contact the administrator.';return;}input.disabled=false;input.placeholder='🔍 Select the course taught by this facilitator...';hint.textContent=courses.length+' course'+(courses.length===1?'':'s')+' available for '+(tutorDisplayName(CURRENT_TUTOR)||tutorDisplayId(CURRENT_TUTOR))+'.';}
+function updateCourseAvailability(){const input=$('courseSearchInput'), hidden=$('course'), hint=$('courseHint');populateCourseDatalist();const courses=tutorCourses();if(!CURRENT_TUTOR){input.disabled=true;input.placeholder='Select a facilitator first…';hidden.value='';hint.textContent='Select a facilitator first. Their assigned courses will appear here.';return;}if(!courses.length){input.disabled=true;input.placeholder='No courses assigned';hidden.value='';hint.textContent='No course has been assigned to the selected facilitator. Please contact the administrator.';return;}input.disabled=false;input.placeholder='🔍 Select the course taught by this facilitator...';hint.textContent=courses.length+' course'+(courses.length===1?'':'s')+' available for '+(tutorDisplayName(CURRENT_TUTOR)||tutorDisplayId(CURRENT_TUTOR))+'.';}
 function resetCourseSelection(){if($('courseSearchInput'))$('courseSearchInput').value='';if($('course'))$('course').value='';if($('program'))$('program').innerHTML='<option value="" disabled selected>Select programme</option>';if($('studyCentre'))$('studyCentre').value='';setTravelFields('','','','','');clearDuplicateNotice();}
 function onCourseSelected(label){const match=filteredTutorCourseAssignments().find(c=>c.label===label);if(!match)return;const p=match.program||match.programme||'';const centre=match.centre||match.studyCentre||match.studyCenter||'';if(p){ensureSelectOption($('program'),p);$('program').value=p;}if(centre)$('studyCentre').value=centre;setTravelFields(match.travelFrom||match.from||match.origin||'',match.travelTo||match.to||match.destination||'',match.travelDistanceIn||match.distanceIn||'',match.travelDistanceOut||match.distanceOut||'',match.travelTotalDistance||match.totalDistanceTravelled||match.totalDistance||'');scheduleDuplicateCheck();}
 function ensureSelectOption(selectEl,value){if(!selectEl||!value)return;if(!Array.from(selectEl.options).some(o=>o.value===value)){const opt=document.createElement('option');opt.value=value;opt.textContent=value;selectEl.appendChild(opt);}}
 function setSelectedTutor(tutor){CURRENT_TUTOR=tutor||null;resetCourseSelection();if(CURRENT_TUTOR){const staffId=tutorDisplayId(CURRENT_TUTOR),name=tutorDisplayName(CURRENT_TUTOR)||staffId;$('selectedTutorId').value=staffId;$('staffId').value=staffId;$('tutorName').value=name;$('tutorHint').textContent='Selected facilitator: '+name+' ('+staffId+').';populateProgramDropdown();}else{$('selectedTutorId').value='';$('staffId').value='';$('tutorName').value='';$('tutorHint').textContent='Select a facilitator to load their courses.';}updateCourseAvailability();scheduleDuplicateCheck();}
 function onTutorSelected(label){const selected=ALL_TUTORS.find(t=>t.optionLabel===label);setSelectedTutor(selected||null);}
-async function loadAllTutorsForMonitor(){const fs=window.__firestore;if(!fs||!fs.db)throw new Error('Firestore is not ready. Refresh and try again.');const snap=await fs.getDocs(fs.collection(fs.db,'ug_tutors'));const tutors=[];snap.forEach(docSnap=>{const data=docSnap.data()||{};const id=String(data.staffId||docSnap.id||'').trim().toUpperCase();const t=Object.assign({},data,{docId:docSnap.id,staffId:id});t.optionLabel=tutorOptionLabel(t);if(id&&t.optionLabel)tutors.push(t);});tutors.sort((a,b)=>tutorOptionLabel(a).localeCompare(tutorOptionLabel(b)));ALL_TUTORS=tutors;const search=$('tutorSearchInput');if(search)search.dispatchEvent(new Event('dropdown-data-updated'));}
+async function loadAllTutorsForMonitor(){const fs=window.__firestore;if(!fs||!fs.db)throw new Error('Firestore is not ready. Refresh and try again.');const snap=await fs.getDocs(fs.collection(fs.db,'ug_tutors'));const tutors=[];snap.forEach(docSnap=>{const data=docSnap.data()||{};const id=String(data.staffId||docSnap.id||'').trim().toUpperCase();const t=Object.assign({},data,{docId:docSnap.id,staffId:id});t.optionLabel=tutorOptionLabel(t);if(id&&t.optionLabel)tutors.push(t);});tutors.sort((a,b)=>tutorOptionLabel(a).localeCompare(tutorOptionLabel(b)));ALL_TUTORS=tutors;populateTutorDatalist();}
 async function fillTutorFromLogin(){
     const rawId=(sessionStorage.getItem('monitorStaffId')||sessionStorage.getItem('tutorStaffId')||'').trim().toUpperCase();
     const fbName=(sessionStorage.getItem('monitorName')||sessionStorage.getItem('tutorName')||'').trim();
@@ -867,9 +936,10 @@ async function submitPwChange(){const current=$('pwCurrent').value,newPw=$('pwNe
 window.openPwModal=openPwModal;window.closePwModal=closePwModal;window.closePwModalOnBackdrop=closePwModalOnBackdrop;window.submitPwChange=submitPwChange;window.closePreview=closePreview;window.submitAndDownloadFromPreview=submitAndDownloadFromPreview;window.downloadPreviewPdf=downloadPreviewPdf;window.openDuplicateClaimFromNotice=openDuplicateClaimFromNotice;window.loadMyClaims=loadMyClaims;
 
 document.addEventListener('DOMContentLoaded',()=>{
-    createSearchableDropdown({inputId:'tutorSearchInput',dropdownId:'tutorDropdown',hiddenId:'selectedTutorId',getData:tutorOptions,onSelect:onTutorSelected,invalidMessage:'Please select a facilitator from the list.'});
-    createSearchableDropdown({inputId:'courseSearchInput',dropdownId:'courseDropdown',hiddenId:'course',getData:tutorCourses,onSelect:onCourseSelected,invalidMessage:'Please select one of the facilitator\'s assigned courses.'});
-    setupFormSubmission($('reportForm'));initSignatureUpload();applyMode();
+    setupNativeSearchInputs();
+    setupFormSubmission($('reportForm'));
+    if(typeof initSignatureUpload==='function')initSignatureUpload();
+    applyMode();
     document.querySelectorAll('input[name="modeOfDelivery"]').forEach(r=>r.addEventListener('change',applyMode));
     document.querySelectorAll('.add-row-btn').forEach(btn=>btn.addEventListener('click',()=>addSessionRow(btn.getAttribute('data-target')||'f2f')));
     ['tutorSearchInput','courseSearchInput','program','studyCentre'].forEach(id=>{const el=$(id);if(el){el.addEventListener('input',scheduleDuplicateCheck);el.addEventListener('change',scheduleDuplicateCheck);}});
