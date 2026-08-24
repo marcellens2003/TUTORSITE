@@ -318,7 +318,7 @@
         <div class="field-label">SEARCH / SELECT FACILITATOR *</div>
         <div id="tutorSearchContainer" class="searchable-select-wrapper">
             <input type="text" id="tutorSearchInput" class="searchable-input" placeholder="Loading tutors…" autocomplete="off" required>
-            <div id="tutorSuggestions" class="dropdown-options" role="listbox" aria-label="Facilitator search results"></div>
+            <div id="tutorDropdown" class="dropdown-options" role="listbox" aria-label="Facilitator search results"></div>
             <input type="hidden" id="selectedTutorId" name="selectedTutorId" required>
         </div>
         <div class="hint" id="tutorSearchHint">Search by tutor name or Staff ID. No monitor-to-tutor assignment is required.</div>
@@ -341,7 +341,7 @@
         <div class="field-label">COURSE CODE & TITLE *</div>
         <div id="courseSearchContainer" class="searchable-select-wrapper">
             <input type="text" id="courseSearchInput" class="searchable-input" placeholder="Select a tutor first…" autocomplete="off" required>
-            <div id="courseSuggestions" class="dropdown-options" role="listbox" aria-label="Course search results"></div>
+            <div id="courseDropdown" class="dropdown-options" role="listbox" aria-label="Course search results"></div>
             <input type="hidden" id="course" name="course" required>
         </div>
         <div class="hint" id="courseHint">Courses will appear after you select a facilitator.</div>
@@ -805,8 +805,8 @@ function resetCourseSelection(){if($('courseSearchInput'))$('courseSearchInput')
 function onCourseSelected(label){const match=filteredTutorCourseAssignments().find(c=>c.label===label);if(!match)return;const p=match.program||match.programme||'';const centre=match.centre||match.studyCentre||match.studyCenter||'';if(p){ensureSelectOption($('program'),p);$('program').value=p;}if(centre)$('studyCentre').value=centre;setTravelFields(match.travelFrom||match.from||match.origin||'',match.travelTo||match.to||match.destination||'',match.travelDistanceIn||match.distanceIn||'',match.travelDistanceOut||match.distanceOut||'',match.travelTotalDistance||match.totalDistanceTravelled||match.totalDistance||'');scheduleDuplicateCheck();}
 function ensureSelectOption(selectEl,value){if(!selectEl||!value)return;if(!Array.from(selectEl.options).some(o=>o.value===value)){const opt=document.createElement('option');opt.value=value;opt.textContent=value;selectEl.appendChild(opt);}}
 function setSelectedTutor(tutor){CURRENT_TUTOR=tutor||null;resetCourseSelection();if(CURRENT_TUTOR){const staffId=tutorDisplayId(CURRENT_TUTOR),name=tutorDisplayName(CURRENT_TUTOR)||staffId;$('selectedTutorId').value=staffId;$('staffId').value=staffId;$('tutorName').value=name;$('tutorHint').textContent='Selected facilitator: '+name+' ('+staffId+').';populateProgramDropdown();}else{$('selectedTutorId').value='';$('staffId').value='';$('tutorName').value='';$('tutorHint').textContent='Select a facilitator to load their courses.';}updateCourseAvailability();if(window.__refreshCourseSuggestions&&document.activeElement===$('courseSearchInput'))window.__refreshCourseSuggestions();scheduleDuplicateCheck();}
-function onTutorSelected(label){const selected=ALL_TUTORS.find(t=>t.optionLabel===label);setSelectedTutor(selected||null);}
-async function loadAllTutorsForMonitor(){const fs=window.__firestore;if(!fs||!fs.db)throw new Error('Firestore is not ready. Refresh and try again.');const snap=await fs.getDocs(fs.collection(fs.db,'ug_tutors'));const tutors=[];snap.forEach(docSnap=>{const data=docSnap.data()||{};const id=String(data.staffId||docSnap.id||'').trim().toUpperCase();const t=Object.assign({},data,{docId:docSnap.id,staffId:id});t.optionLabel=tutorOptionLabel(t);if(id&&t.optionLabel)tutors.push(t);});tutors.sort((a,b)=>tutorOptionLabel(a).localeCompare(tutorOptionLabel(b)));ALL_TUTORS=tutors;populateTutorDatalist();if(window.__refreshTutorSuggestions&&document.activeElement===$('tutorSearchInput'))window.__refreshTutorSuggestions();}
+function onTutorSelected(label){const wanted=String(label||'').trim().toLowerCase();const selected=ALL_TUTORS.find(t=>String(t.optionLabel||tutorOptionLabel(t)).trim().toLowerCase()===wanted);setSelectedTutor(selected||null);}
+async function loadAllTutorsForMonitor(){const fs=window.__firestore;if(!fs||!fs.db)throw new Error('Firestore is not ready. Refresh and try again.');const snap=await fs.getDocs(fs.collection(fs.db,'ug_tutors'));const tutors=[];snap.forEach(docSnap=>{const data=docSnap.data()||{};const id=String(data.staffId||docSnap.id||'').trim().toUpperCase();const t=Object.assign({},data,{docId:docSnap.id,staffId:id});t.optionLabel=tutorOptionLabel(t);if(id&&t.optionLabel)tutors.push(t);});tutors.sort((a,b)=>tutorOptionLabel(a).localeCompare(tutorOptionLabel(b)));ALL_TUTORS=tutors;const search=$('tutorSearchInput');if(search)search.dispatchEvent(new Event('dropdown-data-updated'));}
 async function fillTutorFromLogin(){
     const rawId=(sessionStorage.getItem('monitorStaffId')||sessionStorage.getItem('tutorStaffId')||'').trim().toUpperCase();
     const fbName=(sessionStorage.getItem('monitorName')||sessionStorage.getItem('tutorName')||'').trim();
@@ -1066,7 +1066,24 @@ async function submitPwChange(){const current=$('pwCurrent').value,newPw=$('pwNe
 window.openPwModal=openPwModal;window.closePwModal=closePwModal;window.closePwModalOnBackdrop=closePwModalOnBackdrop;window.submitPwChange=submitPwChange;window.closePreview=closePreview;window.submitAndDownloadFromPreview=submitAndDownloadFromPreview;window.downloadPreviewPdf=downloadPreviewPdf;window.openDuplicateClaimFromNotice=openDuplicateClaimFromNotice;window.loadMyClaims=loadMyClaims;
 
 document.addEventListener('DOMContentLoaded',()=>{
-    setupNativeSearchInputs();
+    // Use the original searchable-dropdown implementation that reliably
+    // calls the selection callback and fills the dependent fields.
+    createSearchableDropdown({
+        inputId:'tutorSearchInput',
+        dropdownId:'tutorDropdown',
+        hiddenId:'selectedTutorId',
+        getData:tutorOptions,
+        onSelect:onTutorSelected,
+        invalidMessage:'Please select a facilitator from the list.'
+    });
+    createSearchableDropdown({
+        inputId:'courseSearchInput',
+        dropdownId:'courseDropdown',
+        hiddenId:'course',
+        getData:tutorCourses,
+        onSelect:onCourseSelected,
+        invalidMessage:'Please select one of the facilitator\'s assigned courses.'
+    });
     setupFormSubmission($('reportForm'));
     if(typeof initSignatureUpload==='function')initSignatureUpload();
     applyMode();
