@@ -98,6 +98,7 @@
         .mode-text { font-size: 15px; color: #444; font-weight:400; }
         .delivery-section[hidden] { display:none !important; }
         .search-results-list { width:100%; min-height:132px; margin-top:6px; padding:4px; border:1px solid #cfd4da; border-radius:8px; background:#fff; color:#222; font:inherit; }
+        .search-results-list[hidden] { display:none !important; }
         .search-results-list option { padding:8px 10px; white-space:normal; }
         button { width:100%; margin-top:30px; padding:13px; background: linear-gradient(135deg, #0056b3, #003d82); color:#fff; border:none; border-radius:6px; font-size:17px; font-weight:bold; cursor:pointer; transition: all 0.3s; letter-spacing:0.5px; }
         button:hover { background: linear-gradient(135deg, #004494, #002147); transform: translateY(-2px); box-shadow:0 4px 12px rgba(0,86,179,0.3); }
@@ -320,7 +321,7 @@
         <div class="field-label">SEARCH / SELECT FACILITATOR *</div>
         <div id="tutorSearchContainer" class="searchable-select-wrapper">
             <input type="text" id="tutorSearchInput" class="searchable-input" placeholder="Loading tutors…" autocomplete="off" required>
-            <select id="tutorResults" class="search-results-list" size="6" aria-label="Matching facilitators" disabled><option value="">Loading facilitators…</option></select>
+            <select id="tutorResults" class="search-results-list" size="6" aria-label="Matching facilitators" disabled hidden><option value="">Loading facilitators…</option></select>
             <input type="hidden" id="selectedTutorId" name="selectedTutorId" required>
         </div>
         <div class="hint" id="tutorSearchHint">Search by tutor name or Staff ID. No monitor-to-tutor assignment is required.</div>
@@ -479,8 +480,9 @@ function tutorCourses(){return [...new Set(filteredTutorCourseAssignments().map(
 function tutorDisplayName(t){return String((t&&(t.name||t.fullName||t.tutorName))||'').trim();}
 function tutorDisplayId(t){return String((t&&(t.staffId||t.id||t.docId))||'').trim().toUpperCase();}
 function tutorOptionLabel(t){const name=tutorDisplayName(t)||'Unnamed Tutor';const id=tutorDisplayId(t);return id ? (name+' — '+id) : name;}
-function renderTutorResults(filter=''){const list=$('tutorResults');if(!list)return;const term=String(filter||'').trim().toLowerCase();const matches=ALL_TUTORS.filter(t=>!term||t.optionLabel.toLowerCase().includes(term));list.innerHTML='';if(!matches.length){const option=document.createElement('option');option.value='';option.textContent='No matching facilitator found';list.appendChild(option);list.disabled=true;return;}matches.forEach(t=>{const option=document.createElement('option');option.value=tutorDisplayId(t);option.textContent=t.optionLabel;list.appendChild(option);});list.disabled=false;}
-function selectTutorById(staffId){const selected=ALL_TUTORS.find(t=>tutorDisplayId(t)===String(staffId||'').trim().toUpperCase());if(!selected)return;setSelectedTutor(selected);$('tutorSearchInput').value=selected.optionLabel;$('tutorSearchInput').setCustomValidity('');}
+function closeTutorResults(){const list=$('tutorResults');if(list)list.hidden=true;}
+function renderTutorResults(filter='',open=true){const list=$('tutorResults');if(!list)return;const term=String(filter||'').trim().toLowerCase();const matches=ALL_TUTORS.filter(t=>!term||t.optionLabel.toLowerCase().includes(term));list.innerHTML='';if(!matches.length){const option=document.createElement('option');option.value='';option.textContent='No matching facilitator found';list.appendChild(option);list.disabled=true;list.hidden=!open;return;}matches.forEach(t=>{const option=document.createElement('option');option.value=tutorDisplayId(t);option.textContent=t.optionLabel;list.appendChild(option);});list.disabled=false;list.hidden=!open;}
+function selectTutorById(staffId){const selected=ALL_TUTORS.find(t=>tutorDisplayId(t)===String(staffId||'').trim().toUpperCase());if(!selected)return;setSelectedTutor(selected);$('tutorSearchInput').value=selected.optionLabel;$('tutorSearchInput').setCustomValidity('');closeTutorResults();}
 function populateProgramDropdown(){const prog=$('program');prog.innerHTML='<option value="" disabled selected>Select programme</option>';const progs=[...new Set(filteredTutorCourseAssignments().map(c=>c.program||c.programme).filter(Boolean))];progs.forEach(p=>{const opt=document.createElement('option');opt.value=p;opt.textContent=p;prog.appendChild(opt);});if(progs.length===1)prog.value=progs[0];}
 function updateCourseAvailability(){const input=$('courseSearchInput'),hidden=$('course'),hint=$('courseHint');const courses=tutorCourses();input.innerHTML='';const first=document.createElement('option');first.value='';if(!CURRENT_TUTOR){first.textContent='Select a facilitator first…';input.appendChild(first);input.disabled=true;hidden.value='';hint.textContent='Select a facilitator first. Their assigned courses will appear here.';return;}if(!courses.length){first.textContent='No courses assigned';input.appendChild(first);input.disabled=true;hidden.value='';hint.textContent='No course has been assigned to the selected facilitator. Please contact the administrator.';return;}first.textContent='Select course code and title…';input.appendChild(first);courses.forEach(label=>{const option=document.createElement('option');option.value=label;option.textContent=label;input.appendChild(option);});input.disabled=false;hint.textContent=courses.length+' course'+(courses.length===1?'':'s')+' available for '+(tutorDisplayName(CURRENT_TUTOR)||tutorDisplayId(CURRENT_TUTOR))+'.';}
 function resetCourseSelection(){if($('courseSearchInput'))$('courseSearchInput').value='';if($('course'))$('course').value='';if($('program'))$('program').innerHTML='<option value="" disabled selected>Select programme</option>';if($('studyCentre'))$('studyCentre').value='';setTravelFields('','','','','');clearDuplicateNotice();}
@@ -526,7 +528,7 @@ async function fillTutorFromLogin(){
 
         await loadAllTutorsForMonitor();
         if(tutorSearchInput){tutorSearchInput.disabled=false;tutorSearchInput.placeholder='🔍 Search tutor by name or Staff ID...';}
-        renderTutorResults('');
+        renderTutorResults('',false);
         if($('tutorSearchHint'))$('tutorSearchHint').textContent=ALL_TUTORS.length+' facilitator record'+(ALL_TUTORS.length===1?'':'s')+' available. Search by name or Staff ID.';
         if(monitorHint)monitorHint.textContent='Signed in as '+rawId+' — '+(CURRENT_MONITOR.name||CURRENT_MONITOR.fullName||fbName||'monitor')+'.';
     }catch(e){
@@ -751,9 +753,11 @@ async function submitPwChange(){const current=$('pwCurrent').value,newPw=$('pwNe
 window.openPwModal=openPwModal;window.closePwModal=closePwModal;window.closePwModalOnBackdrop=closePwModalOnBackdrop;window.submitPwChange=submitPwChange;window.closePreview=closePreview;window.submitAndDownloadFromPreview=submitAndDownloadFromPreview;window.downloadPreviewPdf=downloadPreviewPdf;window.openDuplicateClaimFromNotice=openDuplicateClaimFromNotice;window.loadMyClaims=loadMyClaims;
 
 document.addEventListener('DOMContentLoaded',()=>{
-    $('tutorSearchInput').addEventListener('input',e=>{setSelectedTutor(null);renderTutorResults(e.target.value);});
+    $('tutorSearchInput').addEventListener('focus',e=>renderTutorResults(e.target.value,true));
+    $('tutorSearchInput').addEventListener('input',e=>{setSelectedTutor(null);renderTutorResults(e.target.value,true);});
+    $('tutorSearchInput').addEventListener('keydown',e=>{if(e.key==='ArrowDown'){e.preventDefault();renderTutorResults(e.currentTarget.value,true);if(!$('tutorResults').disabled)$('tutorResults').focus();}});
     $('tutorResults').addEventListener('change',e=>selectTutorById(e.target.value));
-    $('tutorResults').addEventListener('dblclick',e=>selectTutorById(e.target.value));
+    document.addEventListener('click',e=>{if(!$('tutorSearchContainer').contains(e.target))closeTutorResults();});
     $('courseSearchInput').addEventListener('change',e=>{$('course').value=e.target.value;onCourseSelected(e.target.value);e.target.setCustomValidity('');});
     setupFormSubmission($('reportForm'));initSignatureUpload();applyMode();
     document.querySelectorAll('input[name="modeOfDelivery"]').forEach(r=>r.addEventListener('change',applyMode));
