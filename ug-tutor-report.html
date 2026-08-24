@@ -321,7 +321,9 @@
         <div class="field-label">SEARCH / SELECT FACILITATOR *</div>
         <div id="tutorSearchContainer" class="searchable-select-wrapper">
             <input type="text" id="tutorSearchInput" class="searchable-input" placeholder="Loading tutors…" autocomplete="off" required>
-            <select id="tutorResults" class="search-results-select" size="7" aria-label="Matching facilitators" hidden></select>
+            <select id="tutorResults" class="search-results-select" size="8" aria-label="Matching facilitators">
+                <option value="" disabled selected>Loading facilitators…</option>
+            </select>
             <input type="hidden" id="selectedTutorId" name="selectedTutorId" required>
         </div>
         <div class="hint" id="tutorSearchHint">Search by tutor name or Staff ID. No monitor-to-tutor assignment is required.</div>
@@ -807,7 +809,25 @@ function renderTutorResults(){
     const input=$('tutorSearchInput'), results=$('tutorResults');
     if(!input||!results)return;
     results.innerHTML='';
-    if(input.disabled || !ALL_TUTORS.length){results.hidden=true;return;}
+
+    if(input.disabled){
+        const opt=document.createElement('option');
+        opt.value=''; opt.disabled=true; opt.selected=true;
+        opt.textContent='Loading facilitators…';
+        results.appendChild(opt);
+        results.size=2;
+        return;
+    }
+
+    if(!ALL_TUTORS.length){
+        const opt=document.createElement('option');
+        opt.value=''; opt.disabled=true; opt.selected=true;
+        opt.textContent='No facilitator records loaded';
+        results.appendChild(opt);
+        results.size=2;
+        return;
+    }
+
     const q=String(input.value||'').trim().toLowerCase();
     const matches=[];
     ALL_TUTORS.forEach((t,index)=>{
@@ -816,32 +836,62 @@ function renderTutorResults(){
         const label=tutorOptionLabel(t).toLowerCase();
         if(!q || name.includes(q) || id.includes(q) || label.includes(q))matches.push({t,index});
     });
-    const shown=matches.slice(0,60);
-    if(!shown.length){
-        const opt=document.createElement('option');opt.disabled=true;opt.textContent='No matching facilitator found';results.appendChild(opt);results.size=2;results.hidden=false;return;
+
+    if(!matches.length){
+        const opt=document.createElement('option');
+        opt.value=''; opt.disabled=true; opt.selected=true;
+        opt.textContent='No matching facilitator found';
+        results.appendChild(opt);
+        results.size=2;
+        return;
     }
-    shown.forEach(({t,index})=>{const opt=document.createElement('option');opt.value=String(index);opt.textContent=tutorOptionLabel(t);results.appendChild(opt);});
-    results.size=Math.min(Math.max(shown.length,2),7);
-    results.hidden=false;
+
+    matches.slice(0,80).forEach(({t,index})=>{
+        const opt=document.createElement('option');
+        opt.value=String(index);
+        opt.textContent=tutorOptionLabel(t);
+        results.appendChild(opt);
+    });
+    results.size=Math.min(Math.max(matches.length,3),8);
 }
 function chooseTutorFromResults(){
     const input=$('tutorSearchInput'), results=$('tutorResults');
     if(!input||!results||results.value==='')return;
-    const idx=Number(results.value);const tutor=ALL_TUTORS[idx];if(!tutor)return;
-    input.value=tutorOptionLabel(tutor);input.setCustomValidity('');results.hidden=true;results.innerHTML='';
+    const idx=Number(results.value);
+    const tutor=ALL_TUTORS[idx];
+    if(!tutor)return;
+    input.value=tutorOptionLabel(tutor);
+    input.setCustomValidity('');
     setSelectedTutor(tutor);
+    renderTutorResults();
 }
 function setupReliableTutorSearch(){
     const input=$('tutorSearchInput'), results=$('tutorResults');
     if(!input||!results)return;
+
+    // Keep the result list visible at all times. Typing only filters it.
+    input.addEventListener('input',()=>{
+        if(CURRENT_TUTOR && String(input.value||'').trim()!==tutorOptionLabel(CURRENT_TUTOR)){
+            setSelectedTutor(null);
+        }
+        input.setCustomValidity('');
+        renderTutorResults();
+    });
     input.addEventListener('focus',renderTutorResults);
     input.addEventListener('click',renderTutorResults);
-    input.addEventListener('input',()=>{if(CURRENT_TUTOR){setSelectedTutor(null);}input.setCustomValidity('');renderTutorResults();});
+
+    // Native select selection is the source of truth.
     results.addEventListener('change',chooseTutorFromResults);
-    results.addEventListener('click',chooseTutorFromResults);
-    results.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();chooseTutorFromResults();}});
-    document.addEventListener('click',e=>{const box=$('tutorSearchContainer');if(box&&!box.contains(e.target)){results.hidden=true;}});
+    results.addEventListener('dblclick',chooseTutorFromResults);
+    results.addEventListener('keydown',e=>{
+        if(e.key==='Enter'){
+            e.preventDefault();
+            chooseTutorFromResults();
+        }
+    });
+
     window.__renderTutorResults=renderTutorResults;
+    renderTutorResults();
 }
 function populateCourseSelect(){
     const select=$('courseSearchInput'), hidden=$('course');if(!select||!hidden)return;
@@ -865,7 +915,7 @@ function onCourseSelected(label){const match=filteredTutorCourseAssignments().fi
 function ensureSelectOption(selectEl,value){if(!selectEl||!value)return;if(!Array.from(selectEl.options).some(o=>o.value===value)){const opt=document.createElement('option');opt.value=value;opt.textContent=value;selectEl.appendChild(opt);}}
 function setSelectedTutor(tutor){CURRENT_TUTOR=tutor||null;resetCourseSelection();if(CURRENT_TUTOR){const staffId=tutorDisplayId(CURRENT_TUTOR),name=tutorDisplayName(CURRENT_TUTOR)||staffId;$('selectedTutorId').value=staffId;$('staffId').value=staffId;$('tutorName').value=name;$('tutorHint').textContent='Selected facilitator: '+name+' ('+staffId+').';populateProgramDropdown();}else{$('selectedTutorId').value='';$('staffId').value='';$('tutorName').value='';$('tutorHint').textContent='Select a facilitator to load their courses.';}updateCourseAvailability();scheduleDuplicateCheck();}
 function onTutorSelected(label){const wanted=String(label||'').trim().toLowerCase();const selected=ALL_TUTORS.find(t=>String(t.optionLabel||tutorOptionLabel(t)).trim().toLowerCase()===wanted);setSelectedTutor(selected||null);}
-async function loadAllTutorsForMonitor(){const fs=window.__firestore;if(!fs||!fs.db)throw new Error('Firestore is not ready. Refresh and try again.');const snap=await fs.getDocs(fs.collection(fs.db,'ug_tutors'));const tutors=[];snap.forEach(docSnap=>{const data=docSnap.data()||{};const id=String(data.staffId||docSnap.id||'').trim().toUpperCase();const t=Object.assign({},data,{docId:docSnap.id,staffId:id});t.optionLabel=tutorOptionLabel(t);if(id&&t.optionLabel)tutors.push(t);});tutors.sort((a,b)=>tutorOptionLabel(a).localeCompare(tutorOptionLabel(b)));ALL_TUTORS=tutors;if(window.__renderTutorResults&&document.activeElement===$('tutorSearchInput'))window.__renderTutorResults();}
+async function loadAllTutorsForMonitor(){const fs=window.__firestore;if(!fs||!fs.db)throw new Error('Firestore is not ready. Refresh and try again.');const snap=await fs.getDocs(fs.collection(fs.db,'ug_tutors'));const tutors=[];snap.forEach(docSnap=>{const data=docSnap.data()||{};const id=String(data.staffId||docSnap.id||'').trim().toUpperCase();const t=Object.assign({},data,{docId:docSnap.id,staffId:id});t.optionLabel=tutorOptionLabel(t);if(id&&t.optionLabel)tutors.push(t);});tutors.sort((a,b)=>tutorOptionLabel(a).localeCompare(tutorOptionLabel(b)));ALL_TUTORS=tutors;if(window.__renderTutorResults)window.__renderTutorResults();}
 async function fillTutorFromLogin(){
     const rawId=(sessionStorage.getItem('monitorStaffId')||sessionStorage.getItem('tutorStaffId')||'').trim().toUpperCase();
     const fbName=(sessionStorage.getItem('monitorName')||sessionStorage.getItem('tutorName')||'').trim();
@@ -903,7 +953,7 @@ async function fillTutorFromLogin(){
         if(monitorHint)monitorHint.textContent='Monitor profile loaded. Loading facilitator list…';
 
         await loadAllTutorsForMonitor();
-        if(tutorSearchInput){tutorSearchInput.disabled=false;tutorSearchInput.placeholder='🔍 Search tutor by name or Staff ID...'; if(window.__renderTutorResults&&document.activeElement===tutorSearchInput)window.__renderTutorResults();}
+        if(tutorSearchInput){tutorSearchInput.disabled=false;tutorSearchInput.placeholder='🔍 Search tutor by name or Staff ID...'; if(window.__renderTutorResults)window.__renderTutorResults();}
         if($('tutorSearchHint'))$('tutorSearchHint').textContent=ALL_TUTORS.length+' facilitator record'+(ALL_TUTORS.length===1?'':'s')+' available. Search by name or Staff ID.';
         if(monitorHint)monitorHint.textContent='Signed in as '+rawId+' — '+(CURRENT_MONITOR.name||CURRENT_MONITOR.fullName||fbName||'monitor')+'.';
     }catch(e){
