@@ -715,30 +715,41 @@ async function downloadSubmittedClaimPdf(id){const fs=window.__firestore;const s
 
 async function downloadPreviewPdf(){
     recomputeTotals();
-    const title='UNDERGRADUATE FACILITATOR CLAIM SUMMARY';
-    const lines=[];const add=(t='')=>lines.push(String(t));
-    add('UNIVERSITY OF CAPE COAST (UCC)');add('College of Distance Education (CoDE)');add(title);add('Generated: '+new Date().toLocaleString());add('');
-    add('MONITOR');add('Monitor Staff ID: '+$('monitorStaffId').value);add('Monitor Name: '+$('monitorName').value);add('');add('FACILITATOR');add('Staff ID: '+$('staffId').value);add('Name: '+$('tutorName').value);add('');
-    add('COURSE DETAILS');add('Course: '+($('courseSearchInput').value||$('course').value));add('Programme: '+$('program').value);add('Study Centre: '+$('studyCentre').value);add('Mode of Delivery: '+currentMode());add('Semester: '+((document.querySelector('input[name="semester"]:checked')||{}).value||''));add('');
-    if(currentMode()==='Purely Online'){
-        add('ONLINE SESSIONS');collectSessionItems('on').forEach((r,i)=>add((i+1)+'. '+(r.date||'-')+' | '+(r.startDisplay||'-')+' - '+(r.endDisplay||'-')+' | '+r.hours+' hrs'));
-        add('Total Online Hours: '+($('onTotal')?$('onTotal').textContent.replace(/\s+/g,' '):$('onHours').value));
-    } else {
-        add('FACE-TO-FACE SESSIONS');collectSessionItems('f2f').forEach((r,i)=>add((i+1)+'. '+(r.date||'-')+' | '+(r.startDisplay||'-')+' - '+(r.endDisplay||'-')+' | '+r.hours+' hrs'));
-        add('Total Face-to-Face Hours: '+$('f2fTotal').textContent.replace(/\s+/g,' '));
-        if($('travelFrom').value||$('travelTo').value){add('');add('FACILITATOR MOVEMENT');add('Travelling From: '+$('travelFrom').value);add('Travelling To: '+$('travelTo').value);}
-    }
-    add('Grand Total Teaching Hours: '+$('grandTotal').textContent.replace(/\s+/g,' '));
-    if($('remarks').value.trim()){add('');add('REMARKS');add($('remarks').value.trim());}
-    add('');add('SIGNATURE NAME/INITIALS: '+($('facilitatorSignature').value.trim()||'Not provided'));
-    const pageW=595.28,pageH=841.89,margin=50,bottom=50;let y=pageH-margin;const pages=[[]];
-    function escPdf(v){return String(v||'').normalize('NFKD').replace(/[^\x20-\x7E]/g,'').replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)');}
-    function curr(){return pages[pages.length-1];}
-    function newPage(){pages.push([]);y=pageH-margin;}
-    function wrap(text,size,width){text=String(text||'');const max=Math.max(20,Math.floor(width/(size*.52)));const words=text.split(' ');const out=[];let line='';words.forEach(w=>{const c=line?line+' '+w:w;if(c.length>max&&line){out.push(line);line=w;}else line=c;});if(line)out.push(line);return out.length?out:[''];}
-    function put(text,size=10,bold=false){wrap(text,size,pageW-margin*2).forEach(part=>{if(y<bottom+14)newPage();curr().push('BT /'+(bold?'F2':'F1')+' '+size+' Tf 1 0 0 1 '+margin+' '+y.toFixed(2)+' Tm ('+escPdf(part)+') Tj ET');y-=size+4;});}
-    lines.forEach((l,i)=>{if(l===''){y-=8;return;}const section=['FACILITATOR','COURSE DETAILS','FACE-TO-FACE SESSIONS','ONLINE SESSIONS','FACILITATOR MOVEMENT','REMARKS'].includes(l);put(l,section?12:(i<3?13:10),section||i<3);});
-    pages.forEach((cmds,i)=>cmds.push('BT /F1 8 Tf 1 0 0 1 '+(pageW-margin-55)+' 28 Tm (Page '+(i+1)+' of '+pages.length+') Tj ET'));
+    const pageW=595.28,pageH=841.89,margin=38,contentW=pageW-margin*2,footerTop=802;
+    const colors={navy:'0.035 0.176 0.310',blue:'0.090 0.345 0.565',gold:'0.925 0.675 0.130',ink:'0.100 0.125 0.150',muted:'0.360 0.405 0.450',line:'0.790 0.825 0.855',pale:'0.945 0.965 0.980',white:'1 1 1'};
+    const mode=currentMode();
+    const semester=(document.querySelector('input[name="semester"]:checked')||{}).value||'';
+    const sessionTarget=mode==='Purely Online'?'on':'f2f';
+    const sessionItems=collectSessionItems(sessionTarget);
+    const totalLabel=mode==='Purely Online'?'Total Online Hours':'Total Face-to-Face Hours';
+    const sectionTotal=mode==='Purely Online'?$('onHours').value:$('f2fHours').value;
+    const pages=[];let y=0;
+    function clean(v){return String(v==null?'':v).normalize('NFKD').replace(/[^\x20-\x7E]/g,'').replace(/\s+/g,' ').trim();}
+    function escPdf(v){return clean(v).replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)');}
+    function current(){return pages[pages.length-1];}
+    function rect(x,top,w,h,fill,stroke){const parts=[];if(fill)parts.push(fill+' rg');if(stroke)parts.push(stroke+' RG 0.7 w');parts.push(x.toFixed(2)+' '+(pageH-top-h).toFixed(2)+' '+w.toFixed(2)+' '+h.toFixed(2)+' re '+(fill&&stroke?'B':fill?'f':'S'));current().push(parts.join(' '));}
+    function rule(x1,top1,x2,top2,color=colors.line,width=.7){current().push(color+' RG '+width+' w '+x1.toFixed(2)+' '+(pageH-top1).toFixed(2)+' m '+x2.toFixed(2)+' '+(pageH-top2).toFixed(2)+' l S');}
+    function textWidth(value,size,bold=false){return clean(value).length*size*(bold?.54:.50);}
+    function drawText(value,x,top,size=9,bold=false,color=colors.ink,align='left',boxWidth=0){let tx=x;const valueWidth=textWidth(value,size,bold);if(align==='center')tx=x+(boxWidth-valueWidth)/2;if(align==='right')tx=x+boxWidth-valueWidth;current().push('BT '+color+' rg /'+(bold?'F2':'F1')+' '+size+' Tf 1 0 0 1 '+tx.toFixed(2)+' '+(pageH-top-size).toFixed(2)+' Tm ('+escPdf(value)+') Tj ET');}
+    function wrap(value,size,width){const words=clean(value).split(' ').filter(Boolean);if(!words.length)return [''];const lines=[];let line='';words.forEach(word=>{const candidate=line?line+' '+word:word;if(line&&textWidth(candidate,size)>width){lines.push(line);line=word;}else line=candidate;});if(line)lines.push(line);return lines;}
+    function drawHeader(continued=false){rect(0,0,pageW,continued?56:92,colors.navy);rect(0,continued?56:92,pageW,4,colors.gold);if(continued){drawText('UCC - UNDERGRADUATE FACILITATOR CLAIM SUMMARY',margin,18,11,true,colors.white);drawText('Continued',margin,35,8,false,'0.820 0.875 0.920');y=76;return;}drawText('UNIVERSITY OF CAPE COAST',margin,18,17,true,colors.white);drawText('College of Distance Education (CoDE)',margin,43,10,false,'0.850 0.900 0.940');drawText('UNDERGRADUATE FACILITATOR CLAIM SUMMARY',margin,62,12,true,colors.white);drawText('Generated '+new Date().toLocaleString(),margin,104,8,false,colors.muted);y=124;}
+    function newPage(continued=false){pages.push([]);drawHeader(continued);}
+    function ensure(height){if(y+height>footerTop-14)newPage(true);}
+    function fieldLines(field,width){return wrap(field[1]||'-',9,width-20);}
+    function drawCard(title,rows){const rowHeights=rows.map(row=>{const cellW=contentW/row.length;return Math.max(34,...row.map(field=>18+fieldLines(field,cellW).length*11));});const height=25+rowHeights.reduce((a,b)=>a+b,0);ensure(height+10);rect(margin,y,contentW,25,colors.navy,colors.navy);drawText(title,margin+12,y+7,10,true,colors.white);let top=y+25;rows.forEach((row,rowIndex)=>{const rowH=rowHeights[rowIndex],cellW=contentW/row.length;rect(margin,top,contentW,rowH,colors.white,colors.line);row.forEach((field,index)=>{const x=margin+index*cellW;if(index)rule(x,top,x,top+rowH);drawText(String(field[0]||'').toUpperCase(),x+10,top+7,6.8,true,colors.muted);fieldLines(field,cellW).forEach((line,lineIndex)=>drawText(line||'-',x+10,top+18+lineIndex*11,9,true,colors.ink));});top+=rowH;});y+=height+10;}
+    function drawSessions(){const rows=sessionItems.length?sessionItems:[{date:'No sessions recorded',startDisplay:'-',endDisplay:'-',hours:'-'}];const height=25+24+rows.length*25+33;ensure(height+10);rect(margin,y,contentW,25,colors.navy,colors.navy);drawText(mode==='Purely Online'?'ONLINE SESSIONS':'FACE-TO-FACE SESSIONS',margin+12,y+7,10,true,colors.white);let top=y+25;const widths=[42,132,112,112,contentW-398];const headers=['#','DATE','START','END','HOURS'];rect(margin,top,contentW,24,colors.pale,colors.line);let x=margin;headers.forEach((header,index)=>{if(index)rule(x,top,x,top+24);drawText(header,x+7,top+8,7,true,colors.muted);x+=widths[index];});top+=24;rows.forEach((row,index)=>{rect(margin,top,contentW,25,colors.white,colors.line);const values=[sessionItems.length?String(index+1):'-',row.date||'-',row.startDisplay||'-',row.endDisplay||'-',row.hours==='-'?'-':Number(row.hours||0).toFixed(2)+' hrs'];x=margin;values.forEach((value,col)=>{if(col)rule(x,top,x,top+25);drawText(value,x+7,top+8,8.5,col===4,colors.ink);x+=widths[col];});top+=25;});rect(margin,top,contentW,33,colors.pale,colors.line);drawText(totalLabel,margin+12,top+10,8,true,colors.muted);drawText(Number(sectionTotal||0).toFixed(2)+' hours',margin+12,top+8,11,true,colors.navy,'right',contentW-24);y+=height+10;}
+    function drawTotal(){ensure(48);rect(margin,y,contentW,40,colors.gold,colors.gold);drawText('GRAND TOTAL TEACHING HOURS',margin+14,y+13,9,true,colors.navy);drawText(Number($('totalHours').value||0).toFixed(2)+' HOURS',margin+14,y+10,14,true,colors.navy,'right',contentW-28);y+=50;}
+    function drawSignature(){ensure(72);rect(margin,y,contentW,62,colors.white,colors.line);drawText('TUTOR SIGNATURE CONFIRMATION',margin+12,y+10,7,true,colors.muted);const signature=clean($('facilitatorSignature').value)||'Not provided';drawText(signature,margin+12,y+27,12,true,colors.navy);rule(margin+12,y+48,margin+contentW-12,y+48,colors.line,.8);drawText('Tutor/facilitator full name or initials',margin+12,y+51,7,false,colors.muted);y+=72;}
+    newPage(false);
+    drawCard('MONITOR DETAILS',[[['Monitor Staff ID',$('monitorStaffId').value],['Monitor Name',$('monitorName').value]]]);
+    drawCard('FACILITATOR DETAILS',[[['Facilitator Staff ID',$('staffId').value],['Facilitator Name',$('tutorName').value]]]);
+    drawCard('COURSE DETAILS',[[['Course Code and Title',$('courseSearchInput').value||$('course').value]],[['Programme',$('program').value],['Study Centre',$('studyCentre').value]],[['Mode of Delivery',mode],['Semester',semester]]]);
+    drawSessions();
+    if(mode!=='Purely Online'&&($('travelFrom').value||$('travelTo').value))drawCard('FACILITATOR MOVEMENT',[[['Travelling From',$('travelFrom').value||'Not assigned'],['Travelling To',$('travelTo').value||'Not assigned']]]);
+    drawTotal();
+    if($('remarks').value.trim())drawCard('REMARKS',[[['Additional Remarks',$('remarks').value.trim()]]]);
+    drawSignature();
+    pages.forEach((commands,index)=>{commands.push(colors.line+' RG 0.6 w '+margin+' 38 m '+(pageW-margin)+' 38 l S');commands.push('BT '+colors.muted+' rg /F1 7 Tf 1 0 0 1 '+margin+' 24 Tm (College of Distance Education - University of Cape Coast) Tj ET');commands.push('BT '+colors.muted+' rg /F1 7 Tf 1 0 0 1 '+(pageW-margin-58)+' 24 Tm (Page '+(index+1)+' of '+pages.length+') Tj ET');});
     const objs=[];const obj=s=>{objs.push(s);return objs.length;};obj('<< /Type /Catalog /Pages 2 0 R >>');obj('');obj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');obj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');const pageIds=[];pages.forEach(cmds=>{const stream=cmds.join('\n');const contentId=obj('<< /Length '+stream.length+' >>\nstream\n'+stream+'\nendstream');const pageId=obj('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+pageW+' '+pageH+'] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents '+contentId+' 0 R >>');pageIds.push(pageId);});objs[1]='<< /Type /Pages /Kids ['+pageIds.map(id=>id+' 0 R').join(' ')+'] /Count '+pageIds.length+' >>';
     let pdf='%PDF-1.4\n';const offsets=[0];objs.forEach((body,idx)=>{offsets.push(pdf.length);pdf+=(idx+1)+' 0 obj\n'+body+'\nendobj\n';});const xrefStart=pdf.length;pdf+='xref\n0 '+(objs.length+1)+'\n0000000000 65535 f \n';for(let i=1;i<=objs.length;i++)pdf+=String(offsets[i]).padStart(10,'0')+' 00000 n \n';pdf+='trailer\n<< /Size '+(objs.length+1)+' /Root 1 0 R >>\nstartxref\n'+xrefStart+'\n%%EOF';
     const blob=new Blob([pdf],{type:'application/pdf'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=($('staffId').value||'UG')+'-'+courseCodeFromLabel($('course').value)+'-claim.pdf';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),1000);
