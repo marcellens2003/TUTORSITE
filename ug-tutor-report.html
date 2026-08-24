@@ -84,12 +84,8 @@
         textarea { resize:vertical; min-height:100px; }
         .searchable-select-wrapper { position: relative; width: 100%; margin-top: 6px; }
         .searchable-input { width: 100%; padding: 11px; font-size: 15px; border: 1px solid #ccc; border-radius: 6px; outline: none; background-color: white; transition: border 0.3s; cursor: text; }
-        /* Search results are kept in normal document flow so they cannot be hidden behind later form fields. */
-        .dropdown-options { position: relative; top: auto; left: auto; right: auto; width: 100%; margin-top: 4px; max-height: 280px; overflow-y: auto; background: white; border: 1px solid #b9c7da; border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.16); z-index: 50; display: none; visibility: visible; }
-        .dropdown-options.show { display: block !important; visibility: visible !important; }
-        .search-results-select { width:100%; margin-top:4px; min-height:44px; max-height:260px; padding:4px; border:1px solid #b9c7da; border-radius:8px; background:#fff; font-size:15px; box-shadow:0 6px 16px rgba(0,0,0,.12); }
-        .search-results-select option { padding:9px 10px; }
-        .search-results-select[hidden] { display:none !important; }
+        .dropdown-options { position: absolute; top: calc(100% + 4px); left: 0; right: 0; max-height: 280px; overflow-y: auto; background: white; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 6px 16px rgba(0,0,0,0.15); z-index: 999; display: none; }
+        .dropdown-options.show { display: block; }
         .option-item { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f0f0f0; transition: background 0.15s; font-size: 15px; }
         .option-item:hover { background-color: #e6f2ff; }
         .no-result { padding: 12px; color: #666; font-style: italic; text-align: center; }
@@ -100,6 +96,9 @@
         .mode-option:has(input[type="radio"]:checked) { border-color: #0056b3; background: #e8f0fe; box-shadow: 0 0 0 3px rgba(0,86,179,.15); }
         .mode-option:has(input[type="radio"]:checked) .mode-text { color: #0056b3; font-weight:600; }
         .mode-text { font-size: 15px; color: #444; font-weight:400; }
+        .delivery-section[hidden] { display:none !important; }
+        .search-results-list { width:100%; min-height:132px; margin-top:6px; padding:4px; border:1px solid #cfd4da; border-radius:8px; background:#fff; color:#222; font:inherit; }
+        .search-results-list option { padding:8px 10px; white-space:normal; }
         button { width:100%; margin-top:30px; padding:13px; background: linear-gradient(135deg, #0056b3, #003d82); color:#fff; border:none; border-radius:6px; font-size:17px; font-weight:bold; cursor:pointer; transition: all 0.3s; letter-spacing:0.5px; }
         button:hover { background: linear-gradient(135deg, #004494, #002147); transform: translateY(-2px); box-shadow:0 4px 12px rgba(0,86,179,0.3); }
         button.secondary { background:#6c757d; }
@@ -321,9 +320,7 @@
         <div class="field-label">SEARCH / SELECT FACILITATOR *</div>
         <div id="tutorSearchContainer" class="searchable-select-wrapper">
             <input type="text" id="tutorSearchInput" class="searchable-input" placeholder="Loading tutors…" autocomplete="off" required>
-            <select id="tutorResults" class="search-results-select" size="8" aria-label="Matching facilitators">
-                <option value="" disabled selected>Loading facilitators…</option>
-            </select>
+            <select id="tutorResults" class="search-results-list" size="6" aria-label="Matching facilitators" disabled><option value="">Loading facilitators…</option></select>
             <input type="hidden" id="selectedTutorId" name="selectedTutorId" required>
         </div>
         <div class="hint" id="tutorSearchHint">Search by tutor name or Staff ID. No monitor-to-tutor assignment is required.</div>
@@ -345,9 +342,7 @@
 
         <div class="field-label">COURSE CODE & TITLE *</div>
         <div id="courseSearchContainer" class="searchable-select-wrapper">
-            <select id="courseSearchInput" class="searchable-input" required disabled>
-                <option value="">Select a facilitator first…</option>
-            </select>
+            <select id="courseSearchInput" class="searchable-input" required disabled><option value="">Select a facilitator first…</option></select>
             <input type="hidden" id="course" name="course" required>
         </div>
         <div class="hint" id="courseHint">Courses will appear after you select a facilitator.</div>
@@ -393,7 +388,7 @@
             <input type="hidden" id="travelTotalDistance" name="travelTotalDistance">
         </div>
 
-        <div id="onlineSection" class="delivery-section" style="display:none;">
+        <div id="onlineSection" class="delivery-section" hidden>
             <h3 class="section-head">Online Teaching</h3>
             <div class="field-label">Sessions taught online</div>
             <div class="hint">Add a row for each online session. Hours are summed automatically.</div>
@@ -478,444 +473,21 @@ function timestampToMillis(value){if(!value)return 0;if(typeof value.toMillis===
 function formatClaimDate(value){const ms=timestampToMillis(value);return ms?new Date(ms).toLocaleString():'';}
 function safeMonitorDocId(staffId){const cleaned=String(staffId||'').trim().toUpperCase().replace(/[\/]+/g,'-').replace(/[^A-Z0-9_.-]+/g,'-').replace(/^-+|-+$/g,'');return cleaned||'monitor';}
 
-function createSearchableDropdown(config){
-    const input=$(config.inputId), dropdown=$(config.dropdownId), hidden=$(config.hiddenId);
-    if(!input || !dropdown || !hidden) return;
-
-    function getData(){ return (config.getData()||[]).filter(Boolean); }
-    function normalized(value){ return String(value||'').toLowerCase().trim(); }
-    function showDropdown(){
-        if(input.disabled) return;
-        dropdown.classList.add('show');
-        dropdown.style.display='block';
-        dropdown.style.visibility='visible';
-    }
-    function hideDropdown(){
-        dropdown.classList.remove('show');
-        dropdown.style.display='none';
-    }
-    function render(filter=''){
-        const all=getData();
-        const lower=normalized(filter);
-        const list=all
-            .filter(item=>normalized(item).includes(lower))
-            .sort((a,b)=>a.localeCompare(b));
-
-        dropdown.innerHTML='';
-        if(!all.length){
-            dropdown.innerHTML='<div class="no-result">'+(input.disabled?'Facilitator list is still loading…':'No facilitator records are available.')+'</div>';
-            return;
-        }
-        if(!list.length){
-            dropdown.innerHTML='<div class="no-result">No matching facilitator found</div>';
-            return;
-        }
-
-        const limit = lower ? 40 : 20;
-        list.slice(0,limit).forEach(item=>{
-            const div=document.createElement('div');
-            div.className='option-item';
-            div.textContent=item;
-            div.setAttribute('role','option');
-            div.tabIndex=0;
-            div.addEventListener('mousedown',e=>e.preventDefault());
-            div.addEventListener('click',()=>selectItem(item));
-            div.addEventListener('keydown',e=>{
-                if(e.key==='Enter' || e.key===' '){ e.preventDefault(); selectItem(item); }
-            });
-            dropdown.appendChild(div);
-        });
-        if(list.length>limit){
-            const more=document.createElement('div');
-            more.className='no-result';
-            more.textContent='Showing '+limit+' of '+list.length+' matches. Keep typing to narrow the list.';
-            dropdown.appendChild(more);
-        }
-    }
-    function openDropdown(){
-        if(input.disabled) return;
-        render(input.value);
-        showDropdown();
-    }
-    function selectItem(value){
-        input.value=value;
-        hidden.value=value;
-        hidden.dataset.lastSelected=value;
-        hideDropdown();
-        input.setCustomValidity('');
-        if(typeof config.onSelect==='function') config.onSelect(value);
-    }
-
-    input.addEventListener('focus',openDropdown);
-    input.addEventListener('click',openDropdown);
-    input.addEventListener('input',function(){
-        const typed=normalized(this.value);
-        const exact=getData().find(item=>normalized(item)===typed);
-        hidden.value=exact||'';
-        render(this.value);
-        showDropdown();
-        if(exact && typeof config.onExactMatch==='function') config.onExactMatch(exact);
-    });
-    input.addEventListener('keydown',e=>{
-        if(e.key==='Escape') hideDropdown();
-        if(e.key==='ArrowDown'){
-            e.preventDefault();
-            openDropdown();
-            const first=dropdown.querySelector('.option-item');
-            if(first) first.focus();
-        }
-        if(e.key==='Enter'){
-            const typed=normalized(input.value);
-            const matches=getData().filter(item=>normalized(item).includes(typed));
-            const exact=matches.find(item=>normalized(item)===typed);
-            if(exact){ e.preventDefault(); selectItem(exact); }
-            else if(matches.length===1){ e.preventDefault(); selectItem(matches[0]); }
-            else openDropdown();
-        }
-    });
-    input.addEventListener('dropdown-data-updated',()=>{
-        if(document.activeElement===input){
-            render(input.value);
-            showDropdown();
-        }
-    });
-    document.addEventListener('click',e=>{
-        if(!input.contains(e.target)&&!dropdown.contains(e.target)){
-            hideDropdown();
-            const typed=normalized(input.value);
-            const exact=getData().find(item=>normalized(item)===typed);
-            if(exact){
-                input.value=exact;
-                hidden.value=exact;
-                input.setCustomValidity('');
-                if(typeof config.onSelect==='function' && hidden.dataset.lastSelected!==exact){
-                    hidden.dataset.lastSelected=exact;
-                    config.onSelect(exact);
-                }
-            }else if(input.value.trim()){
-                hidden.value='';
-                input.setCustomValidity(config.invalidMessage||'Please select an item from the list.');
-            }
-        }
-    });
-}
 function courseLabelValue(c){if(!c)return ''; if(c.label)return String(c.label).trim(); const code=String(c.code||c.courseCode||'').trim(); const title=String(c.title||c.courseTitle||'').trim(); return title?(code+' - '+title):code;}
 function filteredTutorCourseAssignments(){if(!CURRENT_TUTOR||!Array.isArray(CURRENT_TUTOR.courses))return [];return CURRENT_TUTOR.courses.map(c=>Object.assign({},c,{label:courseLabelValue(c)})).filter(c=>c.label);}
 function tutorCourses(){return [...new Set(filteredTutorCourseAssignments().map(c=>c.label).filter(Boolean))];}
 function tutorDisplayName(t){return String((t&&(t.name||t.fullName||t.tutorName))||'').trim();}
 function tutorDisplayId(t){return String((t&&(t.staffId||t.id||t.docId))||'').trim().toUpperCase();}
 function tutorOptionLabel(t){const name=tutorDisplayName(t)||'Unnamed Tutor';const id=tutorDisplayId(t);return id ? (name+' — '+id) : name;}
-function tutorOptions(){return ALL_TUTORS.map(t=>t.optionLabel).filter(Boolean);}
-function populateTutorDatalist(){
-    const dl=$('tutorDatalist');
-    if(!dl)return;
-    dl.innerHTML='';
-    ALL_TUTORS.forEach(t=>{
-        const label=tutorOptionLabel(t);
-        if(!label)return;
-        const opt=document.createElement('option');
-        opt.value=label;
-        dl.appendChild(opt);
-    });
-}
-function populateCourseDatalist(){
-    const dl=$('courseDatalist');
-    if(!dl)return;
-    dl.innerHTML='';
-    tutorCourses().forEach(label=>{
-        const opt=document.createElement('option');
-        opt.value=label;
-        dl.appendChild(opt);
-    });
-}
-function findTutorByTypedLabel(value){
-    const typed=String(value||'').trim().toLowerCase();
-    if(!typed)return null;
-    return ALL_TUTORS.find(t=>String(t.optionLabel||tutorOptionLabel(t)).trim().toLowerCase()===typed)||null;
-}
-function setupNativeSearchInputs(){
-    const tutorInput=$('tutorSearchInput');
-    const tutorBox=$('tutorSuggestions');
-    const courseInput=$('courseSearchInput');
-    const courseBox=$('courseSuggestions');
-
-    const norm=v=>String(v||'').trim().toLowerCase();
-    const hide=box=>{ if(box){ box.classList.remove('show'); box.innerHTML=''; } };
-    const show=box=>{ if(box){ box.classList.add('show'); } };
-
-    function chooseTutor(tutor){
-        if(!tutor)return;
-        tutorInput.value=tutor.optionLabel||tutorOptionLabel(tutor);
-        tutorInput.setCustomValidity('');
-        setSelectedTutor(tutor);
-        hide(tutorBox);
-        setTimeout(()=>{ if(courseInput&&!courseInput.disabled) courseInput.focus(); },0);
-    }
-
-    function renderTutorSuggestions(){
-        if(!tutorInput||!tutorBox)return;
-        tutorBox.innerHTML='';
-        if(tutorInput.disabled){ hide(tutorBox); return; }
-        const q=norm(tutorInput.value);
-        let matches=ALL_TUTORS.filter(t=>{
-            const label=norm(t.optionLabel||tutorOptionLabel(t));
-            const name=norm(tutorDisplayName(t));
-            const id=norm(tutorDisplayId(t));
-            return !q || label.includes(q) || name.includes(q) || id.includes(q);
-        });
-        matches=matches.slice(0,50);
-        if(!matches.length){
-            const d=document.createElement('div');
-            d.className='no-result';
-            d.textContent='No matching facilitator found';
-            tutorBox.appendChild(d);
-            show(tutorBox);
-            return;
-        }
-        matches.forEach(t=>{
-            const d=document.createElement('div');
-            d.className='option-item';
-            d.setAttribute('role','option');
-            d.tabIndex=0;
-            d.textContent=t.optionLabel||tutorOptionLabel(t);
-            const select=ev=>{
-                ev.preventDefault();
-                ev.stopPropagation();
-                chooseTutor(t);
-            };
-            d.addEventListener('mousedown',select);
-            d.addEventListener('click',select);
-            d.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){select(ev);}});
-            tutorBox.appendChild(d);
-        });
-        if(ALL_TUTORS.length>50 && !q){
-            const more=document.createElement('div');
-            more.className='no-result';
-            more.textContent='Type a name or Staff ID to narrow the list.';
-            tutorBox.appendChild(more);
-        }
-        show(tutorBox);
-    }
-
-    function chooseCourse(label){
-        if(!label)return;
-        courseInput.value=label;
-        $('course').value=label;
-        courseInput.setCustomValidity('');
-        onCourseSelected(label);
-        hide(courseBox);
-    }
-
-    function renderCourseSuggestions(){
-        if(!courseInput||!courseBox)return;
-        courseBox.innerHTML='';
-        if(courseInput.disabled || !CURRENT_TUTOR){ hide(courseBox); return; }
-        const q=norm(courseInput.value);
-        const matches=tutorCourses().filter(label=>!q||norm(label).includes(q)).slice(0,50);
-        if(!matches.length){
-            const d=document.createElement('div');
-            d.className='no-result';
-            d.textContent='No matching course found for this facilitator';
-            courseBox.appendChild(d);
-            show(courseBox);
-            return;
-        }
-        matches.forEach(label=>{
-            const d=document.createElement('div');
-            d.className='option-item';
-            d.setAttribute('role','option');
-            d.tabIndex=0;
-            d.textContent=label;
-            const select=ev=>{
-                ev.preventDefault();
-                ev.stopPropagation();
-                chooseCourse(label);
-            };
-            d.addEventListener('mousedown',select);
-            d.addEventListener('click',select);
-            d.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){select(ev);}});
-            courseBox.appendChild(d);
-        });
-        show(courseBox);
-    }
-
-    if(tutorInput){
-        tutorInput.addEventListener('focus',renderTutorSuggestions);
-        tutorInput.addEventListener('click',renderTutorSuggestions);
-        tutorInput.addEventListener('input',()=>{
-            const exact=ALL_TUTORS.find(t=>norm(t.optionLabel||tutorOptionLabel(t))===norm(tutorInput.value));
-            if(exact){ chooseTutor(exact); return; }
-            if(CURRENT_TUTOR){ setSelectedTutor(null); }
-            $('selectedTutorId').value='';
-            renderTutorSuggestions();
-        });
-        tutorInput.addEventListener('keydown',ev=>{
-            if(ev.key==='Escape'){ hide(tutorBox); return; }
-            if(ev.key==='Enter'){
-                const q=norm(tutorInput.value);
-                const exact=ALL_TUTORS.find(t=>norm(t.optionLabel||tutorOptionLabel(t))===q);
-                const matches=ALL_TUTORS.filter(t=>norm(t.optionLabel||tutorOptionLabel(t)).includes(q)||norm(tutorDisplayName(t)).includes(q)||norm(tutorDisplayId(t)).includes(q));
-                const pick=exact||(matches.length===1?matches[0]:null);
-                if(pick){ ev.preventDefault(); chooseTutor(pick); }
-            }
-        });
-        tutorInput.addEventListener('blur',()=>{
-            setTimeout(()=>{
-                const exact=ALL_TUTORS.find(t=>norm(t.optionLabel||tutorOptionLabel(t))===norm(tutorInput.value));
-                tutorInput.setCustomValidity(tutorInput.value.trim()&&!exact&&!CURRENT_TUTOR?'Please select a facilitator from the suggestions.':'');
-                if(!tutorBox.matches(':hover')) hide(tutorBox);
-            },180);
-        });
-    }
-
-    if(courseInput){
-        courseInput.addEventListener('focus',renderCourseSuggestions);
-        courseInput.addEventListener('click',renderCourseSuggestions);
-        courseInput.addEventListener('input',()=>{
-            const exact=tutorCourses().find(x=>norm(x)===norm(courseInput.value));
-            if(exact){ chooseCourse(exact); return; }
-            $('course').value='';
-            renderCourseSuggestions();
-        });
-        courseInput.addEventListener('keydown',ev=>{
-            if(ev.key==='Escape'){ hide(courseBox); return; }
-            if(ev.key==='Enter'){
-                const q=norm(courseInput.value);
-                const exact=tutorCourses().find(x=>norm(x)===q);
-                const matches=tutorCourses().filter(x=>norm(x).includes(q));
-                const pick=exact||(matches.length===1?matches[0]:null);
-                if(pick){ ev.preventDefault(); chooseCourse(pick); }
-            }
-        });
-        courseInput.addEventListener('blur',()=>{
-            setTimeout(()=>{
-                const ok=tutorCourses().some(x=>norm(x)===norm(courseInput.value));
-                courseInput.setCustomValidity(courseInput.value.trim()&&!ok?'Please select one of this facilitator\'s assigned courses.':'');
-                if(!courseBox.matches(':hover')) hide(courseBox);
-            },180);
-        });
-    }
-
-    document.addEventListener('click',ev=>{
-        const tw=$('tutorSearchContainer'), cw=$('courseSearchContainer');
-        if(tw && !tw.contains(ev.target)) hide(tutorBox);
-        if(cw && !cw.contains(ev.target)) hide(courseBox);
-    });
-
-    window.__refreshTutorSuggestions=renderTutorSuggestions;
-    window.__refreshCourseSuggestions=renderCourseSuggestions;
-}
-function renderTutorResults(){
-    const input=$('tutorSearchInput'), results=$('tutorResults');
-    if(!input||!results)return;
-    results.innerHTML='';
-
-    if(input.disabled){
-        const opt=document.createElement('option');
-        opt.value=''; opt.disabled=true; opt.selected=true;
-        opt.textContent='Loading facilitators…';
-        results.appendChild(opt);
-        results.size=2;
-        return;
-    }
-
-    if(!ALL_TUTORS.length){
-        const opt=document.createElement('option');
-        opt.value=''; opt.disabled=true; opt.selected=true;
-        opt.textContent='No facilitator records loaded';
-        results.appendChild(opt);
-        results.size=2;
-        return;
-    }
-
-    const q=String(input.value||'').trim().toLowerCase();
-    const matches=[];
-    ALL_TUTORS.forEach((t,index)=>{
-        const name=tutorDisplayName(t).toLowerCase();
-        const id=tutorDisplayId(t).toLowerCase();
-        const label=tutorOptionLabel(t).toLowerCase();
-        if(!q || name.includes(q) || id.includes(q) || label.includes(q))matches.push({t,index});
-    });
-
-    if(!matches.length){
-        const opt=document.createElement('option');
-        opt.value=''; opt.disabled=true; opt.selected=true;
-        opt.textContent='No matching facilitator found';
-        results.appendChild(opt);
-        results.size=2;
-        return;
-    }
-
-    matches.slice(0,80).forEach(({t,index})=>{
-        const opt=document.createElement('option');
-        opt.value=String(index);
-        opt.textContent=tutorOptionLabel(t);
-        results.appendChild(opt);
-    });
-    results.size=Math.min(Math.max(matches.length,3),8);
-}
-function chooseTutorFromResults(){
-    const input=$('tutorSearchInput'), results=$('tutorResults');
-    if(!input||!results||results.value==='')return;
-    const idx=Number(results.value);
-    const tutor=ALL_TUTORS[idx];
-    if(!tutor)return;
-    input.value=tutorOptionLabel(tutor);
-    input.setCustomValidity('');
-    setSelectedTutor(tutor);
-    renderTutorResults();
-}
-function setupReliableTutorSearch(){
-    const input=$('tutorSearchInput'), results=$('tutorResults');
-    if(!input||!results)return;
-
-    // Keep the result list visible at all times. Typing only filters it.
-    input.addEventListener('input',()=>{
-        if(CURRENT_TUTOR && String(input.value||'').trim()!==tutorOptionLabel(CURRENT_TUTOR)){
-            setSelectedTutor(null);
-        }
-        input.setCustomValidity('');
-        renderTutorResults();
-    });
-    input.addEventListener('focus',renderTutorResults);
-    input.addEventListener('click',renderTutorResults);
-
-    // Native select selection is the source of truth.
-    results.addEventListener('change',chooseTutorFromResults);
-    results.addEventListener('dblclick',chooseTutorFromResults);
-    results.addEventListener('keydown',e=>{
-        if(e.key==='Enter'){
-            e.preventDefault();
-            chooseTutorFromResults();
-        }
-    });
-
-    window.__renderTutorResults=renderTutorResults;
-    renderTutorResults();
-}
-function populateCourseSelect(){
-    const select=$('courseSearchInput'), hidden=$('course');if(!select||!hidden)return;
-    const courses=tutorCourses();select.innerHTML='';
-    const first=document.createElement('option');first.value='';
-    if(!CURRENT_TUTOR)first.textContent='Select a facilitator first…';
-    else if(!courses.length)first.textContent='No courses assigned';
-    else first.textContent='Select course code & title';
-    select.appendChild(first);
-    courses.forEach(label=>{const opt=document.createElement('option');opt.value=label;opt.textContent=label;select.appendChild(opt);});
-    select.disabled=!CURRENT_TUTOR||!courses.length;hidden.value='';
-}
-function setupReliableCourseSelect(){
-    const select=$('courseSearchInput'), hidden=$('course');if(!select||!hidden)return;
-    select.addEventListener('change',()=>{hidden.value=select.value||'';if(select.value)onCourseSelected(select.value);else{if($('program'))$('program').value='';if($('studyCentre'))$('studyCentre').value='';}scheduleDuplicateCheck();});
-}
+function renderTutorResults(filter=''){const list=$('tutorResults');if(!list)return;const term=String(filter||'').trim().toLowerCase();const matches=ALL_TUTORS.filter(t=>!term||t.optionLabel.toLowerCase().includes(term));list.innerHTML='';if(!matches.length){const option=document.createElement('option');option.value='';option.textContent='No matching facilitator found';list.appendChild(option);list.disabled=true;return;}matches.forEach(t=>{const option=document.createElement('option');option.value=tutorDisplayId(t);option.textContent=t.optionLabel;list.appendChild(option);});list.disabled=false;}
+function selectTutorById(staffId){const selected=ALL_TUTORS.find(t=>tutorDisplayId(t)===String(staffId||'').trim().toUpperCase());if(!selected)return;setSelectedTutor(selected);$('tutorSearchInput').value=selected.optionLabel;$('tutorSearchInput').setCustomValidity('');}
 function populateProgramDropdown(){const prog=$('program');prog.innerHTML='<option value="" disabled selected>Select programme</option>';const progs=[...new Set(filteredTutorCourseAssignments().map(c=>c.program||c.programme).filter(Boolean))];progs.forEach(p=>{const opt=document.createElement('option');opt.value=p;opt.textContent=p;prog.appendChild(opt);});if(progs.length===1)prog.value=progs[0];}
-function updateCourseAvailability(){const hint=$('courseHint');populateCourseSelect();const courses=tutorCourses();if(!CURRENT_TUTOR){hint.textContent='Select a facilitator first. Their assigned courses will appear here.';return;}if(!courses.length){hint.textContent='No course has been assigned to the selected facilitator. Please contact the administrator.';return;}hint.textContent=courses.length+' course'+(courses.length===1?'':'s')+' available for '+(tutorDisplayName(CURRENT_TUTOR)||tutorDisplayId(CURRENT_TUTOR))+'.';}
+function updateCourseAvailability(){const input=$('courseSearchInput'),hidden=$('course'),hint=$('courseHint');const courses=tutorCourses();input.innerHTML='';const first=document.createElement('option');first.value='';if(!CURRENT_TUTOR){first.textContent='Select a facilitator first…';input.appendChild(first);input.disabled=true;hidden.value='';hint.textContent='Select a facilitator first. Their assigned courses will appear here.';return;}if(!courses.length){first.textContent='No courses assigned';input.appendChild(first);input.disabled=true;hidden.value='';hint.textContent='No course has been assigned to the selected facilitator. Please contact the administrator.';return;}first.textContent='Select course code and title…';input.appendChild(first);courses.forEach(label=>{const option=document.createElement('option');option.value=label;option.textContent=label;input.appendChild(option);});input.disabled=false;hint.textContent=courses.length+' course'+(courses.length===1?'':'s')+' available for '+(tutorDisplayName(CURRENT_TUTOR)||tutorDisplayId(CURRENT_TUTOR))+'.';}
 function resetCourseSelection(){if($('courseSearchInput'))$('courseSearchInput').value='';if($('course'))$('course').value='';if($('program'))$('program').innerHTML='<option value="" disabled selected>Select programme</option>';if($('studyCentre'))$('studyCentre').value='';setTravelFields('','','','','');clearDuplicateNotice();}
 function onCourseSelected(label){const match=filteredTutorCourseAssignments().find(c=>c.label===label);if(!match)return;const p=match.program||match.programme||'';const centre=match.centre||match.studyCentre||match.studyCenter||'';if(p){ensureSelectOption($('program'),p);$('program').value=p;}if(centre)$('studyCentre').value=centre;setTravelFields(match.travelFrom||match.from||match.origin||'',match.travelTo||match.to||match.destination||'',match.travelDistanceIn||match.distanceIn||'',match.travelDistanceOut||match.distanceOut||'',match.travelTotalDistance||match.totalDistanceTravelled||match.totalDistance||'');scheduleDuplicateCheck();}
 function ensureSelectOption(selectEl,value){if(!selectEl||!value)return;if(!Array.from(selectEl.options).some(o=>o.value===value)){const opt=document.createElement('option');opt.value=value;opt.textContent=value;selectEl.appendChild(opt);}}
 function setSelectedTutor(tutor){CURRENT_TUTOR=tutor||null;resetCourseSelection();if(CURRENT_TUTOR){const staffId=tutorDisplayId(CURRENT_TUTOR),name=tutorDisplayName(CURRENT_TUTOR)||staffId;$('selectedTutorId').value=staffId;$('staffId').value=staffId;$('tutorName').value=name;$('tutorHint').textContent='Selected facilitator: '+name+' ('+staffId+').';populateProgramDropdown();}else{$('selectedTutorId').value='';$('staffId').value='';$('tutorName').value='';$('tutorHint').textContent='Select a facilitator to load their courses.';}updateCourseAvailability();scheduleDuplicateCheck();}
-function onTutorSelected(label){const wanted=String(label||'').trim().toLowerCase();const selected=ALL_TUTORS.find(t=>String(t.optionLabel||tutorOptionLabel(t)).trim().toLowerCase()===wanted);setSelectedTutor(selected||null);}
-async function loadAllTutorsForMonitor(){const fs=window.__firestore;if(!fs||!fs.db)throw new Error('Firestore is not ready. Refresh and try again.');const snap=await fs.getDocs(fs.collection(fs.db,'ug_tutors'));const tutors=[];snap.forEach(docSnap=>{const data=docSnap.data()||{};const id=String(data.staffId||docSnap.id||'').trim().toUpperCase();const t=Object.assign({},data,{docId:docSnap.id,staffId:id});t.optionLabel=tutorOptionLabel(t);if(id&&t.optionLabel)tutors.push(t);});tutors.sort((a,b)=>tutorOptionLabel(a).localeCompare(tutorOptionLabel(b)));ALL_TUTORS=tutors;renderTutorResults();}
+async function loadAllTutorsForMonitor(){const fs=window.__firestore;if(!fs||!fs.db)throw new Error('Firestore is not ready. Refresh and try again.');const snap=await fs.getDocs(fs.collection(fs.db,'ug_tutors'));const tutors=[];snap.forEach(docSnap=>{const data=docSnap.data()||{};const id=String(data.staffId||docSnap.id||'').trim().toUpperCase();const t=Object.assign({},data,{docId:docSnap.id,staffId:id});t.optionLabel=tutorOptionLabel(t);if(id&&t.optionLabel)tutors.push(t);});tutors.sort((a,b)=>tutorOptionLabel(a).localeCompare(tutorOptionLabel(b)));ALL_TUTORS=tutors;}
 async function fillTutorFromLogin(){
     const rawId=(sessionStorage.getItem('monitorStaffId')||sessionStorage.getItem('tutorStaffId')||'').trim().toUpperCase();
     const fbName=(sessionStorage.getItem('monitorName')||sessionStorage.getItem('tutorName')||'').trim();
@@ -953,9 +525,9 @@ async function fillTutorFromLogin(){
         if(monitorHint)monitorHint.textContent='Monitor profile loaded. Loading facilitator list…';
 
         await loadAllTutorsForMonitor();
-        if(tutorSearchInput){tutorSearchInput.disabled=false;tutorSearchInput.placeholder='🔍 Search tutor by name or Staff ID...';renderTutorResults();requestAnimationFrame(renderTutorResults);}
+        if(tutorSearchInput){tutorSearchInput.disabled=false;tutorSearchInput.placeholder='🔍 Search tutor by name or Staff ID...';}
+        renderTutorResults('');
         if($('tutorSearchHint'))$('tutorSearchHint').textContent=ALL_TUTORS.length+' facilitator record'+(ALL_TUTORS.length===1?'':'s')+' available. Search by name or Staff ID.';
-        renderTutorResults();
         if(monitorHint)monitorHint.textContent='Signed in as '+rawId+' — '+(CURRENT_MONITOR.name||CURRENT_MONITOR.fullName||fbName||'monitor')+'.';
     }catch(e){
         console.error('Could not load undergraduate monitor/tutor data:',e);
@@ -996,7 +568,7 @@ function recomputeTotals(){const mode=currentMode();let f2f=0,on=0;if(mode==='Pu
     $('f2fTotal').innerHTML=f2f.toFixed(2)+' <span class="hm">('+hmLabel(f2f)+')</span>';$('f2fHours').value=f2f.toFixed(2);
     if($('onTotal')) $('onTotal').innerHTML=on.toFixed(2)+' <span class="hm">('+hmLabel(on)+')</span>';$('onHours').value=on.toFixed(2);
     const grand=f2f+on;$('grandTotal').innerHTML=grand.toFixed(2)+' <span class="hm">('+hmLabel(grand)+')</span>';$('totalHours').value=grand.toFixed(2);updateHoursLimitWarning(grand);}
-function applyMode(){const mode=currentMode();if($('f2fSection'))$('f2fSection').style.display=mode==='Purely Online'?'none':'block';if($('onlineSection'))$('onlineSection').style.display=mode==='Purely Online'?'block':'none';if(mode==='Purely Online')ensureSessionRows('on',2);else ensureSessionRows('f2f',2);recomputeTotals();}
+function applyMode(){const online=currentMode()==='Purely Online';const f2f=$('f2fSection'),on=$('onlineSection');if(f2f){f2f.hidden=online;f2f.setAttribute('aria-hidden',String(online));}if(on){on.hidden=!online;on.setAttribute('aria-hidden',String(!online));}if(online)ensureSessionRows('on',2);else ensureSessionRows('f2f',2);recomputeTotals();}
 function collectSessionItems(target='f2f'){const tbody=target==='on'?$('onRows'):$('f2fRows');const out=[];if(!tbody)return out;tbody.querySelectorAll('tr').forEach(tr=>{const d=tr.querySelector('.s-date').value,s=tr.querySelector('.s-start').value,e=tr.querySelector('.s-end').value,h=hoursBetween(s,e);if(d||s||e)out.push({date:d||'',start:s||'',end:e||'',startDisplay:formatTimeForDisplay(s)||'',endDisplay:formatTimeForDisplay(e)||'',hours:Number(h.toFixed(2)),hoursLabel:hmLabel(h)});});return out;}
 function collectSessions(target='f2f'){return collectSessionItems(target).map(item=>(item.date||'?')+' '+(item.startDisplay||'?')+'-'+(item.endDisplay||'?')).join('; ');}
 function setSessionRows(target='f2f',items){if(Array.isArray(target)){items=target;target='f2f';}const tbody=target==='on'?$('onRows'):$('f2fRows');if(!tbody)return;tbody.innerHTML='';const rows=Array.isArray(items)&&items.length?items:[{},{}];rows.forEach(item=>{addSessionRow(target);const tr=tbody.lastElementChild;tr.querySelector('.s-date').value=item.date||'';tr.querySelector('.s-start').value=item.start||'';tr.querySelector('.s-end').value=item.end||'';syncPeriodButtons(tr);});ensureSessionRows(target,2);recomputeTotals();}
@@ -1127,7 +699,7 @@ function setupFormSubmission(form){form.addEventListener('submit',e=>{e.preventD
 async function loadMyClaims(){const staffId=($('monitorStaffId').value||sessionStorage.getItem('monitorStaffId')||'').trim().toUpperCase(),list=$('claimsList'),fs=window.__firestore;list.innerHTML='';if(!staffId||!fs){$('claimsStatus').textContent='Sign in first so your claims can be loaded.';return;}$('claimsStatus').textContent='Loading claims entered by this monitor...';try{const uid=window.__currentUserUid||'';const q=uid?fs.query(fs.collection(fs.db,'ug_claims'),fs.where('uid','==',uid)):fs.query(fs.collection(fs.db,'ug_claims'),fs.where('monitorStaffId','==',staffId));const snap=await fs.getDocs(q);const claims=[];snap.forEach(docSnap=>claims.push({id:docSnap.id,data:docSnap.data()||{}}));claims.sort((a,b)=>timestampToMillis(b.data.updatedAt||b.data.createdAt)-timestampToMillis(a.data.updatedAt||a.data.createdAt));renderClaimsList(claims);}catch(err){console.error(err);$('claimsStatus').textContent='Could not load claims: '+(err.message||err);}}
 function renderClaimsList(claims){const list=$('claimsList');list.innerHTML='';if(!claims.length){$('claimsStatus').textContent='No claims submitted by this monitor yet.';return;}$('claimsStatus').textContent=claims.length+' claim(s) found.';claims.forEach(item=>{const d=item.data||{};const div=document.createElement('div');div.className='claim-item';const meta=[d.claimId||item.id,d.tutorName||'',d.staffId||d.tutorStaffId||'',d.semester||'',d.modeOfDelivery||d.block||'',d.totalHours?('Total hours: '+d.totalHours):'',formatClaimDate(d.updatedAt||d.createdAt)?('Updated: '+formatClaimDate(d.updatedAt||d.createdAt)):''].filter(Boolean).join(' • ');div.innerHTML='<div class="claim-main"><div class="claim-title"></div><div class="claim-meta"></div></div><div class="claim-button-row"><button type="button" class="download-claim-pdf-btn">Download PDF</button><button type="button" class="edit-claim-btn">Edit</button></div>';div.querySelector('.claim-title').textContent=d.course||'Untitled course';div.querySelector('.claim-meta').textContent=meta;div.querySelector('.download-claim-pdf-btn').addEventListener('click',()=>downloadSubmittedClaimPdf(item.id));div.querySelector('.edit-claim-btn').addEventListener('click',()=>loadClaimForEdit(item.id));list.appendChild(div);});}
 async function loadClaimForEdit(id){const fs=window.__firestore;try{$('claimsStatus').textContent='Opening claim...';const snap=await fs.getDoc(fs.doc(fs.db,'ug_claims',id));if(!snap.exists()){$('claimsStatus').textContent='Claim not found.';return;}const data=snap.data()||{};const uid=window.__currentUserUid||'';if(data.uid&&uid&&data.uid!==uid){alert('You cannot edit a claim submitted by another monitor.');return;}fillFormFromClaim(data,id);$('claimsStatus').textContent='Claim loaded for editing.';$('reportForm').scrollIntoView({behavior:'smooth',block:'start'});}catch(e){console.error(e);$('claimsStatus').textContent='Could not open claim: '+(e.message||e);}}
-function fillFormFromClaim(data,id){CURRENT_EDIT_DOC_ID=id||data.claimId||'';CURRENT_EDIT_CLAIM_ID=data.claimId||id||'';const tutorId=String(data.staffId||data.tutorStaffId||'').trim().toUpperCase();const tutor=ALL_TUTORS.find(t=>tutorDisplayId(t)===tutorId)||{staffId:tutorId,name:data.tutorName||tutorId,courses:[]};tutor.optionLabel=tutor.optionLabel||tutorOptionLabel(tutor);$('tutorSearchInput').value=tutor.optionLabel;$('selectedTutorId').value=tutorId;setSelectedTutor(tutor);populateCourseSelect();$('courseSearchInput').value=data.course||'';$('course').value=data.course||'';ensureSelectOption($('program'),data.program||data.programme||'');$('program').value=data.program||data.programme||'';$('studyCentre').value=data.studyCentre||'';document.querySelectorAll('input[name="semester"]').forEach(r=>r.checked=(r.value===(data.semester||'Second Semester')));document.querySelectorAll('input[name="modeOfDelivery"]').forEach(r=>r.checked=(r.value===(data.modeOfDelivery||'Face-to-Face')));setTravelFields(data.travelFrom||'',data.travelTo||'',data.travelDistanceIn||'',data.travelDistanceOut||'',data.travelTotalDistance||'');applyMode();setSessionRows('f2f',data.f2fSessionItems||[]);setSessionRows('on',data.onSessionItems||[]);$('remarks').value=data.remarks||'';clearSignatureUi();setSignatureImageFromDataUrl(data.facilitatorSignature||data.facilitatorSignatureText||data.facilitatorSignatureUrl||'');showEditMode(CURRENT_EDIT_CLAIM_ID);}
+function fillFormFromClaim(data,id){CURRENT_EDIT_DOC_ID=id||data.claimId||'';CURRENT_EDIT_CLAIM_ID=data.claimId||id||'';const tutorId=String(data.staffId||data.tutorStaffId||'').trim().toUpperCase();const tutor=ALL_TUTORS.find(t=>tutorDisplayId(t)===tutorId)||{staffId:tutorId,name:data.tutorName||tutorId,courses:[]};tutor.optionLabel=tutor.optionLabel||tutorOptionLabel(tutor);$('tutorSearchInput').value=tutor.optionLabel;$('selectedTutorId').value=tutorId;setSelectedTutor(tutor);$('courseSearchInput').value=data.course||'';$('course').value=data.course||'';ensureSelectOption($('program'),data.program||data.programme||'');$('program').value=data.program||data.programme||'';$('studyCentre').value=data.studyCentre||'';document.querySelectorAll('input[name="semester"]').forEach(r=>r.checked=(r.value===(data.semester||'Second Semester')));document.querySelectorAll('input[name="modeOfDelivery"]').forEach(r=>r.checked=(r.value===(data.modeOfDelivery||'Face-to-Face')));setTravelFields(data.travelFrom||'',data.travelTo||'',data.travelDistanceIn||'',data.travelDistanceOut||'',data.travelTotalDistance||'');applyMode();setSessionRows('f2f',data.f2fSessionItems||[]);setSessionRows('on',data.onSessionItems||[]);$('remarks').value=data.remarks||'';clearSignatureUi();setSignatureImageFromDataUrl(data.facilitatorSignature||data.facilitatorSignatureText||data.facilitatorSignatureUrl||'');showEditMode(CURRENT_EDIT_CLAIM_ID);}
 function showEditMode(claimId){$('editClaimLabel').textContent=claimId||'';$('editNotice').style.display='block';$('submitBtn').textContent='Update Claim Summary';}
 function clearEditMode(){CURRENT_EDIT_CLAIM_ID='';CURRENT_EDIT_DOC_ID='';$('editNotice').style.display='none';$('editClaimLabel').textContent='';$('submitBtn').textContent='Submit Claim Summary';}
 function resetForm(){const keepMonitorId=$('monitorStaffId').value,keepMonitorName=$('monitorName').value;$('reportForm').reset();$('monitorStaffId').value=keepMonitorId;$('monitorName').value=keepMonitorName;$('tutorSearchInput').value='';$('selectedTutorId').value='';setSelectedTutor(null);$('courseSearchInput').value='';$('course').value='';$('studyCentre').value='';$('f2fRows').innerHTML='';if($('onRows'))$('onRows').innerHTML='';document.querySelector('input[name="semester"][value="Second Semester"]').checked=true;document.querySelector('input[name="modeOfDelivery"][value="Face-to-Face"]').checked=true;setTravelFields('','','','','');clearSignatureUi();clearEditMode();clearDuplicateNotice();applyMode();hideMessages();}
@@ -1176,13 +748,11 @@ async function submitPwChange(){const current=$('pwCurrent').value,newPw=$('pwNe
 window.openPwModal=openPwModal;window.closePwModal=closePwModal;window.closePwModalOnBackdrop=closePwModalOnBackdrop;window.submitPwChange=submitPwChange;window.closePreview=closePreview;window.submitAndDownloadFromPreview=submitAndDownloadFromPreview;window.downloadPreviewPdf=downloadPreviewPdf;window.openDuplicateClaimFromNotice=openDuplicateClaimFromNotice;window.loadMyClaims=loadMyClaims;
 
 document.addEventListener('DOMContentLoaded',()=>{
-    // Reliable, browser-native controls: a visible filtered result list for facilitators
-    // and a standard course select. These do not depend on floating dropdown overlays.
-    setupReliableTutorSearch();
-    setupReliableCourseSelect();
-    setupFormSubmission($('reportForm'));
-    if(typeof initSignatureUpload==='function')initSignatureUpload();
-    applyMode();
+    $('tutorSearchInput').addEventListener('input',e=>{setSelectedTutor(null);renderTutorResults(e.target.value);});
+    $('tutorResults').addEventListener('change',e=>selectTutorById(e.target.value));
+    $('tutorResults').addEventListener('dblclick',e=>selectTutorById(e.target.value));
+    $('courseSearchInput').addEventListener('change',e=>{$('course').value=e.target.value;onCourseSelected(e.target.value);e.target.setCustomValidity('');});
+    setupFormSubmission($('reportForm'));initSignatureUpload();applyMode();
     document.querySelectorAll('input[name="modeOfDelivery"]').forEach(r=>r.addEventListener('change',applyMode));
     document.querySelectorAll('.add-row-btn').forEach(btn=>btn.addEventListener('click',()=>addSessionRow(btn.getAttribute('data-target')||'f2f')));
     ['tutorSearchInput','courseSearchInput','program','studyCentre'].forEach(id=>{const el=$(id);if(el){el.addEventListener('input',scheduleDuplicateCheck);el.addEventListener('change',scheduleDuplicateCheck);}});
