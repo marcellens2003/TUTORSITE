@@ -87,6 +87,9 @@
         /* Search results are kept in normal document flow so they cannot be hidden behind later form fields. */
         .dropdown-options { position: relative; top: auto; left: auto; right: auto; width: 100%; margin-top: 4px; max-height: 280px; overflow-y: auto; background: white; border: 1px solid #b9c7da; border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.16); z-index: 50; display: none; visibility: visible; }
         .dropdown-options.show { display: block !important; visibility: visible !important; }
+        .search-results-select { width:100%; margin-top:4px; min-height:44px; max-height:260px; padding:4px; border:1px solid #b9c7da; border-radius:8px; background:#fff; font-size:15px; box-shadow:0 6px 16px rgba(0,0,0,.12); }
+        .search-results-select option { padding:9px 10px; }
+        .search-results-select[hidden] { display:none !important; }
         .option-item { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f0f0f0; transition: background 0.15s; font-size: 15px; }
         .option-item:hover { background-color: #e6f2ff; }
         .no-result { padding: 12px; color: #666; font-style: italic; text-align: center; }
@@ -318,7 +321,7 @@
         <div class="field-label">SEARCH / SELECT FACILITATOR *</div>
         <div id="tutorSearchContainer" class="searchable-select-wrapper">
             <input type="text" id="tutorSearchInput" class="searchable-input" placeholder="Loading tutors…" autocomplete="off" required>
-            <div id="tutorDropdown" class="dropdown-options" role="listbox" aria-label="Facilitator search results"></div>
+            <select id="tutorResults" class="search-results-select" size="7" aria-label="Matching facilitators" hidden></select>
             <input type="hidden" id="selectedTutorId" name="selectedTutorId" required>
         </div>
         <div class="hint" id="tutorSearchHint">Search by tutor name or Staff ID. No monitor-to-tutor assignment is required.</div>
@@ -340,8 +343,9 @@
 
         <div class="field-label">COURSE CODE & TITLE *</div>
         <div id="courseSearchContainer" class="searchable-select-wrapper">
-            <input type="text" id="courseSearchInput" class="searchable-input" placeholder="Select a tutor first…" autocomplete="off" required>
-            <div id="courseDropdown" class="dropdown-options" role="listbox" aria-label="Course search results"></div>
+            <select id="courseSearchInput" class="searchable-input" required disabled>
+                <option value="">Select a facilitator first…</option>
+            </select>
             <input type="hidden" id="course" name="course" required>
         </div>
         <div class="hint" id="courseHint">Courses will appear after you select a facilitator.</div>
@@ -799,14 +803,69 @@ function setupNativeSearchInputs(){
     window.__refreshTutorSuggestions=renderTutorSuggestions;
     window.__refreshCourseSuggestions=renderCourseSuggestions;
 }
+function renderTutorResults(){
+    const input=$('tutorSearchInput'), results=$('tutorResults');
+    if(!input||!results)return;
+    results.innerHTML='';
+    if(input.disabled || !ALL_TUTORS.length){results.hidden=true;return;}
+    const q=String(input.value||'').trim().toLowerCase();
+    const matches=[];
+    ALL_TUTORS.forEach((t,index)=>{
+        const name=tutorDisplayName(t).toLowerCase();
+        const id=tutorDisplayId(t).toLowerCase();
+        const label=tutorOptionLabel(t).toLowerCase();
+        if(!q || name.includes(q) || id.includes(q) || label.includes(q))matches.push({t,index});
+    });
+    const shown=matches.slice(0,60);
+    if(!shown.length){
+        const opt=document.createElement('option');opt.disabled=true;opt.textContent='No matching facilitator found';results.appendChild(opt);results.size=2;results.hidden=false;return;
+    }
+    shown.forEach(({t,index})=>{const opt=document.createElement('option');opt.value=String(index);opt.textContent=tutorOptionLabel(t);results.appendChild(opt);});
+    results.size=Math.min(Math.max(shown.length,2),7);
+    results.hidden=false;
+}
+function chooseTutorFromResults(){
+    const input=$('tutorSearchInput'), results=$('tutorResults');
+    if(!input||!results||results.value==='')return;
+    const idx=Number(results.value);const tutor=ALL_TUTORS[idx];if(!tutor)return;
+    input.value=tutorOptionLabel(tutor);input.setCustomValidity('');results.hidden=true;results.innerHTML='';
+    setSelectedTutor(tutor);
+}
+function setupReliableTutorSearch(){
+    const input=$('tutorSearchInput'), results=$('tutorResults');
+    if(!input||!results)return;
+    input.addEventListener('focus',renderTutorResults);
+    input.addEventListener('click',renderTutorResults);
+    input.addEventListener('input',()=>{if(CURRENT_TUTOR){setSelectedTutor(null);}input.setCustomValidity('');renderTutorResults();});
+    results.addEventListener('change',chooseTutorFromResults);
+    results.addEventListener('click',chooseTutorFromResults);
+    results.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();chooseTutorFromResults();}});
+    document.addEventListener('click',e=>{const box=$('tutorSearchContainer');if(box&&!box.contains(e.target)){results.hidden=true;}});
+    window.__renderTutorResults=renderTutorResults;
+}
+function populateCourseSelect(){
+    const select=$('courseSearchInput'), hidden=$('course');if(!select||!hidden)return;
+    const courses=tutorCourses();select.innerHTML='';
+    const first=document.createElement('option');first.value='';
+    if(!CURRENT_TUTOR)first.textContent='Select a facilitator first…';
+    else if(!courses.length)first.textContent='No courses assigned';
+    else first.textContent='Select course code & title';
+    select.appendChild(first);
+    courses.forEach(label=>{const opt=document.createElement('option');opt.value=label;opt.textContent=label;select.appendChild(opt);});
+    select.disabled=!CURRENT_TUTOR||!courses.length;hidden.value='';
+}
+function setupReliableCourseSelect(){
+    const select=$('courseSearchInput'), hidden=$('course');if(!select||!hidden)return;
+    select.addEventListener('change',()=>{hidden.value=select.value||'';if(select.value)onCourseSelected(select.value);else{if($('program'))$('program').value='';if($('studyCentre'))$('studyCentre').value='';}scheduleDuplicateCheck();});
+}
 function populateProgramDropdown(){const prog=$('program');prog.innerHTML='<option value="" disabled selected>Select programme</option>';const progs=[...new Set(filteredTutorCourseAssignments().map(c=>c.program||c.programme).filter(Boolean))];progs.forEach(p=>{const opt=document.createElement('option');opt.value=p;opt.textContent=p;prog.appendChild(opt);});if(progs.length===1)prog.value=progs[0];}
-function updateCourseAvailability(){const input=$('courseSearchInput'), hidden=$('course'), hint=$('courseHint');populateCourseDatalist();const courses=tutorCourses();if(!CURRENT_TUTOR){input.disabled=true;input.placeholder='Select a facilitator first…';hidden.value='';hint.textContent='Select a facilitator first. Their assigned courses will appear here.';return;}if(!courses.length){input.disabled=true;input.placeholder='No courses assigned';hidden.value='';hint.textContent='No course has been assigned to the selected facilitator. Please contact the administrator.';return;}input.disabled=false;input.placeholder='🔍 Select the course taught by this facilitator...';hint.textContent=courses.length+' course'+(courses.length===1?'':'s')+' available for '+(tutorDisplayName(CURRENT_TUTOR)||tutorDisplayId(CURRENT_TUTOR))+'.';}
+function updateCourseAvailability(){const hint=$('courseHint');populateCourseSelect();const courses=tutorCourses();if(!CURRENT_TUTOR){hint.textContent='Select a facilitator first. Their assigned courses will appear here.';return;}if(!courses.length){hint.textContent='No course has been assigned to the selected facilitator. Please contact the administrator.';return;}hint.textContent=courses.length+' course'+(courses.length===1?'':'s')+' available for '+(tutorDisplayName(CURRENT_TUTOR)||tutorDisplayId(CURRENT_TUTOR))+'.';}
 function resetCourseSelection(){if($('courseSearchInput'))$('courseSearchInput').value='';if($('course'))$('course').value='';if($('program'))$('program').innerHTML='<option value="" disabled selected>Select programme</option>';if($('studyCentre'))$('studyCentre').value='';setTravelFields('','','','','');clearDuplicateNotice();}
 function onCourseSelected(label){const match=filteredTutorCourseAssignments().find(c=>c.label===label);if(!match)return;const p=match.program||match.programme||'';const centre=match.centre||match.studyCentre||match.studyCenter||'';if(p){ensureSelectOption($('program'),p);$('program').value=p;}if(centre)$('studyCentre').value=centre;setTravelFields(match.travelFrom||match.from||match.origin||'',match.travelTo||match.to||match.destination||'',match.travelDistanceIn||match.distanceIn||'',match.travelDistanceOut||match.distanceOut||'',match.travelTotalDistance||match.totalDistanceTravelled||match.totalDistance||'');scheduleDuplicateCheck();}
 function ensureSelectOption(selectEl,value){if(!selectEl||!value)return;if(!Array.from(selectEl.options).some(o=>o.value===value)){const opt=document.createElement('option');opt.value=value;opt.textContent=value;selectEl.appendChild(opt);}}
-function setSelectedTutor(tutor){CURRENT_TUTOR=tutor||null;resetCourseSelection();if(CURRENT_TUTOR){const staffId=tutorDisplayId(CURRENT_TUTOR),name=tutorDisplayName(CURRENT_TUTOR)||staffId;$('selectedTutorId').value=staffId;$('staffId').value=staffId;$('tutorName').value=name;$('tutorHint').textContent='Selected facilitator: '+name+' ('+staffId+').';populateProgramDropdown();}else{$('selectedTutorId').value='';$('staffId').value='';$('tutorName').value='';$('tutorHint').textContent='Select a facilitator to load their courses.';}updateCourseAvailability();if(window.__refreshCourseSuggestions&&document.activeElement===$('courseSearchInput'))window.__refreshCourseSuggestions();scheduleDuplicateCheck();}
+function setSelectedTutor(tutor){CURRENT_TUTOR=tutor||null;resetCourseSelection();if(CURRENT_TUTOR){const staffId=tutorDisplayId(CURRENT_TUTOR),name=tutorDisplayName(CURRENT_TUTOR)||staffId;$('selectedTutorId').value=staffId;$('staffId').value=staffId;$('tutorName').value=name;$('tutorHint').textContent='Selected facilitator: '+name+' ('+staffId+').';populateProgramDropdown();}else{$('selectedTutorId').value='';$('staffId').value='';$('tutorName').value='';$('tutorHint').textContent='Select a facilitator to load their courses.';}updateCourseAvailability();scheduleDuplicateCheck();}
 function onTutorSelected(label){const wanted=String(label||'').trim().toLowerCase();const selected=ALL_TUTORS.find(t=>String(t.optionLabel||tutorOptionLabel(t)).trim().toLowerCase()===wanted);setSelectedTutor(selected||null);}
-async function loadAllTutorsForMonitor(){const fs=window.__firestore;if(!fs||!fs.db)throw new Error('Firestore is not ready. Refresh and try again.');const snap=await fs.getDocs(fs.collection(fs.db,'ug_tutors'));const tutors=[];snap.forEach(docSnap=>{const data=docSnap.data()||{};const id=String(data.staffId||docSnap.id||'').trim().toUpperCase();const t=Object.assign({},data,{docId:docSnap.id,staffId:id});t.optionLabel=tutorOptionLabel(t);if(id&&t.optionLabel)tutors.push(t);});tutors.sort((a,b)=>tutorOptionLabel(a).localeCompare(tutorOptionLabel(b)));ALL_TUTORS=tutors;const search=$('tutorSearchInput');if(search)search.dispatchEvent(new Event('dropdown-data-updated'));}
+async function loadAllTutorsForMonitor(){const fs=window.__firestore;if(!fs||!fs.db)throw new Error('Firestore is not ready. Refresh and try again.');const snap=await fs.getDocs(fs.collection(fs.db,'ug_tutors'));const tutors=[];snap.forEach(docSnap=>{const data=docSnap.data()||{};const id=String(data.staffId||docSnap.id||'').trim().toUpperCase();const t=Object.assign({},data,{docId:docSnap.id,staffId:id});t.optionLabel=tutorOptionLabel(t);if(id&&t.optionLabel)tutors.push(t);});tutors.sort((a,b)=>tutorOptionLabel(a).localeCompare(tutorOptionLabel(b)));ALL_TUTORS=tutors;if(window.__renderTutorResults&&document.activeElement===$('tutorSearchInput'))window.__renderTutorResults();}
 async function fillTutorFromLogin(){
     const rawId=(sessionStorage.getItem('monitorStaffId')||sessionStorage.getItem('tutorStaffId')||'').trim().toUpperCase();
     const fbName=(sessionStorage.getItem('monitorName')||sessionStorage.getItem('tutorName')||'').trim();
@@ -844,7 +903,7 @@ async function fillTutorFromLogin(){
         if(monitorHint)monitorHint.textContent='Monitor profile loaded. Loading facilitator list…';
 
         await loadAllTutorsForMonitor();
-        if(tutorSearchInput){tutorSearchInput.disabled=false;tutorSearchInput.placeholder='🔍 Search tutor by name or Staff ID...';}
+        if(tutorSearchInput){tutorSearchInput.disabled=false;tutorSearchInput.placeholder='🔍 Search tutor by name or Staff ID...'; if(window.__renderTutorResults&&document.activeElement===tutorSearchInput)window.__renderTutorResults();}
         if($('tutorSearchHint'))$('tutorSearchHint').textContent=ALL_TUTORS.length+' facilitator record'+(ALL_TUTORS.length===1?'':'s')+' available. Search by name or Staff ID.';
         if(monitorHint)monitorHint.textContent='Signed in as '+rawId+' — '+(CURRENT_MONITOR.name||CURRENT_MONITOR.fullName||fbName||'monitor')+'.';
     }catch(e){
@@ -1017,7 +1076,7 @@ function setupFormSubmission(form){form.addEventListener('submit',e=>{e.preventD
 async function loadMyClaims(){const staffId=($('monitorStaffId').value||sessionStorage.getItem('monitorStaffId')||'').trim().toUpperCase(),list=$('claimsList'),fs=window.__firestore;list.innerHTML='';if(!staffId||!fs){$('claimsStatus').textContent='Sign in first so your claims can be loaded.';return;}$('claimsStatus').textContent='Loading claims entered by this monitor...';try{const uid=window.__currentUserUid||'';const q=uid?fs.query(fs.collection(fs.db,'ug_claims'),fs.where('uid','==',uid)):fs.query(fs.collection(fs.db,'ug_claims'),fs.where('monitorStaffId','==',staffId));const snap=await fs.getDocs(q);const claims=[];snap.forEach(docSnap=>claims.push({id:docSnap.id,data:docSnap.data()||{}}));claims.sort((a,b)=>timestampToMillis(b.data.updatedAt||b.data.createdAt)-timestampToMillis(a.data.updatedAt||a.data.createdAt));renderClaimsList(claims);}catch(err){console.error(err);$('claimsStatus').textContent='Could not load claims: '+(err.message||err);}}
 function renderClaimsList(claims){const list=$('claimsList');list.innerHTML='';if(!claims.length){$('claimsStatus').textContent='No claims submitted by this monitor yet.';return;}$('claimsStatus').textContent=claims.length+' claim(s) found.';claims.forEach(item=>{const d=item.data||{};const div=document.createElement('div');div.className='claim-item';const meta=[d.claimId||item.id,d.tutorName||'',d.staffId||d.tutorStaffId||'',d.semester||'',d.modeOfDelivery||d.block||'',d.totalHours?('Total hours: '+d.totalHours):'',formatClaimDate(d.updatedAt||d.createdAt)?('Updated: '+formatClaimDate(d.updatedAt||d.createdAt)):''].filter(Boolean).join(' • ');div.innerHTML='<div class="claim-main"><div class="claim-title"></div><div class="claim-meta"></div></div><div class="claim-button-row"><button type="button" class="download-claim-pdf-btn">Download PDF</button><button type="button" class="edit-claim-btn">Edit</button></div>';div.querySelector('.claim-title').textContent=d.course||'Untitled course';div.querySelector('.claim-meta').textContent=meta;div.querySelector('.download-claim-pdf-btn').addEventListener('click',()=>downloadSubmittedClaimPdf(item.id));div.querySelector('.edit-claim-btn').addEventListener('click',()=>loadClaimForEdit(item.id));list.appendChild(div);});}
 async function loadClaimForEdit(id){const fs=window.__firestore;try{$('claimsStatus').textContent='Opening claim...';const snap=await fs.getDoc(fs.doc(fs.db,'ug_claims',id));if(!snap.exists()){$('claimsStatus').textContent='Claim not found.';return;}const data=snap.data()||{};const uid=window.__currentUserUid||'';if(data.uid&&uid&&data.uid!==uid){alert('You cannot edit a claim submitted by another monitor.');return;}fillFormFromClaim(data,id);$('claimsStatus').textContent='Claim loaded for editing.';$('reportForm').scrollIntoView({behavior:'smooth',block:'start'});}catch(e){console.error(e);$('claimsStatus').textContent='Could not open claim: '+(e.message||e);}}
-function fillFormFromClaim(data,id){CURRENT_EDIT_DOC_ID=id||data.claimId||'';CURRENT_EDIT_CLAIM_ID=data.claimId||id||'';const tutorId=String(data.staffId||data.tutorStaffId||'').trim().toUpperCase();const tutor=ALL_TUTORS.find(t=>tutorDisplayId(t)===tutorId)||{staffId:tutorId,name:data.tutorName||tutorId,courses:[]};tutor.optionLabel=tutor.optionLabel||tutorOptionLabel(tutor);$('tutorSearchInput').value=tutor.optionLabel;$('selectedTutorId').value=tutorId;setSelectedTutor(tutor);$('courseSearchInput').value=data.course||'';$('course').value=data.course||'';ensureSelectOption($('program'),data.program||data.programme||'');$('program').value=data.program||data.programme||'';$('studyCentre').value=data.studyCentre||'';document.querySelectorAll('input[name="semester"]').forEach(r=>r.checked=(r.value===(data.semester||'Second Semester')));document.querySelectorAll('input[name="modeOfDelivery"]').forEach(r=>r.checked=(r.value===(data.modeOfDelivery||'Face-to-Face')));setTravelFields(data.travelFrom||'',data.travelTo||'',data.travelDistanceIn||'',data.travelDistanceOut||'',data.travelTotalDistance||'');applyMode();setSessionRows('f2f',data.f2fSessionItems||[]);setSessionRows('on',data.onSessionItems||[]);$('remarks').value=data.remarks||'';clearSignatureUi();setSignatureImageFromDataUrl(data.facilitatorSignature||data.facilitatorSignatureText||data.facilitatorSignatureUrl||'');showEditMode(CURRENT_EDIT_CLAIM_ID);}
+function fillFormFromClaim(data,id){CURRENT_EDIT_DOC_ID=id||data.claimId||'';CURRENT_EDIT_CLAIM_ID=data.claimId||id||'';const tutorId=String(data.staffId||data.tutorStaffId||'').trim().toUpperCase();const tutor=ALL_TUTORS.find(t=>tutorDisplayId(t)===tutorId)||{staffId:tutorId,name:data.tutorName||tutorId,courses:[]};tutor.optionLabel=tutor.optionLabel||tutorOptionLabel(tutor);$('tutorSearchInput').value=tutor.optionLabel;$('selectedTutorId').value=tutorId;setSelectedTutor(tutor);populateCourseSelect();$('courseSearchInput').value=data.course||'';$('course').value=data.course||'';ensureSelectOption($('program'),data.program||data.programme||'');$('program').value=data.program||data.programme||'';$('studyCentre').value=data.studyCentre||'';document.querySelectorAll('input[name="semester"]').forEach(r=>r.checked=(r.value===(data.semester||'Second Semester')));document.querySelectorAll('input[name="modeOfDelivery"]').forEach(r=>r.checked=(r.value===(data.modeOfDelivery||'Face-to-Face')));setTravelFields(data.travelFrom||'',data.travelTo||'',data.travelDistanceIn||'',data.travelDistanceOut||'',data.travelTotalDistance||'');applyMode();setSessionRows('f2f',data.f2fSessionItems||[]);setSessionRows('on',data.onSessionItems||[]);$('remarks').value=data.remarks||'';clearSignatureUi();setSignatureImageFromDataUrl(data.facilitatorSignature||data.facilitatorSignatureText||data.facilitatorSignatureUrl||'');showEditMode(CURRENT_EDIT_CLAIM_ID);}
 function showEditMode(claimId){$('editClaimLabel').textContent=claimId||'';$('editNotice').style.display='block';$('submitBtn').textContent='Update Claim Summary';}
 function clearEditMode(){CURRENT_EDIT_CLAIM_ID='';CURRENT_EDIT_DOC_ID='';$('editNotice').style.display='none';$('editClaimLabel').textContent='';$('submitBtn').textContent='Submit Claim Summary';}
 function resetForm(){const keepMonitorId=$('monitorStaffId').value,keepMonitorName=$('monitorName').value;$('reportForm').reset();$('monitorStaffId').value=keepMonitorId;$('monitorName').value=keepMonitorName;$('tutorSearchInput').value='';$('selectedTutorId').value='';setSelectedTutor(null);$('courseSearchInput').value='';$('course').value='';$('studyCentre').value='';$('f2fRows').innerHTML='';if($('onRows'))$('onRows').innerHTML='';document.querySelector('input[name="semester"][value="Second Semester"]').checked=true;document.querySelector('input[name="modeOfDelivery"][value="Face-to-Face"]').checked=true;setTravelFields('','','','','');clearSignatureUi();clearEditMode();clearDuplicateNotice();applyMode();hideMessages();}
@@ -1066,24 +1125,10 @@ async function submitPwChange(){const current=$('pwCurrent').value,newPw=$('pwNe
 window.openPwModal=openPwModal;window.closePwModal=closePwModal;window.closePwModalOnBackdrop=closePwModalOnBackdrop;window.submitPwChange=submitPwChange;window.closePreview=closePreview;window.submitAndDownloadFromPreview=submitAndDownloadFromPreview;window.downloadPreviewPdf=downloadPreviewPdf;window.openDuplicateClaimFromNotice=openDuplicateClaimFromNotice;window.loadMyClaims=loadMyClaims;
 
 document.addEventListener('DOMContentLoaded',()=>{
-    // Use the original searchable-dropdown implementation that reliably
-    // calls the selection callback and fills the dependent fields.
-    createSearchableDropdown({
-        inputId:'tutorSearchInput',
-        dropdownId:'tutorDropdown',
-        hiddenId:'selectedTutorId',
-        getData:tutorOptions,
-        onSelect:onTutorSelected,
-        invalidMessage:'Please select a facilitator from the list.'
-    });
-    createSearchableDropdown({
-        inputId:'courseSearchInput',
-        dropdownId:'courseDropdown',
-        hiddenId:'course',
-        getData:tutorCourses,
-        onSelect:onCourseSelected,
-        invalidMessage:'Please select one of the facilitator\'s assigned courses.'
-    });
+    // Reliable, browser-native controls: a visible filtered result list for facilitators
+    // and a standard course select. These do not depend on floating dropdown overlays.
+    setupReliableTutorSearch();
+    setupReliableCourseSelect();
     setupFormSubmission($('reportForm'));
     if(typeof initSignatureUpload==='function')initSignatureUpload();
     applyMode();
