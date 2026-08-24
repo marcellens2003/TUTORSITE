@@ -915,7 +915,7 @@ function onCourseSelected(label){const match=filteredTutorCourseAssignments().fi
 function ensureSelectOption(selectEl,value){if(!selectEl||!value)return;if(!Array.from(selectEl.options).some(o=>o.value===value)){const opt=document.createElement('option');opt.value=value;opt.textContent=value;selectEl.appendChild(opt);}}
 function setSelectedTutor(tutor){CURRENT_TUTOR=tutor||null;resetCourseSelection();if(CURRENT_TUTOR){const staffId=tutorDisplayId(CURRENT_TUTOR),name=tutorDisplayName(CURRENT_TUTOR)||staffId;$('selectedTutorId').value=staffId;$('staffId').value=staffId;$('tutorName').value=name;$('tutorHint').textContent='Selected facilitator: '+name+' ('+staffId+').';populateProgramDropdown();}else{$('selectedTutorId').value='';$('staffId').value='';$('tutorName').value='';$('tutorHint').textContent='Select a facilitator to load their courses.';}updateCourseAvailability();scheduleDuplicateCheck();}
 function onTutorSelected(label){const wanted=String(label||'').trim().toLowerCase();const selected=ALL_TUTORS.find(t=>String(t.optionLabel||tutorOptionLabel(t)).trim().toLowerCase()===wanted);setSelectedTutor(selected||null);}
-async function loadAllTutorsForMonitor(){const fs=window.__firestore;if(!fs||!fs.db)throw new Error('Firestore is not ready. Refresh and try again.');const snap=await fs.getDocs(fs.collection(fs.db,'ug_tutors'));const tutors=[];snap.forEach(docSnap=>{const data=docSnap.data()||{};const id=String(data.staffId||docSnap.id||'').trim().toUpperCase();const t=Object.assign({},data,{docId:docSnap.id,staffId:id});t.optionLabel=tutorOptionLabel(t);if(id&&t.optionLabel)tutors.push(t);});tutors.sort((a,b)=>tutorOptionLabel(a).localeCompare(tutorOptionLabel(b)));ALL_TUTORS=tutors;if(window.__renderTutorResults)window.__renderTutorResults();}
+async function loadAllTutorsForMonitor(){const fs=window.__firestore;if(!fs||!fs.db)throw new Error('Firestore is not ready. Refresh and try again.');const snap=await fs.getDocs(fs.collection(fs.db,'ug_tutors'));const tutors=[];snap.forEach(docSnap=>{const data=docSnap.data()||{};const id=String(data.staffId||docSnap.id||'').trim().toUpperCase();const t=Object.assign({},data,{docId:docSnap.id,staffId:id});t.optionLabel=tutorOptionLabel(t);if(id&&t.optionLabel)tutors.push(t);});tutors.sort((a,b)=>tutorOptionLabel(a).localeCompare(tutorOptionLabel(b)));ALL_TUTORS=tutors;renderTutorResults();}
 async function fillTutorFromLogin(){
     const rawId=(sessionStorage.getItem('monitorStaffId')||sessionStorage.getItem('tutorStaffId')||'').trim().toUpperCase();
     const fbName=(sessionStorage.getItem('monitorName')||sessionStorage.getItem('tutorName')||'').trim();
@@ -953,8 +953,9 @@ async function fillTutorFromLogin(){
         if(monitorHint)monitorHint.textContent='Monitor profile loaded. Loading facilitator list…';
 
         await loadAllTutorsForMonitor();
-        if(tutorSearchInput){tutorSearchInput.disabled=false;tutorSearchInput.placeholder='🔍 Search tutor by name or Staff ID...'; if(window.__renderTutorResults)window.__renderTutorResults();}
+        if(tutorSearchInput){tutorSearchInput.disabled=false;tutorSearchInput.placeholder='🔍 Search tutor by name or Staff ID...';renderTutorResults();requestAnimationFrame(renderTutorResults);}
         if($('tutorSearchHint'))$('tutorSearchHint').textContent=ALL_TUTORS.length+' facilitator record'+(ALL_TUTORS.length===1?'':'s')+' available. Search by name or Staff ID.';
+        renderTutorResults();
         if(monitorHint)monitorHint.textContent='Signed in as '+rawId+' — '+(CURRENT_MONITOR.name||CURRENT_MONITOR.fullName||fbName||'monitor')+'.';
     }catch(e){
         console.error('Could not load undergraduate monitor/tutor data:',e);
