@@ -317,8 +317,8 @@
 
         <div class="field-label">SEARCH / SELECT FACILITATOR *</div>
         <div id="tutorSearchContainer" class="searchable-select-wrapper">
-            <input type="text" id="tutorSearchInput" class="searchable-input" placeholder="Loading tutors…" autocomplete="off" list="tutorDatalist" required>
-            <datalist id="tutorDatalist"></datalist>
+            <input type="text" id="tutorSearchInput" class="searchable-input" placeholder="Loading tutors…" autocomplete="off" required>
+            <div id="tutorSuggestions" class="dropdown-options" role="listbox" aria-label="Facilitator search results"></div>
             <input type="hidden" id="selectedTutorId" name="selectedTutorId" required>
         </div>
         <div class="hint" id="tutorSearchHint">Search by tutor name or Staff ID. No monitor-to-tutor assignment is required.</div>
@@ -340,8 +340,8 @@
 
         <div class="field-label">COURSE CODE & TITLE *</div>
         <div id="courseSearchContainer" class="searchable-select-wrapper">
-            <input type="text" id="courseSearchInput" class="searchable-input" placeholder="Select a tutor first…" autocomplete="off" list="courseDatalist" required>
-            <datalist id="courseDatalist"></datalist>
+            <input type="text" id="courseSearchInput" class="searchable-input" placeholder="Select a tutor first…" autocomplete="off" required>
+            <div id="courseSuggestions" class="dropdown-options" role="listbox" aria-label="Course search results"></div>
             <input type="hidden" id="course" name="course" required>
         </div>
         <div class="hint" id="courseHint">Courses will appear after you select a facilitator.</div>
@@ -629,54 +629,184 @@ function findTutorByTypedLabel(value){
 }
 function setupNativeSearchInputs(){
     const tutorInput=$('tutorSearchInput');
+    const tutorBox=$('tutorSuggestions');
     const courseInput=$('courseSearchInput');
+    const courseBox=$('courseSuggestions');
+
+    const norm=v=>String(v||'').trim().toLowerCase();
+    const hide=box=>{ if(box){ box.classList.remove('show'); box.innerHTML=''; } };
+    const show=box=>{ if(box){ box.classList.add('show'); } };
+
+    function chooseTutor(tutor){
+        if(!tutor)return;
+        tutorInput.value=tutor.optionLabel||tutorOptionLabel(tutor);
+        tutorInput.setCustomValidity('');
+        setSelectedTutor(tutor);
+        hide(tutorBox);
+        setTimeout(()=>{ if(courseInput&&!courseInput.disabled) courseInput.focus(); },0);
+    }
+
+    function renderTutorSuggestions(){
+        if(!tutorInput||!tutorBox)return;
+        tutorBox.innerHTML='';
+        if(tutorInput.disabled){ hide(tutorBox); return; }
+        const q=norm(tutorInput.value);
+        let matches=ALL_TUTORS.filter(t=>{
+            const label=norm(t.optionLabel||tutorOptionLabel(t));
+            const name=norm(tutorDisplayName(t));
+            const id=norm(tutorDisplayId(t));
+            return !q || label.includes(q) || name.includes(q) || id.includes(q);
+        });
+        matches=matches.slice(0,50);
+        if(!matches.length){
+            const d=document.createElement('div');
+            d.className='no-result';
+            d.textContent='No matching facilitator found';
+            tutorBox.appendChild(d);
+            show(tutorBox);
+            return;
+        }
+        matches.forEach(t=>{
+            const d=document.createElement('div');
+            d.className='option-item';
+            d.setAttribute('role','option');
+            d.tabIndex=0;
+            d.textContent=t.optionLabel||tutorOptionLabel(t);
+            const select=ev=>{
+                ev.preventDefault();
+                ev.stopPropagation();
+                chooseTutor(t);
+            };
+            d.addEventListener('mousedown',select);
+            d.addEventListener('click',select);
+            d.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){select(ev);}});
+            tutorBox.appendChild(d);
+        });
+        if(ALL_TUTORS.length>50 && !q){
+            const more=document.createElement('div');
+            more.className='no-result';
+            more.textContent='Type a name or Staff ID to narrow the list.';
+            tutorBox.appendChild(more);
+        }
+        show(tutorBox);
+    }
+
+    function chooseCourse(label){
+        if(!label)return;
+        courseInput.value=label;
+        $('course').value=label;
+        courseInput.setCustomValidity('');
+        onCourseSelected(label);
+        hide(courseBox);
+    }
+
+    function renderCourseSuggestions(){
+        if(!courseInput||!courseBox)return;
+        courseBox.innerHTML='';
+        if(courseInput.disabled || !CURRENT_TUTOR){ hide(courseBox); return; }
+        const q=norm(courseInput.value);
+        const matches=tutorCourses().filter(label=>!q||norm(label).includes(q)).slice(0,50);
+        if(!matches.length){
+            const d=document.createElement('div');
+            d.className='no-result';
+            d.textContent='No matching course found for this facilitator';
+            courseBox.appendChild(d);
+            show(courseBox);
+            return;
+        }
+        matches.forEach(label=>{
+            const d=document.createElement('div');
+            d.className='option-item';
+            d.setAttribute('role','option');
+            d.tabIndex=0;
+            d.textContent=label;
+            const select=ev=>{
+                ev.preventDefault();
+                ev.stopPropagation();
+                chooseCourse(label);
+            };
+            d.addEventListener('mousedown',select);
+            d.addEventListener('click',select);
+            d.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){select(ev);}});
+            courseBox.appendChild(d);
+        });
+        show(courseBox);
+    }
+
     if(tutorInput){
-        const chooseTutor=()=>{
-            const match=findTutorByTypedLabel(tutorInput.value);
-            if(match){
-                tutorInput.setCustomValidity('');
-                setSelectedTutor(match);
-            }else{
-                $('selectedTutorId').value='';
-                if(CURRENT_TUTOR) setSelectedTutor(null);
+        tutorInput.addEventListener('focus',renderTutorSuggestions);
+        tutorInput.addEventListener('click',renderTutorSuggestions);
+        tutorInput.addEventListener('input',()=>{
+            const exact=ALL_TUTORS.find(t=>norm(t.optionLabel||tutorOptionLabel(t))===norm(tutorInput.value));
+            if(exact){ chooseTutor(exact); return; }
+            if(CURRENT_TUTOR){ setSelectedTutor(null); }
+            $('selectedTutorId').value='';
+            renderTutorSuggestions();
+        });
+        tutorInput.addEventListener('keydown',ev=>{
+            if(ev.key==='Escape'){ hide(tutorBox); return; }
+            if(ev.key==='Enter'){
+                const q=norm(tutorInput.value);
+                const exact=ALL_TUTORS.find(t=>norm(t.optionLabel||tutorOptionLabel(t))===q);
+                const matches=ALL_TUTORS.filter(t=>norm(t.optionLabel||tutorOptionLabel(t)).includes(q)||norm(tutorDisplayName(t)).includes(q)||norm(tutorDisplayId(t)).includes(q));
+                const pick=exact||(matches.length===1?matches[0]:null);
+                if(pick){ ev.preventDefault(); chooseTutor(pick); }
             }
-        };
-        tutorInput.addEventListener('input',chooseTutor);
-        tutorInput.addEventListener('change',chooseTutor);
+        });
         tutorInput.addEventListener('blur',()=>{
-            const match=findTutorByTypedLabel(tutorInput.value);
-            tutorInput.setCustomValidity(tutorInput.value.trim()&&!match?'Please select a facilitator from the suggestions.':'');
+            setTimeout(()=>{
+                const exact=ALL_TUTORS.find(t=>norm(t.optionLabel||tutorOptionLabel(t))===norm(tutorInput.value));
+                tutorInput.setCustomValidity(tutorInput.value.trim()&&!exact&&!CURRENT_TUTOR?'Please select a facilitator from the suggestions.':'');
+                if(!tutorBox.matches(':hover')) hide(tutorBox);
+            },180);
         });
     }
+
     if(courseInput){
-        const chooseCourse=()=>{
-            const typed=String(courseInput.value||'').trim().toLowerCase();
-            const label=tutorCourses().find(x=>String(x).trim().toLowerCase()===typed)||'';
-            if(label){
-                courseInput.setCustomValidity('');
-                $('course').value=label;
-                onCourseSelected(label);
-            }else{
-                $('course').value='';
+        courseInput.addEventListener('focus',renderCourseSuggestions);
+        courseInput.addEventListener('click',renderCourseSuggestions);
+        courseInput.addEventListener('input',()=>{
+            const exact=tutorCourses().find(x=>norm(x)===norm(courseInput.value));
+            if(exact){ chooseCourse(exact); return; }
+            $('course').value='';
+            renderCourseSuggestions();
+        });
+        courseInput.addEventListener('keydown',ev=>{
+            if(ev.key==='Escape'){ hide(courseBox); return; }
+            if(ev.key==='Enter'){
+                const q=norm(courseInput.value);
+                const exact=tutorCourses().find(x=>norm(x)===q);
+                const matches=tutorCourses().filter(x=>norm(x).includes(q));
+                const pick=exact||(matches.length===1?matches[0]:null);
+                if(pick){ ev.preventDefault(); chooseCourse(pick); }
             }
-        };
-        courseInput.addEventListener('input',chooseCourse);
-        courseInput.addEventListener('change',chooseCourse);
+        });
         courseInput.addEventListener('blur',()=>{
-            const typed=String(courseInput.value||'').trim().toLowerCase();
-            const ok=tutorCourses().some(x=>String(x).trim().toLowerCase()===typed);
-            courseInput.setCustomValidity(courseInput.value.trim()&&!ok?'Please select one of this facilitator\'s assigned courses.':'');
+            setTimeout(()=>{
+                const ok=tutorCourses().some(x=>norm(x)===norm(courseInput.value));
+                courseInput.setCustomValidity(courseInput.value.trim()&&!ok?'Please select one of this facilitator\'s assigned courses.':'');
+                if(!courseBox.matches(':hover')) hide(courseBox);
+            },180);
         });
     }
+
+    document.addEventListener('click',ev=>{
+        const tw=$('tutorSearchContainer'), cw=$('courseSearchContainer');
+        if(tw && !tw.contains(ev.target)) hide(tutorBox);
+        if(cw && !cw.contains(ev.target)) hide(courseBox);
+    });
+
+    window.__refreshTutorSuggestions=renderTutorSuggestions;
+    window.__refreshCourseSuggestions=renderCourseSuggestions;
 }
 function populateProgramDropdown(){const prog=$('program');prog.innerHTML='<option value="" disabled selected>Select programme</option>';const progs=[...new Set(filteredTutorCourseAssignments().map(c=>c.program||c.programme).filter(Boolean))];progs.forEach(p=>{const opt=document.createElement('option');opt.value=p;opt.textContent=p;prog.appendChild(opt);});if(progs.length===1)prog.value=progs[0];}
 function updateCourseAvailability(){const input=$('courseSearchInput'), hidden=$('course'), hint=$('courseHint');populateCourseDatalist();const courses=tutorCourses();if(!CURRENT_TUTOR){input.disabled=true;input.placeholder='Select a facilitator first…';hidden.value='';hint.textContent='Select a facilitator first. Their assigned courses will appear here.';return;}if(!courses.length){input.disabled=true;input.placeholder='No courses assigned';hidden.value='';hint.textContent='No course has been assigned to the selected facilitator. Please contact the administrator.';return;}input.disabled=false;input.placeholder='🔍 Select the course taught by this facilitator...';hint.textContent=courses.length+' course'+(courses.length===1?'':'s')+' available for '+(tutorDisplayName(CURRENT_TUTOR)||tutorDisplayId(CURRENT_TUTOR))+'.';}
 function resetCourseSelection(){if($('courseSearchInput'))$('courseSearchInput').value='';if($('course'))$('course').value='';if($('program'))$('program').innerHTML='<option value="" disabled selected>Select programme</option>';if($('studyCentre'))$('studyCentre').value='';setTravelFields('','','','','');clearDuplicateNotice();}
 function onCourseSelected(label){const match=filteredTutorCourseAssignments().find(c=>c.label===label);if(!match)return;const p=match.program||match.programme||'';const centre=match.centre||match.studyCentre||match.studyCenter||'';if(p){ensureSelectOption($('program'),p);$('program').value=p;}if(centre)$('studyCentre').value=centre;setTravelFields(match.travelFrom||match.from||match.origin||'',match.travelTo||match.to||match.destination||'',match.travelDistanceIn||match.distanceIn||'',match.travelDistanceOut||match.distanceOut||'',match.travelTotalDistance||match.totalDistanceTravelled||match.totalDistance||'');scheduleDuplicateCheck();}
 function ensureSelectOption(selectEl,value){if(!selectEl||!value)return;if(!Array.from(selectEl.options).some(o=>o.value===value)){const opt=document.createElement('option');opt.value=value;opt.textContent=value;selectEl.appendChild(opt);}}
-function setSelectedTutor(tutor){CURRENT_TUTOR=tutor||null;resetCourseSelection();if(CURRENT_TUTOR){const staffId=tutorDisplayId(CURRENT_TUTOR),name=tutorDisplayName(CURRENT_TUTOR)||staffId;$('selectedTutorId').value=staffId;$('staffId').value=staffId;$('tutorName').value=name;$('tutorHint').textContent='Selected facilitator: '+name+' ('+staffId+').';populateProgramDropdown();}else{$('selectedTutorId').value='';$('staffId').value='';$('tutorName').value='';$('tutorHint').textContent='Select a facilitator to load their courses.';}updateCourseAvailability();scheduleDuplicateCheck();}
+function setSelectedTutor(tutor){CURRENT_TUTOR=tutor||null;resetCourseSelection();if(CURRENT_TUTOR){const staffId=tutorDisplayId(CURRENT_TUTOR),name=tutorDisplayName(CURRENT_TUTOR)||staffId;$('selectedTutorId').value=staffId;$('staffId').value=staffId;$('tutorName').value=name;$('tutorHint').textContent='Selected facilitator: '+name+' ('+staffId+').';populateProgramDropdown();}else{$('selectedTutorId').value='';$('staffId').value='';$('tutorName').value='';$('tutorHint').textContent='Select a facilitator to load their courses.';}updateCourseAvailability();if(window.__refreshCourseSuggestions&&document.activeElement===$('courseSearchInput'))window.__refreshCourseSuggestions();scheduleDuplicateCheck();}
 function onTutorSelected(label){const selected=ALL_TUTORS.find(t=>t.optionLabel===label);setSelectedTutor(selected||null);}
-async function loadAllTutorsForMonitor(){const fs=window.__firestore;if(!fs||!fs.db)throw new Error('Firestore is not ready. Refresh and try again.');const snap=await fs.getDocs(fs.collection(fs.db,'ug_tutors'));const tutors=[];snap.forEach(docSnap=>{const data=docSnap.data()||{};const id=String(data.staffId||docSnap.id||'').trim().toUpperCase();const t=Object.assign({},data,{docId:docSnap.id,staffId:id});t.optionLabel=tutorOptionLabel(t);if(id&&t.optionLabel)tutors.push(t);});tutors.sort((a,b)=>tutorOptionLabel(a).localeCompare(tutorOptionLabel(b)));ALL_TUTORS=tutors;populateTutorDatalist();}
+async function loadAllTutorsForMonitor(){const fs=window.__firestore;if(!fs||!fs.db)throw new Error('Firestore is not ready. Refresh and try again.');const snap=await fs.getDocs(fs.collection(fs.db,'ug_tutors'));const tutors=[];snap.forEach(docSnap=>{const data=docSnap.data()||{};const id=String(data.staffId||docSnap.id||'').trim().toUpperCase();const t=Object.assign({},data,{docId:docSnap.id,staffId:id});t.optionLabel=tutorOptionLabel(t);if(id&&t.optionLabel)tutors.push(t);});tutors.sort((a,b)=>tutorOptionLabel(a).localeCompare(tutorOptionLabel(b)));ALL_TUTORS=tutors;populateTutorDatalist();if(window.__refreshTutorSuggestions&&document.activeElement===$('tutorSearchInput'))window.__refreshTutorSuggestions();}
 async function fillTutorFromLogin(){
     const rawId=(sessionStorage.getItem('monitorStaffId')||sessionStorage.getItem('tutorStaffId')||'').trim().toUpperCase();
     const fbName=(sessionStorage.getItem('monitorName')||sessionStorage.getItem('tutorName')||'').trim();
