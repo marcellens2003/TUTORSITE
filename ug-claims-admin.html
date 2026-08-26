@@ -1,36 +1,1330 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Undergraduate Claims Admin</title>
-<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Undergraduate Claims PDF Admin Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:Rubik,Arial,sans-serif;background:linear-gradient(135deg,#06183f,#0b2d76 55%,#123c94);padding:18px;color:#1f2937}.page{max-width:1200px;margin:auto}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;background:linear-gradient(135deg,#08183f,#102a72 52%,#1d3a8f);color:#fff;border-radius:16px;padding:19px 22px;border-top:4px solid #ffd34d;box-shadow:0 14px 36px rgba(5,16,48,.35)}.top h1{margin:0;font-size:24px}.top p{margin:6px 0 0;color:#ffe08a;font-size:13px}.card{background:#fff;border-radius:14px;padding:20px 22px;margin-top:15px;box-shadow:0 14px 36px rgba(5,16,48,.24)}h2{margin:0 0 13px;color:#002147;font-size:18px;border-bottom:2px solid #0056b3;padding-bottom:8px}.layout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(340px,.8fr);gap:15px}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.row>div{flex:1;min-width:180px}label{display:block;margin:10px 0 5px;font-size:13px;font-weight:700}input,textarea,select{width:100%;padding:10px 11px;border:1px solid #cbd5e1;border-radius:8px;font:inherit}textarea{min-height:88px}.btn{border:0;border-radius:8px;padding:10px 14px;background:#0056b3;color:#fff;font:inherit;font-weight:700;cursor:pointer}.btn.secondary{background:#eef2f7;color:#24364b;border:1px solid #cbd5e1}.btn.danger{background:#c7353f}.btn.success{background:#198754}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}.status{display:none;margin-top:12px;padding:11px 13px;border-radius:9px;font-size:13px;line-height:1.45}.status.ok{display:block;background:#d4edda;color:#155724}.status.warn{display:block;background:#fff3cd;color:#806000}.status.err{display:block;background:#f8d7da;color:#721c24}.hidden{display:none!important}.tablewrap{overflow:auto;max-height:620px;border:1px solid #e5e7eb;border-radius:10px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:left;vertical-align:top}th{position:sticky;top:0;background:#f8fafc;color:#002147}.tiny{font-size:12px;color:#667085;line-height:1.5}.badge{display:inline-block;padding:3px 7px;border-radius:999px;background:#e8f1ff;color:#0b4aa2;font-size:11px;font-weight:700}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.detail{border:1px solid #e5e7eb;border-radius:8px;padding:9px}.detail b{display:block;color:#667085;font-size:10px;text-transform:uppercase;margin-bottom:3px}.signature{max-width:100%;max-height:120px;border:1px solid #ddd}.sticky{position:sticky;top:10px}@media(max-width:900px){.layout{grid-template-columns:1fr}.sticky{position:static}body{padding:10px}}@media print{body{background:#fff;padding:0}.top,#loginCard,#listCard,.toolbar,#globalStatus{display:none!important}.page{max-width:none}.card{box-shadow:none;border-radius:0;margin:0}.sticky{position:static}}
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: 'Rubik', Arial, sans-serif;
+    background: linear-gradient(135deg, #06183f 0%, #0b2d76 50%, #123c94 100%);
+    color: #1f2937;
+    padding: 22px 14px 40px;
+  }
+  .page { width: 100%; max-width: 1220px; margin: 0 auto; }
+  .topbar { display:flex; gap:14px; justify-content:space-between; align-items:stretch; flex-wrap:wrap; margin-bottom:16px; }
+  .brand {
+    flex:1 1 520px; position:relative; overflow:hidden; padding:20px 24px; border-radius:16px; color:#fff;
+    background: radial-gradient(90% 140% at 88% -10%, rgba(255,211,77,.18), rgba(255,211,77,0) 55%), linear-gradient(135deg,#08183f,#102a72 52%,#1d3a8f);
+    box-shadow:0 14px 36px rgba(5,16,48,.35), inset 0 0 0 1px rgba(255,211,77,.22);
+  }
+  .brand:before { content:""; position:absolute; left:0;right:0;top:0; height:4px; background:linear-gradient(90deg,#d4362a,#e8b500,#ffd34d,#e8b500,#d4362a); }
+  .brand h1 { margin:0; font-size:24px; letter-spacing:.2px; }
+  .brand p { margin:7px 0 0; color:#ffe08a; font-weight:500; font-size:14px; line-height:1.45; }
+  .top-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+  .admin-pill {
+    display:flex; flex-direction:column; justify-content:center; gap:2px; min-width:190px; max-width:310px;
+    padding:8px 11px; border-radius:10px; background:rgba(255,255,255,.94); border:1px solid rgba(255,211,77,.45);
+    color:#002147; box-shadow:0 8px 18px rgba(5,16,48,.18);
+  }
+  .admin-pill .admin-label { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.45px; color:#64748b; }
+  .admin-pill .admin-name { font-size:13px; font-weight:800; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .admin-pill .admin-email { font-size:11px; color:#475569; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  button, a.link-btn {
+    display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:10px 14px; border:none; border-radius:9px;
+    background:#0056b3; color:#fff; font:inherit; font-size:14px; font-weight:700; text-decoration:none; cursor:pointer; transition:.15s ease;
+  }
+  button:hover:not(:disabled), a.link-btn:hover { background:#003d82; transform:translateY(-1px); }
+  button:disabled { background:#9db8d5; cursor:not-allowed; transform:none; }
+  .subtle { background:#f1f5f9 !important; color:#1f2937 !important; border:1px solid #cbd5e1 !important; }
+  .danger { background:#dc3545 !important; }
+  .success { background:#198754 !important; }
+  .small { padding:7px 10px; font-size:12px; border-radius:7px; }
+  .card { background:rgba(255,255,255,.985); border:1px solid rgba(255,255,255,.65); border-radius:15px; padding:20px 22px; margin-bottom:16px; box-shadow:0 14px 36px rgba(5,16,48,.25); }
+  h2 { margin:0 0 12px; font-size:18px; color:#002147; border-bottom:2px solid #0056b3; padding-bottom:8px; }
+  .subtitle { color:#5b6573; font-size:13px; line-height:1.55; margin:-4px 0 14px; }
+  .status { display:none; padding:12px 15px; border-radius:9px; margin:12px 0 16px; font-size:13px; line-height:1.55; }
+  .status.ready { display:block; background:#d4edda; border:1px solid #b8dfc2; color:#155724; }
+  .status.warn { display:block; background:#fff3cd; border:1px solid #ffe69c; color:#806000; }
+  .status.fail { display:block; background:#f8d7da; border:1px solid #f1bfc6; color:#721c24; }
+  .grid { display:grid; grid-template-columns: 1.1fr .9fr; gap:16px; align-items:start; }
+  @media (max-width: 920px) { .grid { grid-template-columns:1fr; } }
+  .row { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
+  .row > div { flex:1; min-width:170px; }
+  label { display:block; font-size:13px; font-weight:700; color:#333; margin:10px 0 5px; }
+  input, select {
+    width:100%; padding:11px 12px; border:1px solid #cbd5e1; border-radius:8px; font:inherit; font-size:14px; background:#fff;
+  }
+  input:focus, select:focus { outline:none; border-color:#0056b3; box-shadow:0 0 0 3px rgba(0,86,179,.14); }
+  .toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:12px; }
+  .count { font-size:13px; font-weight:700; color:#455468; }
+  .table-wrap { overflow:auto; border:1px solid #e5e7eb; border-radius:12px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { padding:10px 9px; border-bottom:1px solid #e5e7eb; text-align:left; vertical-align:top; }
+  th { position:sticky; top:0; background:#f8fafc; color:#002147; z-index:1; }
+  tr:hover td { background:#f8fbff; }
+  .empty { text-align:center; color:#667085; padding:24px; }
+  .claim-title { font-weight:800; color:#002147; line-height:1.35; }
+  .claim-meta { color:#667085; font-size:12px; margin-top:4px; line-height:1.45; }
+  .badge { display:inline-flex; align-items:center; padding:3px 8px; border-radius:999px; font-size:11px; font-weight:800; margin:2px 4px 2px 0; background:#e8f1ff; color:#0b4aa2; }
+  .badge.synced { background:#d1e7dd; color:#0f5132; }
+  .badge.pending { background:#fff3cd; color:#664d03; }
+  .badge.failed { background:#f8d7da; color:#842029; }
+  .preview-box { border:1px dashed #cbd5e1; border-radius:12px; padding:14px; min-height:130px; background:#fbfdff; }
+  .muted { color:#667085; font-size:13px; line-height:1.55; }
+  .hidden { display:none !important; }
+
+  textarea {
+    width:100%; min-height:86px; padding:11px 12px; border:1px solid #cbd5e1; border-radius:8px;
+    font:inherit; font-size:13px; background:#fff; resize:vertical; line-height:1.45;
+  }
+  textarea:focus { outline:none; border-color:#0056b3; box-shadow:0 0 0 3px rgba(0,86,179,.14); }
+  .edit-card { position:sticky; top:12px; }
+  .edit-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 12px; }
+  .edit-grid .full { grid-column:1 / -1; }
+  .edit-hint { background:#fff8df; border:1px solid #ffe69c; color:#6b5200; border-radius:9px; padding:10px 12px; font-size:12px; line-height:1.45; margin:8px 0 12px; }
+  .edit-session-note { color:#667085; font-size:12px; line-height:1.45; margin:4px 0 8px; }
+  .edit-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .edit-total { font-weight:800; color:#002147; background:#eef4ff; border:1px solid #cbdaf4; padding:8px 10px; border-radius:8px; margin-top:8px; }
+  @media (max-width: 720px) { .edit-grid { grid-template-columns:1fr; } .edit-card { position:static; } }
+
+
+  /* Printable claim design */
+  #printArea { display:none; }
+  .pdfPage { width: 210mm; min-height: 297mm; padding: 13mm 13mm 12mm; background:#fff; color:#111827; font-family: Arial, sans-serif; page-break-after: always; }
+  .pdfHeader { border:2px solid #002147; border-bottom:0; padding:10px 12px; display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+  .pdfHeader h1 { margin:0; font-size:18px; color:#002147; text-transform:uppercase; letter-spacing:.2px; }
+  .pdfHeader .school { font-size:12px; color:#4b5563; margin-top:3px; font-weight:bold; }
+  .pdfClaimId { text-align:right; font-size:10px; color:#4b5563; line-height:1.45; }
+  .pdfBand { background:#002147; color:#fff; padding:7px 12px; font-weight:bold; text-align:center; font-size:13px; letter-spacing:.3px; }
+  .pdfSection { border:1px solid #d1d5db; margin-top:9px; }
+  .pdfSectionTitle { background:#eef4ff; color:#002147; font-weight:bold; font-size:12px; padding:6px 8px; border-bottom:1px solid #cbd5e1; text-transform:uppercase; }
+  .pdfGrid { display:grid; grid-template-columns: 1fr 1fr; }
+  .pdfCell { padding:7px 8px; border-right:1px solid #e5e7eb; border-bottom:1px solid #e5e7eb; min-height:31px; }
+  .pdfCell:nth-child(2n) { border-right:0; }
+  .pdfLabel { display:block; color:#6b7280; font-size:9px; text-transform:uppercase; letter-spacing:.35px; margin-bottom:2px; }
+  .pdfValue { font-size:11.5px; font-weight:bold; color:#111827; line-height:1.35; }
+  .pdfTable { width:100%; border-collapse:collapse; font-size:10.5px; }
+  .pdfTable th { background:#f3f4f6; color:#111827; font-weight:bold; text-transform:uppercase; font-size:9.5px; }
+  .pdfTable th, .pdfTable td { border:1px solid #d1d5db; padding:5px 6px; }
+  .pdfTotalBox { margin-top:10px; display:flex; justify-content:flex-end; }
+  .pdfTotalBox div { border:2px solid #002147; background:#eef4ff; padding:8px 12px; font-size:14px; font-weight:bold; color:#002147; }
+  .signatureWrap { display:flex; gap:12px; align-items:flex-start; }
+  .signatureBox { flex:1; min-height:74px; border:1px dashed #9ca3af; padding:7px; display:flex; align-items:center; justify-content:center; }
+  .signatureBox img { max-height:72px; max-width:100%; object-fit:contain; }
+  .footerLine { margin-top:10px; font-size:9px; color:#6b7280; text-align:center; border-top:1px solid #d1d5db; padding-top:6px; }
+  @media print {
+    @page { size: A4; margin: 0; }
+    body { background:#fff; padding:0; }
+    body > .page { display:none !important; }
+    #printArea { display:block !important; }
+    .pdfPage { box-shadow:none; margin:0; page-break-after:always; }
+    .pdfPage:last-child { page-break-after:auto; }
+  }
 </style>
 </head>
-<body><div class="page">
-<div class="top"><div><h1>Undergraduate Claims Admin</h1><p>Review, edit, print and export facilitator claims.</p></div><div class="toolbar"><a class="btn secondary" href="ug-tutor-admin.html" target="_blank">Tutor Admin</a><button id="logoutBtn" class="btn danger hidden">Sign out</button></div></div>
-<div id="globalStatus" class="status warn">Loading Firebase…</div>
-<div id="loginCard" class="card"><h2>Administrator Sign In</h2><div class="row"><div><label>Email</label><input id="email" type="email"></div><div><label>Password</label><input id="pass" type="password"></div><div style="flex:0 0 auto"><button id="loginBtn" class="btn">Sign in</button></div></div></div>
-<div id="dashboard" class="layout hidden">
-<div id="listCard" class="card"><h2>Claims</h2><div class="row"><div><label>Search</label><input id="search" placeholder="Staff ID, tutor, course, centre"></div><div><label>Status</label><select id="filterStatus"><option value="">All statuses</option><option>Submitted</option><option>Approved</option><option>Queried</option><option>Paid</option><option>Cancelled</option></select></div></div><div class="toolbar"><button id="loadBtn" class="btn">Load claims</button><button id="csvBtn" class="btn success">Export visible CSV</button></div><p id="count" class="tiny">—</p><div class="tablewrap"><table><thead><tr><th>Tutor / Course</th><th>Details</th><th>Action</th></tr></thead><tbody id="body"><tr><td colspan="3">Load claims to begin.</td></tr></tbody></table></div></div>
-<div class="card sticky"><h2>Claim Details</h2><div id="emptyDetail" class="tiny">Select a claim from the list.</div><div id="detail" class="hidden"><div id="detailGrid" class="detail-grid"></div><label>Claim Status</label><select id="editStatus"><option>Submitted</option><option>Approved</option><option>Queried</option><option>Paid</option><option>Cancelled</option></select><label>Administrator Remarks</label><textarea id="adminRemarks"></textarea><div id="signatureWrap" class="hidden"><label>Signature</label><img id="signature" class="signature" alt="Facilitator signature"></div><div class="toolbar"><button id="saveBtn" class="btn success">Save Changes</button><button id="printBtn" class="btn secondary">Print Claim</button><button id="deleteBtn" class="btn danger">Delete</button></div><div id="detailStatus" class="status"></div></div></div>
-</div></div>
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-import { getFirestore,doc,getDoc,collection,getDocs,updateDoc,deleteDoc,serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-const cfg={apiKey:"AIzaSyCzgOGc51Qr6DXnJ-zkczBtGniYNLf0jOw",authDomain:"monitoringucc.firebaseapp.com",projectId:"monitoringucc",storageBucket:"monitoringucc.firebasestorage.app",messagingSenderId:"210063574932",appId:"1:210063574932:web:8ccd563312321dcd2af181"};const app=initializeApp(cfg),auth=getAuth(app),db=getFirestore(app),$=id=>document.getElementById(id);let claims=[],visible=[],selected=null;
-function norm(v){return String(v??"").trim()}function esc(v){return norm(v).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}function status(el,msg,type){el.textContent=msg;el.className="status "+type}function when(v){try{if(v?.toDate)return v.toDate().toLocaleString();if(v?.seconds)return new Date(v.seconds*1000).toLocaleString();return norm(v)}catch{return""}}
-async function verifyAdmin(u){const s=await getDoc(doc(db,"admins",u.uid));if(!s.exists())throw new Error("This account is not listed in the admins collection.")}
-$("loginBtn").onclick=async()=>{try{await signInWithEmailAndPassword(auth,$("email").value.trim(),$("pass").value)}catch(e){status($("globalStatus"),e.message,"err")}};$("logoutBtn").onclick=()=>signOut(auth);
-onAuthStateChanged(auth,async u=>{if(!u){$("loginCard").classList.remove("hidden");$("dashboard").classList.add("hidden");$("logoutBtn").classList.add("hidden");status($("globalStatus"),"Sign in with an administrator account.","warn");return}try{await verifyAdmin(u);$("loginCard").classList.add("hidden");$("dashboard").classList.remove("hidden");$("logoutBtn").classList.remove("hidden");status($("globalStatus"),"Administrator access confirmed.","ok")}catch(e){status($("globalStatus"),e.message,"err");await signOut(auth)}});
-$("loadBtn").onclick=loadClaims;async function loadClaims(){$("body").innerHTML='<tr><td colspan="3">Loading…</td></tr>';try{const snap=await getDocs(collection(db,"ug_claims"));claims=[];snap.forEach(s=>claims.push({id:s.id,...s.data()}));claims.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));applyFilters()}catch(e){$("body").innerHTML=`<tr><td colspan="3">${esc(e.message)}</td></tr>`}}
-function applyFilters(){const q=norm($("search").value).toLowerCase(),s=norm($("filterStatus").value).toLowerCase();visible=claims.filter(c=>{const text=[c.id,c.staffId,c.tutorName,c.course,c.program,c.studyCentre,c.semester,c.claimStatus].join(" ").toLowerCase();return(!q||text.includes(q))&&(!s||norm(c.claimStatus||"Submitted").toLowerCase()===s)});$("count").textContent=`${visible.length} of ${claims.length} claims`;$("body").innerHTML=visible.length?visible.map(c=>`<tr><td><strong>${esc(c.tutorName||"Unknown tutor")}</strong><br><span class="tiny">${esc(c.staffId)} • ${esc(c.course)}</span></td><td><span class="badge">${esc(c.claimStatus||"Submitted")}</span><br><span class="tiny">${esc(c.program)} • ${esc(c.studyCentre)}<br>${esc(c.semester)} • ${esc(c.totalHours)} hours<br>${esc(when(c.createdAt))}</span></td><td><button class="btn secondary" data-open="${esc(c.id)}">Open</button></td></tr>`).join(""):'<tr><td colspan="3">No matching claims.</td></tr>';$("body").querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>openClaim(b.dataset.open))}
-$("search").oninput=applyFilters;$("filterStatus").onchange=applyFilters;
-function detailCell(k,v){return `<div class="detail"><b>${esc(k)}</b>${esc(v||"—")}</div>`}
-function openClaim(id){selected=claims.find(c=>c.id===id);if(!selected)return;$("emptyDetail").classList.add("hidden");$("detail").classList.remove("hidden");const fields=[["Claim ID",selected.claimId||selected.id],["Staff ID",selected.staffId],["Tutor",selected.tutorName],["Course",selected.course],["Programme",selected.program||selected.programme],["Study Centre",selected.studyCentre],["Semester",selected.semester],["Mode",selected.modeOfDelivery],["Academic Year",selected.academicYear],["F2F Hours",selected.f2fHours],["Online Hours",selected.onHours],["Total Hours",selected.totalHours],["Phone",selected.phone],["Ghana Card",selected.ghanaCardNumber],["Bank",selected.bankName],["Branch",selected.bankBranch],["Account Number",selected.accountNumber],["Sessions",selected.sessionDetails],["Tutor Remarks",selected.remarks],["Submitted",when(selected.createdAt)]];$("detailGrid").innerHTML=fields.map(x=>detailCell(x[0],x[1])).join("");$("editStatus").value=selected.claimStatus||"Submitted";$("adminRemarks").value=selected.adminRemarks||"";if(selected.facilitatorSignature){$("signature").src=selected.facilitatorSignature;$("signatureWrap").classList.remove("hidden")}else $("signatureWrap").classList.add("hidden");$("detailStatus").className="status"}
-$("saveBtn").onclick=async()=>{if(!selected)return;try{await updateDoc(doc(db,"ug_claims",selected.id),{claimStatus:$("editStatus").value,adminRemarks:$("adminRemarks").value,adminUpdatedAt:serverTimestamp()});selected.claimStatus=$("editStatus").value;selected.adminRemarks=$("adminRemarks").value;status($("detailStatus"),"Claim updated.","ok");applyFilters()}catch(e){status($("detailStatus"),e.message,"err")}};
-$("deleteBtn").onclick=async()=>{if(!selected||!confirm("Delete this claim permanently?"))return;try{await deleteDoc(doc(db,"ug_claims",selected.id));claims=claims.filter(c=>c.id!==selected.id);selected=null;$("detail").classList.add("hidden");$("emptyDetail").classList.remove("hidden");applyFilters()}catch(e){status($("detailStatus"),e.message,"err")}};$("printBtn").onclick=()=>window.print();
-$("csvBtn").onclick=()=>{const cols=["claimId","staffId","tutorName","course","program","studyCentre","semester","modeOfDelivery","academicYear","f2fHours","onHours","totalHours","claimStatus","phone","ghanaCardNumber","bankName","bankBranch","accountNumber","adminRemarks"];const csv=[cols.join(","),...visible.map(r=>cols.map(k=>'"'+norm(r[k]).replace(/"/g,'""')+'"').join(","))].join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="undergraduate-claims.csv";a.click();URL.revokeObjectURL(a.href)};
-</script></body></html>
+<body>
+<div class="page">
+  <div class="topbar">
+    <div class="brand">
+      <h1>Undergraduate Claims PDF Admin Dashboard</h1>
+      <p>View, filter, and bulk-download undergraduate facilitator claim PDFs from Firestore.</p>
+    </div>
+    <div class="top-actions">
+      <div id="currentAdminBox" class="admin-pill hidden">
+        <div class="admin-label">Current admin</div>
+        <div id="currentAdminName" class="admin-name">—</div>
+        <div id="currentAdminEmail" class="admin-email">—</div>
+      </div>
+      <a class="link-btn subtle" href="tutor-admin.html" target="_blank" rel="noopener">Tutor Admin</a>
+      <a class="link-btn subtle" href="ug-tutor-report.html" target="_blank" rel="noopener">Report Form</a>
+      <button id="logoutBtn" class="danger hidden">Sign out</button>
+    </div>
+  </div>
+
+  <div id="status" class="status warn">Loading Firebase…</div>
+
+  <div class="card" id="loginCard">
+    <h2>Admin sign in</h2>
+    <div class="subtitle">Use your Firebase administrator account for the <code>monitoringucc</code> project. This dashboard reads the <code>ug_claims</code> collection.</div>
+    <div class="row">
+      <div>
+        <label for="adminEmail">Admin email</label>
+        <input id="adminEmail" type="email" placeholder="you@example.com" autocomplete="username">
+      </div>
+      <div>
+        <label for="adminPass">Password</label>
+        <input id="adminPass" type="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div style="flex:0 0 auto;">
+        <button id="loginBtn">Sign in</button>
+      </div>
+    </div>
+    <p class="muted" id="uidHelp" style="margin-top:12px;"></p>
+  </div>
+
+  <div id="dashboard" class="hidden">
+    <div class="grid">
+      <div>
+        <div class="card">
+          <h2>Claims</h2>
+          <div class="subtitle">Search every undergraduate claim by facilitator, monitor, Staff ID, course, programme, centre, semester, mode, or claim ID. Download the filtered results as one PDF or every claim as a ZIP.</div>
+          <div class="row">
+            <div style="flex:2; min-width:260px;">
+              <label for="searchInput">Search</label>
+              <input id="searchInput" type="text" placeholder="e.g. PGT0350, EBS215D, Kumasi…">
+            </div>
+            <div style="display:none;">
+              <label for="blockFilter">Block</label>
+              <select id="blockFilter">
+                <option value="">All blocks</option>
+              </select>
+            </div>
+            <div>
+              <label for="syncFilter">Sheet status</label>
+              <select id="syncFilter">
+                <option value="">All</option>
+                <option value="pending">Pending</option>
+                <option value="synced">Synced</option>
+                <option value="failed">Failed</option>
+                <option value="syncing">Syncing</option>
+              </select>
+            </div>
+          </div>
+          <div class="toolbar">
+            <button id="loadBtn">Load / refresh claims</button>
+            <button id="printVisibleBtn" class="success">Download visible PDFs</button>
+            <button id="zipAllBtn" class="success">Download all PDFs ZIP</button>
+            <button id="clearFiltersBtn" class="subtle">Clear filters</button>
+            <span id="countLabel" class="count">—</span>
+          </div>
+          <div class="table-wrap" style="margin-top:12px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tutor / Course</th>
+                  <th>Details</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="claimsBody">
+                <tr><td colspan="3" class="empty">Sign in and load claims.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h2>Selected claim preview</h2>
+          <div id="previewBox" class="preview-box muted">Select a claim to preview it here before downloading the tutor-style PDF.</div>
+          <div class="toolbar">
+            <button id="printSelectedBtn" disabled>Download selected PDF</button>
+            <button id="editSelectedBtn" class="subtle" disabled>Edit selected claim</button>
+            <button id="copyClaimIdBtn" class="subtle" disabled>Copy claim ID</button>
+          </div>
+        </div>
+
+        <div class="card edit-card" id="editCard">
+          <h2>Edit selected claim</h2>
+          <div class="subtitle">Edit a submitted claim. Saving will update Firestore first, then mark the claim for Google Sheet re-sync.</div>
+          <div id="editEmpty" class="preview-box muted">Select a claim, then click <strong>Edit selected claim</strong> or the row <strong>Edit</strong> button.</div>
+          <form id="editForm" class="hidden">
+            <div class="edit-hint">Session rows use this format: <strong>Date | Start | End | Students | Hours</strong>. Put one session per line.</div>
+            <div class="edit-grid">
+              <div class="full"><label for="editClaimId">Claim ID</label><input id="editClaimId" type="text" disabled></div>
+              <div><label for="editClaimStatus">Claim status</label><select id="editClaimStatus"><option>Submitted</option><option>Returned for Correction</option><option>Approved</option><option>Paid</option><option>Locked</option></select></div>
+              <div><label for="editSheetStatus">Sheet status</label><input id="editSheetStatus" type="text" disabled></div>
+              <div><label for="editMonitorStaffId">Monitor Staff ID</label><input id="editMonitorStaffId" type="text"></div>
+              <div><label for="editMonitorName">Monitor Name</label><input id="editMonitorName" type="text"></div>
+              <div><label for="editStaffId">Staff ID</label><input id="editStaffId" type="text"></div>
+              <div><label for="editTutorName">Tutor Name</label><input id="editTutorName" type="text"></div>
+              <div class="full"><label for="editCourse">Course</label><input id="editCourse" type="text" placeholder="CODE | Course title"></div>
+              <div><label for="editProgram">Programme</label><input id="editProgram" type="text"></div>
+              <div><label for="editStudyCentre">Study Centre</label><input id="editStudyCentre" type="text"></div>
+              <div><label for="editMode">Mode of Delivery</label><input id="editMode" type="text" placeholder="Face-to-Face or Purely Online"></div>
+              <div><label for="editSemester">Semester</label><input id="editSemester" type="text"></div>
+              <div class="full"><label for="editF2fSessions">Face-to-face sessions</label><div class="edit-session-note">Example: 1 Jul 2026 | 8:00 AM | 10:00 AM | 35 | 2.00</div><textarea id="editF2fSessions"></textarea></div>
+              <div class="full"><label for="editOnlineSessions">Online sessions</label><div class="edit-session-note">Example: 1 Jul 2026 | 7:00 PM | 9:00 PM | 42 | 2.00</div><textarea id="editOnlineSessions"></textarea></div>
+              <div class="full"><label for="editRemarks">Remarks</label><textarea id="editRemarks"></textarea></div>
+            </div>
+            <div id="editTotalPreview" class="edit-total">Total hours: 0.00</div>
+            <div class="edit-actions">
+              <button type="submit" class="success" id="saveEditBtn">Save changes</button>
+              <button type="button" class="subtle" id="cancelEditBtn">Close editor</button>
+              <button type="button" id="downloadEditedPdfBtn">Download PDF</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Admin access note</h2>
+          <div class="subtitle">
+            If you see <strong>Missing or insufficient permissions</strong>, add this admin account's UID to Firestore under <code>admins/{uid}</code>, then update your rules to allow admins to read and delete claims.
+          </div>
+          <div class="preview-box">
+            <div class="muted">Current admin UID:</div>
+            <div id="adminUid" style="font-weight:800; color:#002147; word-break:break-all; margin-top:6px;">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="printArea"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+(function () {
+  var firebaseConfig = {
+    apiKey: "AIzaSyCzgOGc51Qr6DXnJ-zkczBtGniYNLf0jOw",
+    authDomain: "monitoringucc.firebaseapp.com",
+    projectId: "monitoringucc",
+    storageBucket: "monitoringucc.firebasestorage.app",
+    messagingSenderId: "210063574932",
+    appId: "1:210063574932:web:8ccd563312321dcd2af181"
+  };
+
+  // Apps Script web app used to delete the matching Google Sheet row.
+  // This should be the same deployed /exec URL used by tutor-report.html.
+  var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyJk2xPi1GjW858JJZEKh3J783facWjEKzyIFvQMapeOLZPf6cM0mgVlrv-R0qf0M6G/exec';
+
+  var auth, db;
+  var claims = [];
+  var filtered = [];
+  var selected = null;
+
+  var statusEl = document.getElementById('status');
+  var loginCard = document.getElementById('loginCard');
+  var dashboard = document.getElementById('dashboard');
+  var logoutBtn = document.getElementById('logoutBtn');
+  var currentAdminBox = document.getElementById('currentAdminBox');
+  var currentAdminName = document.getElementById('currentAdminName');
+  var currentAdminEmail = document.getElementById('currentAdminEmail');
+  var claimsBody = document.getElementById('claimsBody');
+  var countLabel = document.getElementById('countLabel');
+  var previewBox = document.getElementById('previewBox');
+  var printSelectedBtn = document.getElementById('printSelectedBtn');
+  var editSelectedBtn = document.getElementById('editSelectedBtn');
+  var copyClaimIdBtn = document.getElementById('copyClaimIdBtn');
+  var editEmpty = document.getElementById('editEmpty');
+  var editForm = document.getElementById('editForm');
+
+  function setStatus(cls, html) {
+    statusEl.className = 'status ' + cls;
+    statusEl.innerHTML = html;
+  }
+  function showDashboard(show) {
+    dashboard.classList.toggle('hidden', !show);
+    loginCard.classList.toggle('hidden', show);
+    logoutBtn.classList.toggle('hidden', !show);
+    currentAdminBox.classList.toggle('hidden', !show);
+    if (!show) {
+      currentAdminName.textContent = '—';
+      currentAdminEmail.textContent = '—';
+    }
+  }
+  function escapeHTML(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+  }
+  async function loadCurrentAdminProfile(user) {
+    var profile = { name: '', email: user.email || '', role: '' };
+    try {
+      var doc = await db.collection('admins').doc(user.uid).get();
+      if (doc.exists) {
+        var data = doc.data() || {};
+        profile.name = clean(data.name || data.fullName || data.displayName || data.adminName || '');
+        profile.email = clean(data.email || data.adminEmail || user.email || '');
+        profile.role = clean(data.role || data.title || '');
+      }
+    } catch (e) {
+      console.warn('Could not read admin profile document:', e);
+    }
+    if (!profile.name) profile.name = clean(user.displayName || user.email || user.uid);
+    if (!profile.email) profile.email = clean(user.email || '');
+    currentAdminName.textContent = profile.name + (profile.role ? ' · ' + profile.role : '');
+    currentAdminEmail.textContent = profile.email || ('UID: ' + user.uid);
+    return profile;
+  }
+
+  function clean(s) { return String(s == null ? '' : s).trim(); }
+  function lower(s) { return clean(s).toLowerCase(); }
+  function formatTs(value) {
+    if (!value) return '';
+    try {
+      if (typeof value.toDate === 'function') return value.toDate().toLocaleString();
+      if (value.seconds) return new Date(value.seconds * 1000).toLocaleString();
+      var d = new Date(value);
+      return isNaN(d.getTime()) ? '' : d.toLocaleString();
+    } catch(e) { return ''; }
+  }
+  function tsMillis(value) {
+    if (!value) return 0;
+    if (typeof value.toDate === 'function') return value.toDate().getTime();
+    if (value.seconds) return value.seconds * 1000;
+    var t = Date.parse(value); return isNaN(t) ? 0 : t;
+  }
+  function claimCreatedMillis(item) {
+    var d = (item && item.data) || {};
+    // Use the original submission time for ordering so edited claims do not jump
+    // to the top/bottom. New submissions are placed after older submissions.
+    return tsMillis(d.createdAt || d.submittedAt || d.timestamp || d.Timestamp || d.created || d.updatedAt);
+  }
+  function compareClaimsOldestFirst(a, b) {
+    var ta = claimCreatedMillis(a);
+    var tb = claimCreatedMillis(b);
+    if (ta !== tb) return ta - tb;
+    var ka = clean((a.data || {}).claimId || a.id).toLowerCase();
+    var kb = clean((b.data || {}).claimId || b.id).toLowerCase();
+    return ka < kb ? -1 : (ka > kb ? 1 : 0);
+  }
+  function field(d, names) {
+    for (var i=0; i<names.length; i++) {
+      var v = d[names[i]];
+      if (v !== undefined && v !== null && String(v).trim() !== '') return v;
+    }
+    return '';
+  }
+
+  function getSignatureSource(d) {
+    var names = [
+      'facilitatorSignature', 'facilitatorSignatureUrl', 'signature', 'signatureUrl',
+      'signatureDataUrl', 'facilitatorSignatureImage', 'facilitatorSignatureDataUrl',
+      'Facilitator Signature', 'FacilitatorSignature', 'Signature'
+    ];
+    var sig = clean(field(d, names));
+    if (!sig) return '';
+    // Support values copied from Google Sheets formulas like =IMAGE("https://...")
+    var formulaMatch = sig.match(/=IMAGE\(["']([^"']+)["']/i);
+    if (formulaMatch) sig = formulaMatch[1];
+    return sig;
+  }
+  function sheetStatus(d) { return lower(field(d, ['sheetSyncStatus'])) || 'pending'; }
+  function claimStatus(d) { return clean(field(d, ['claimStatus','status'])) || 'Submitted'; }
+  function courseCode(course) { return clean(course).split('|')[0].trim().split(/\s+/)[0] || clean(course); }
+  function splitCourseTitle(course) {
+    var raw = clean(course);
+    if (!raw) return { code:'', title:'' };
+    var parts = raw.split('|').map(function(x){ return clean(x); }).filter(Boolean);
+    if (parts.length >= 2) return { code:parts[0], title:parts.slice(1).join(' | ') };
+    var code = courseCode(raw);
+    return { code: code, title: raw.replace(code, '').trim() || raw };
+  }
+  function parseSessionItems(d, kind) {
+    var arr = kind === 'f2f' ? d.f2fSessionItems : d.onSessionItems;
+    var json = kind === 'f2f' ? d.f2fSessionItemsJson : d.onSessionItemsJson;
+    var text = kind === 'f2f' ? d.f2fSessions : d.onSessions;
+    if (Array.isArray(arr)) return arr;
+    if (json) {
+      try { var parsed = JSON.parse(json); if (Array.isArray(parsed)) return parsed; } catch(e) {}
+    }
+    if (text) {
+      return String(text).split(';').map(function(x){ return { date: clean(x), startDisplay:'', endDisplay:'', hours:'' }; }).filter(function(x){ return x.date; });
+    }
+    return [];
+  }
+  function claimSearchText(item) {
+    var d = item.data || {};
+    return [item.id, d.claimId, d.monitorStaffId, d.monitorName, d.staffId, d.tutorName, d.course, d.program, d.programme, d.studyCentre, d.modeOfDelivery, d.semester, d.totalHours, d.remarks, d.sheetSyncStatus, d.claimStatus]
+      .map(clean).join(' ').toLowerCase();
+  }
+  function statusBadge(s) {
+    var c = 'badge ' + (lower(s) === 'synced' ? 'synced' : (lower(s) === 'failed' ? 'failed' : 'pending'));
+    return '<span class="' + c + '">' + escapeHTML(s || 'pending') + '</span>';
+  }
+
+  async function loadClaims() {
+    claimsBody.innerHTML = '<tr><td colspan="3" class="empty">Loading undergraduate claims from Firestore…</td></tr>';
+    countLabel.textContent = 'Loading…';
+    try {
+      var snap = await db.collection('ug_claims').get();
+      claims = [];
+      snap.forEach(function(doc){ claims.push({ id: doc.id, data: doc.data() || {} }); });
+      claims.sort(compareClaimsOldestFirst);
+      applyFilters();
+      setStatus('ready', 'Loaded all ' + claims.length + ' undergraduate claim(s).');
+    } catch (e) {
+      console.error(e);
+      claimsBody.innerHTML = '<tr><td colspan="3" class="empty">Could not load claims.</td></tr>';
+      setStatus('fail', '<strong>Could not load claims:</strong> ' + escapeHTML(e.message || e) + '<br>Check Firestore rules for administrator read access to <code>ug_claims</code>.');
+    }
+  }
+
+  function applyFilters() {
+    var q = lower(document.getElementById('searchInput').value);
+    var block = "";
+    var sync = lower(document.getElementById('syncFilter').value);
+    filtered = claims.filter(function(item){
+      var d = item.data || {};
+      if (q && claimSearchText(item).indexOf(q) === -1) return false;
+      if (sync && sheetStatus(d) !== sync) return false;
+      return true;
+    });
+    renderClaims();
+  }
+
+  function renderClaims() {
+    if (!filtered.length) {
+      claimsBody.innerHTML = '<tr><td colspan="3" class="empty">No claims match the current filters.</td></tr>';
+      countLabel.textContent = '0 claims';
+      return;
+    }
+    countLabel.textContent = filtered.length + ' visible of ' + claims.length + ' total';
+    claimsBody.innerHTML = filtered.map(function(item, idx){
+      var d = item.data || {};
+      var course = clean(d.course) || 'Untitled course';
+      var tutor = clean(d.tutorName) || 'Unknown tutor';
+      var staff = clean(d.staffId) || 'No Staff ID';
+      var meta = [d.program || d.programme, d.studyCentre, d.semester].filter(Boolean).join(' • ');
+      var details = [
+        '<span class="badge">' + escapeHTML(claimStatus(d)) + '</span>',
+        statusBadge(sheetStatus(d)),
+        d.totalHours ? '<span class="badge">' + escapeHTML(d.totalHours) + ' hrs</span>' : '',
+        '<div class="claim-meta">' + escapeHTML(d.claimId || item.id) + '</div>',
+        '<div class="claim-meta">Submitted: ' + escapeHTML(formatTs(d.createdAt || d.submittedAt || d.updatedAt) || '—') + '</div>'
+      ].filter(Boolean).join('');
+      return '<tr data-index="' + idx + '">' +
+        '<td><div class="claim-title">' + escapeHTML(tutor) + ' — ' + escapeHTML(staff) + '</div><div class="claim-meta">' + escapeHTML(course) + '</div></td>' +
+        '<td><div class="claim-meta">' + escapeHTML(meta || '—') + '</div>' + details + '</td>' +
+        '<td><button class="small viewBtn" data-index="' + idx + '">Preview</button> <button class="small editBtn" data-index="' + idx + '">Edit</button> <button class="small success printBtn" data-index="' + idx + '">Download PDF</button> <button class="small danger deleteBtn" data-index="' + idx + '">Delete</button></td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  function makePreview(item) {
+    var d = item.data || {};
+    var course = splitCourseTitle(d.course);
+    var sig = getSignatureSource(d);
+    previewBox.innerHTML =
+      '<div class="claim-title">' + escapeHTML(d.tutorName || '') + ' — ' + escapeHTML(d.staffId || '') + '</div>' +
+      '<div class="claim-meta">' + escapeHTML(course.code + (course.title ? ' — ' + course.title : '')) + '</div>' +
+      '<div style="margin-top:8px;">' +
+        '<span class="badge">' + escapeHTML(d.semester || '') + '</span>' +
+        '<span class="badge">Total: ' + escapeHTML(d.totalHours || '0') + ' hrs</span>' +
+        statusBadge(sheetStatus(d)) +
+      '</div>' +
+      '<div class="claim-meta" style="margin-top:8px;">' + escapeHTML(d.program || d.programme || '') + ' • ' + escapeHTML(d.studyCentre || '') + '</div>' +
+      '<div class="claim-meta" style="margin-top:6px;">Monitor: ' + escapeHTML(d.monitorName || d.submittedByName || '—') + ' — ' + escapeHTML(d.monitorStaffId || '—') + '</div>' +
+      (sig ? '<div style="margin-top:10px;"><img src="' + escapeHTML(sig) + '" alt="Signature" style="max-width:240px; max-height:90px; border:1px solid #e5e7eb; border-radius:8px; padding:6px; background:#fff;"></div>' : '<div class="muted" style="margin-top:10px;">No signature image found in claim.</div>');
+  }
+
+  function selectClaim(item) {
+    selected = item;
+    makePreview(item);
+    printSelectedBtn.disabled = false;
+    editSelectedBtn.disabled = false;
+    copyClaimIdBtn.disabled = false;
+  }
+
+
+  function setEditValue(id, value) {
+    var el = document.getElementById(id);
+    if (el) el.value = value == null ? '' : String(value);
+  }
+  function getEditValue(id) {
+    var el = document.getElementById(id);
+    return el ? clean(el.value) : '';
+  }
+  function sessionItemsToText(items) {
+    if (!Array.isArray(items) || !items.length) return '';
+    return items.map(function(it){
+      it = it || {};
+      return [
+        clean(it.date || it.sessionDate || it.Date),
+        clean(it.startDisplay || it.start || it.startTime || it.Start),
+        clean(it.endDisplay || it.end || it.endTime || it.End),
+        clean(it.studentCount !== undefined ? it.studentCount : (it.numberOfStudents !== undefined ? it.numberOfStudents : it.students)),
+        clean(it.hoursLabel || it.hours || it.duration || it.Hours)
+      ].join(' | ');
+    }).join('\n');
+  }
+  function parseEditSessionText(text) {
+    text = String(text || '').trim();
+    if (!text) return [];
+    return text.split(/\r?\n/).map(function(line){
+      line = clean(line);
+      if (!line) return null;
+      var parts = line.indexOf('|') >= 0 ? line.split('|') : (line.indexOf('\t') >= 0 ? line.split('\t') : line.split(','));
+      parts = parts.map(clean);
+      var hasStudentColumn = parts.length >= 5;
+      var studentsRaw = hasStudentColumn ? parts[3] : '';
+      var studentsNum = parseInt(String(studentsRaw).replace(/[^0-9\-]/g, ''), 10);
+      var hoursRaw = hasStudentColumn ? (parts[4] || '') : (parts[3] || '');
+      var hoursNum = parseFloat(String(hoursRaw).replace(/[^0-9.\-]/g, ''));
+      if (isNaN(hoursNum)) hoursNum = 0;
+      return {
+        date: parts[0] || '',
+        start: parts[1] || '',
+        startDisplay: parts[1] || '',
+        end: parts[2] || '',
+        endDisplay: parts[2] || '',
+        studentCount: isNaN(studentsNum) ? '' : studentsNum,
+        numberOfStudents: isNaN(studentsNum) ? '' : studentsNum,
+        hours: hoursNum,
+        hoursLabel: hoursNum ? hoursNum.toFixed(2) : (hoursRaw || '')
+      };
+    }).filter(Boolean);
+  }
+  function sessionTotalHours(items) {
+    return (items || []).reduce(function(sum, it){
+      var n = parseFloat(String((it && (it.hours || it.hoursLabel)) || '').replace(/[^0-9.\-]/g, ''));
+      return sum + (isNaN(n) ? 0 : n);
+    }, 0);
+  }
+  function normalizeClaimPart(value) {
+    return clean(value).toUpperCase().replace(/&/g, 'AND').replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'NA';
+  }
+  function buildAdminClaimKeyFromPatch(data) {
+    return [
+      normalizeClaimPart(data.staffId),
+      normalizeClaimPart(courseCode(data.course)),
+      normalizeClaimPart(data.program || data.programme),
+      normalizeClaimPart(data.studyCentre),
+      normalizeClaimPart(data.semester),
+    ].join('__');
+  }
+  function updateEditTotalPreview() {
+    var f2f = parseEditSessionText(getEditValue('editF2fSessions'));
+    var online = parseEditSessionText(getEditValue('editOnlineSessions'));
+    var total = sessionTotalHours(f2f) + sessionTotalHours(online);
+    var box = document.getElementById('editTotalPreview');
+    if (box) box.textContent = 'Total hours: ' + total.toFixed(2);
+    return { f2f:f2f, online:online, total:total };
+  }
+  function openEditPanel(item) {
+    if (!item) return;
+    selected = item;
+    selectClaim(item);
+    var d = item.data || {};
+    setEditValue('editClaimId', d.claimId || item.id || '');
+    setEditValue('editClaimStatus', claimStatus(d));
+    setEditValue('editSheetStatus', sheetStatus(d));
+    setEditValue('editMonitorStaffId', d.monitorStaffId || '');
+    setEditValue('editMonitorName', d.monitorName || d.submittedByName || '');
+    setEditValue('editStaffId', d.staffId || '');
+    setEditValue('editTutorName', d.tutorName || '');
+    setEditValue('editCourse', d.course || '');
+    setEditValue('editProgram', d.program || d.programme || '');
+    setEditValue('editStudyCentre', d.studyCentre || '');
+    setEditValue('editMode', d.modeOfDelivery || '');
+    setEditValue('editSemester', d.semester || '');
+    setEditValue('editF2fSessions', sessionItemsToText(parseSessionItems(d, 'f2f')));
+    setEditValue('editOnlineSessions', sessionItemsToText(parseSessionItems(d, 'on')));
+    setEditValue('editRemarks', d.remarks || '');
+    updateEditTotalPreview();
+    editEmpty.classList.add('hidden');
+    editForm.classList.remove('hidden');
+    document.getElementById('editCard').scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+  function closeEditPanel() {
+    editForm.classList.add('hidden');
+    editEmpty.classList.remove('hidden');
+  }
+  async function saveEditedClaim() {
+    if (!selected || !selected.id) throw new Error('No claim selected.');
+    var totals = updateEditTotalPreview();
+    if (totals.total > 24) {
+      throw new Error('Total hours exceed 24. Please correct the sessions before saving.');
+    }
+    var program = getEditValue('editProgram');
+    var claimId = selected.data.claimId || selected.id;
+    var nowText = new Date().toISOString();
+    var f2fHours = sessionTotalHours(totals.f2f).toFixed(2);
+    var onlineHours = sessionTotalHours(totals.online).toFixed(2);
+    var status = getEditValue('editClaimStatus') || 'Submitted';
+    var patch = {
+      claimId: claimId,
+      firestoreDocId: selected.id,
+      monitorStaffId: getEditValue('editMonitorStaffId').toUpperCase(),
+      monitorName: getEditValue('editMonitorName'),
+      staffId: getEditValue('editStaffId').toUpperCase(),
+      tutorName: getEditValue('editTutorName'),
+      course: getEditValue('editCourse'),
+      program: program,
+      programme: program,
+      studyCentre: getEditValue('editStudyCentre'),
+      modeOfDelivery: getEditValue('editMode'),
+      semester: getEditValue('editSemester'),
+      block: '',
+      remarks: getEditValue('editRemarks'),
+      claimStatus: status,
+      status: status,
+      f2fSessionItems: totals.f2f,
+      f2fSessionItemsJson: JSON.stringify(totals.f2f),
+      f2fSessions: sessionItemsToText(totals.f2f),
+      f2fStudentCounts: totals.f2f.map(function(item, index){ return (item.date || ('Session ' + (index + 1))) + ': ' + (item.studentCount === '' ? '' : item.studentCount); }).join('; '),
+      f2fHours: f2fHours,
+      onSessionItems: totals.online,
+      onSessionItemsJson: JSON.stringify(totals.online),
+      onSessions: sessionItemsToText(totals.online),
+      onStudentCounts: totals.online.map(function(item, index){ return (item.date || ('Session ' + (index + 1))) + ': ' + (item.studentCount === '' ? '' : item.studentCount); }).join('; '),
+      onHours: onlineHours,
+      onlineHours: onlineHours,
+      totalHours: totals.total.toFixed(2),
+      claimKey: '',
+      uniqueClaimKey: '',
+      sheetSyncStatus: 'pending',
+      sheetSyncMessage: 'Admin edited claim; waiting for Google Sheet sync.',
+      sheetSyncError: '',
+      updatedByAdminUid: auth.currentUser ? auth.currentUser.uid : '',
+      updatedByAdminEmail: auth.currentUser ? (auth.currentUser.email || '') : '',
+      adminEditedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    patch.claimKey = buildAdminClaimKeyFromPatch(patch);
+    patch.uniqueClaimKey = patch.claimKey;
+
+    setStatus('warn', 'Saving claim changes to Firestore…');
+    await db.collection('ug_claims').doc(selected.id).set(patch, { merge:true });
+
+    var localPatch = Object.assign({}, patch, { updatedAt: nowText, adminEditedAt: nowText });
+    Object.assign(selected.data, localPatch);
+    claims = claims.map(function(x){ return x.id === selected.id ? selected : x; });
+    applyFilters();
+    var refreshed = claims.find(function(x){ return x.id === selected.id; }) || selected;
+    selectClaim(refreshed);
+    openEditPanel(refreshed);
+    setStatus('ready', 'Claim updated. Sheet status is now pending, so the Apps Script sync will update the Google Sheet row by Claim ID.');
+  }
+
+  function pdfCell(label, value) {
+    return '<div class="pdfCell"><span class="pdfLabel">' + escapeHTML(label) + '</span><div class="pdfValue">' + escapeHTML(value || '—') + '</div></div>';
+  }
+  function sessionRows(items) {
+    if (!items.length) return '<tr><td colspan="5" style="text-align:center;color:#6b7280;">No sessions recorded</td></tr>';
+    return items.map(function(it, i){
+      return '<tr><td>' + (i+1) + '</td><td>' + escapeHTML(it.date || '—') + '</td><td>' + escapeHTML(it.startDisplay || it.start || '—') + '</td><td>' + escapeHTML(it.endDisplay || it.end || '—') + '</td><td>' + escapeHTML(it.hoursLabel || it.hours || '—') + '</td></tr>';
+    }).join('');
+  }
+  // ===== Tutor-style PDF generator =====
+  // This uses the same manual PDF approach as the tutor form so the output
+  // matches the tutor PDF better than the browser print layout.
+  function safeFilePart(value) {
+    return String(value || '').trim().replace(/[^a-z0-9_-]+/gi, '-').replace(/^-+|-+$/g, '') || 'claim';
+  }
+  function ascii(value) {
+    return clean(value).normalize('NFKD').replace(/[^\x20-\x7E]/g, '');
+  }
+  function pdfEscape(value) {
+    return ascii(value).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+  }
+  function rgb(c) {
+    return (c[0]/255).toFixed(3)+' '+(c[1]/255).toFixed(3)+' '+(c[2]/255).toFixed(3);
+  }
+  function strBytes(s) {
+    var a = new Uint8Array(s.length);
+    for (var i=0;i<s.length;i++) a[i]=s.charCodeAt(i)&255;
+    return a;
+  }
+  function concatParts(parts) {
+    var len=0; parts.forEach(function(p){ len += p.length; });
+    var out=new Uint8Array(len); var pos=0;
+    parts.forEach(function(p){ out.set(p,pos); pos += p.length; });
+    return out;
+  }
+  function base64ToBytes(base64) {
+    base64 = String(base64 || '').replace(/\s/g, '').replace(/ /g, '+');
+    var bin = atob(base64);
+    var bytes = new Uint8Array(bin.length);
+    for (var i=0; i<bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+  }
+  function loadImage(src) {
+    return new Promise(function(resolve, reject){
+      var img = new Image();
+      img.onload = function(){ resolve(img); };
+      img.onerror = function(){ reject(new Error('Signature image could not be loaded.')); };
+      if (!String(src || '').match(/^data:/i)) img.crossOrigin = 'anonymous';
+      img.src = src;
+    });
+  }
+  async function signatureToJpeg(sig) {
+    sig = clean(sig);
+    if (!sig) return null;
+    var m = sig.match(/^data:image\/(jpeg|jpg);base64,(.+)$/i);
+    if (m) {
+      var img1 = await loadImage(sig).catch(function(){ return null; });
+      return {
+        bytes: base64ToBytes(m[2]),
+        width: (img1 && img1.naturalWidth) || 500,
+        height: (img1 && img1.naturalHeight) || 180
+      };
+    }
+    // Convert PNG/data URL or accessible URL to JPEG. Google Drive URLs may fail
+    // because of browser CORS; current Firestore submissions normally store JPEG data URLs.
+    try {
+      var img = await loadImage(sig);
+      var canvas = document.createElement('canvas');
+      var w = img.naturalWidth || img.width || 500;
+      var h = img.naturalHeight || img.height || 180;
+      var max = 700;
+      if (w > h && w > max) { h = Math.round(h * max / w); w = max; }
+      else if (h > max) { w = Math.round(w * max / h); h = max; }
+      canvas.width = w; canvas.height = h;
+      var ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0,0,w,h);
+      ctx.drawImage(img,0,0,w,h);
+      var jpeg = canvas.toDataURL('image/jpeg', 0.9);
+      var mm = jpeg.match(/^data:image\/jpeg;base64,(.+)$/i);
+      if (!mm) return null;
+      return { bytes: base64ToBytes(mm[1]), width:w, height:h };
+    } catch(e) {
+      console.warn('Could not embed signature in PDF:', e);
+      return null;
+    }
+  }
+  function normalizeSessionRows(d, kind) {
+    return parseSessionItems(d, kind).map(function(it, i){
+      var students = it.studentCount;
+      if (students === undefined || students === null || students === '') students = it.numberOfStudents;
+      if (students === undefined || students === null || students === '') students = it.students;
+      return {
+        no: i + 1,
+        date: clean(it.date || it.sessionDate || it.Date) || '-',
+        start: clean(it.startDisplay || it.start || it.startTime || it.Start) || '-',
+        end: clean(it.endDisplay || it.end || it.endTime || it.End) || '-',
+        students: clean(students) || '-',
+        hrs: clean(it.hoursLabel || it.hours || it.duration || it.Hours) || '-'
+      };
+    });
+  }
+  function pdfClaimData(item) {
+    var d = item.data || {};
+    var c = splitCourseTitle(d.course || d.courseTitle || '');
+    return {
+      claimId: clean(d.claimId || item.id),
+      monitorStaffId: clean(d.monitorStaffId),
+      monitorName: clean(d.monitorName || d.submittedByName),
+      staffId: clean(d.staffId),
+      tutorName: clean(d.tutorName),
+      course: clean(c.code + (c.title ? ' | ' + c.title : '')),
+      program: clean(d.program || d.programme),
+      studyCentre: clean(d.studyCentre),
+      mode: clean(d.modeOfDelivery),
+      semester: clean(d.semester),
+      block: '',
+      f2fTotal: clean(d.f2fHours || '0'),
+      onTotal: clean(d.onHours || d.onlineHours || '0'),
+      grandTotal: clean(d.totalHours || '0'),
+      travelFrom: clean(d.travelFrom),
+      travelTo: clean(d.travelTo),
+      bankName: clean(d.bankName),
+      bankBranch: clean(d.bankBranch),
+      accountName: clean(d.accountName),
+      accountNumber: clean(d.accountNumber),
+      ghanaCardNumber: clean(d.ghanaCardNumber || d.ghanaCard),
+      remarks: clean(d.remarks),
+      signature: getSignatureSource(d),
+      f2fRows: normalizeSessionRows(d, 'f2f'),
+      onRows: normalizeSessionRows(d, 'on'),
+      printed: new Date().toLocaleString()
+    };
+  }
+
+  async function buildTutorStylePdf(items) {
+    // One-page compact claim summary.
+    // Bank details, Ghana Card and Semester are intentionally excluded.
+    // Each claim is rendered on exactly one A4 page. Multiple selected claims become one page per claim.
+    var pageW = 595.28, pageH = 841.89;
+    var margin = 30;
+    var blue = [0,33,71], blue2 = [0,86,179], gold = [232,181,0], red = [212,54,42];
+    var lightLine = [218,226,238], soft = [248,250,253], paleBlue = [235,242,252], paleGold = [255,248,225];
+    var textColor = [25,25,25], muted = [95,95,95], white = [255,255,255];
+    var pages = [];
+    var imageList = [];
+    var imageByPage = {};
+    var y = 0;
+
+    function current() { return pages[pages.length - 1]; }
+    function putText(str, x, yy, size, font, color, target) {
+      (target || current()).push('BT /'+(font || 'F1')+' '+size+' Tf '+rgb(color || textColor)+' rg 1 0 0 1 '+x.toFixed(2)+' '+yy.toFixed(2)+' Tm ('+pdfEscape(str)+') Tj ET');
+    }
+    function rect(x, yb, w, h, fill, stroke) {
+      if (fill) current().push('q '+rgb(fill)+' rg '+x.toFixed(2)+' '+yb.toFixed(2)+' '+w.toFixed(2)+' '+h.toFixed(2)+' re f Q');
+      if (stroke) current().push('q '+rgb(stroke)+' RG 0.7 w '+x.toFixed(2)+' '+yb.toFixed(2)+' '+w.toFixed(2)+' '+h.toFixed(2)+' re S Q');
+    }
+    function line(x1,y1,x2,y2,color,w) {
+      current().push('q '+rgb(color || lightLine)+' RG '+(w || 0.7)+' w '+x1.toFixed(2)+' '+y1.toFixed(2)+' m '+x2.toFixed(2)+' '+y2.toFixed(2)+' l S Q');
+    }
+    function wrap(str, size, width) {
+      str = ascii(str);
+      if (!str) return ['-'];
+      var maxChars = Math.max(8, Math.floor(width / (size * 0.48)));
+      var words = str.split(' '), out = [], lineText = '';
+      words.forEach(function(w){
+        var candidate = lineText ? lineText + ' ' + w : w;
+        if (candidate.length > maxChars && lineText) { out.push(lineText); lineText = w; }
+        else lineText = candidate;
+      });
+      if (lineText) out.push(lineText);
+      return out;
+    }
+    function header(data) {
+      var cmds = [];
+      pages.push(cmds);
+      cmds.push('q '+rgb(blue)+' rg 0 760 '+pageW+' 82 re f Q');
+      cmds.push('q '+rgb(gold)+' rg 0 756 '+pageW+' 4 re f Q');
+      cmds.push('q '+rgb(red)+' rg 0 752 '+(pageW*0.18).toFixed(2)+' 4 re f Q');
+      cmds.push('q '+rgb(gold)+' rg '+(pageW*0.18).toFixed(2)+' 752 '+(pageW*0.64).toFixed(2)+' 4 re f Q');
+      cmds.push('q '+rgb(red)+' rg '+(pageW*0.82).toFixed(2)+' 752 '+(pageW*0.18).toFixed(2)+' 4 re f Q');
+      putText('UNIVERSITY OF CAPE COAST', margin, 812, 14, 'F2', white, cmds);
+      putText('College of Distance Education (CoDE)', margin, 794, 9, 'F1', [255,224,138], cmds);
+      putText('UNDERGRADUATE FACILITATOR CLAIM SUMMARY', margin, 773, 12, 'F2', white, cmds);
+      var submitted = clean(data.submittedDate || '');
+      putText(submitted ? ('Submitted: ' + submitted) : ('Generated: ' + data.printed), pageW - margin - 170, 773, 8, 'F1', [235,242,252], cmds);
+      y = 732;
+    }
+    function labelValue(label, value, x, yy, w, h) {
+      rect(x, yy-h, w, h, soft, lightLine);
+      putText(label.toUpperCase(), x+8, yy-12, 6.5, 'F2', muted);
+      var lines = wrap(value || '-', 8.2, w-16).slice(0, 2);
+      var ty = yy-25;
+      lines.forEach(function(l){ putText(l, x+8, ty, 8.2, 'F1', textColor); ty -= 9.5; });
+    }
+    function twoColumnDetails(data) {
+      var gap = 8;
+      var w = (pageW - margin*2 - gap) / 2;
+      labelValue('Monitor Name', data.monitorName, margin, y, w, 38);
+      labelValue('Monitor Staff ID', data.monitorStaffId, margin+w+gap, y, w, 38);
+      y -= 46;
+      labelValue('Name of Facilitator', data.tutorName, margin, y, w, 38);
+      labelValue('Staff ID', data.staffId, margin+w+gap, y, w, 38);
+      y -= 46;
+      labelValue('Course Code & Title', data.course, margin, y, pageW-margin*2, 42);
+      y -= 50;
+      labelValue('Programme', data.program, margin, y, w, 38);
+      labelValue('Study Centre', data.studyCentre, margin+w+gap, y, w, 38);
+      y -= 46;
+      labelValue('Mode of Delivery', data.mode, margin, y, w, 34);
+      labelValue('Semester', data.semester, margin+w+gap, y, w, 34);
+      y -= 42;
+    }
+    function tableCell(txt, x, yy, w, size, bold, color) {
+      var lines = wrap(txt || '-', size, w-8).slice(0, 2);
+      var ty = yy - 14;
+      lines.forEach(function(l){ putText(l, x+4, ty, size, bold ? 'F2' : 'F1', color || textColor); ty -= 8; });
+    }
+    function combinedSessionRows(data) {
+      var rows = [];
+      data.f2fRows.forEach(function(r){ rows.push({mode:'F2F', date:r.date, start:r.start, end:r.end, students:r.students, hrs:r.hrs}); });
+      data.onRows.forEach(function(r){ rows.push({mode:'Online', date:r.date, start:r.start, end:r.end, students:r.students, hrs:r.hrs}); });
+      return rows.slice(0, 8);
+    }
+    function sessionsTable(data) {
+      var rows = combinedSessionRows(data);
+      var x = margin, w = pageW - margin*2;
+      rect(x, y-22, w, 22, paleBlue, null);
+      current().push('q '+rgb(blue2)+' rg '+x.toFixed(2)+' '+(y-22).toFixed(2)+' 5 22 re f Q');
+      putText('TEACHING SESSIONS', x+12, y-14, 9, 'F2', blue2);
+      y -= 30;
+      var col = [26, 54, 102, 84, 84, 88, 97]; // #, mode, date, start, end, students, hours
+      var hHead = 20, hRow = 21;
+      rect(x, y-hHead, w, hHead, blue, null);
+      var labels = ['#','Mode','Date','Start','End','Students','Hours'];
+      var cx = x;
+      labels.forEach(function(l,i){ putText(l, cx+4, y-13, 7.5, 'F2', white); cx += col[i]; });
+      y -= hHead;
+      if (!rows.length) {
+        rect(x, y-26, w, 26, [255,255,255], lightLine);
+        putText('No sessions recorded.', x+8, y-17, 8.5, 'F1', muted);
+        y -= 26;
+      } else {
+        rows.forEach(function(r, i){
+          rect(x, y-hRow, w, hRow, i % 2 ? [255,255,255] : [248,250,253], lightLine);
+          var vals = [String(i+1), r.mode, r.date, r.start, r.end, r.students, r.hrs];
+          var xx = x;
+          vals.forEach(function(v,j){ tableCell(v, xx, y, col[j], j>=5 ? 8.2 : 7.6, j>=5, textColor); xx += col[j]; });
+          y -= hRow;
+        });
+      }
+      y -= 8;
+      var totalW = pageW - margin*2;
+      rect(margin, y-34, totalW, 34, paleGold, [230,210,150]);
+      putText('TOTAL TEACHING HOURS', margin+10, y-13, 7.5, 'F2', [93,75,0]);
+      var smallTotals = [];
+      if (Number(data.f2fTotal || 0)) smallTotals.push('F2F: ' + data.f2fTotal);
+      if (Number(data.onTotal || 0)) smallTotals.push('Online: ' + data.onTotal);
+      if (smallTotals.length) putText(smallTotals.join('   |   '), margin+10, y-26, 8, 'F1', [93,75,0]);
+      putText(data.grandTotal || '-', pageW - margin - 95, y-21, 13, 'F2', blue);
+      y -= 44;
+    }
+    function remarksBlock(data) {
+      var text = clean(data.remarks || '');
+      if (!text) return;
+      rect(margin, y-42, pageW-margin*2, 42, [255,255,255], lightLine);
+      putText('REMARKS', margin+8, y-12, 6.8, 'F2', muted);
+      var lines = wrap(text, 8, pageW-margin*2-16).slice(0, 2);
+      var ty = y-25;
+      lines.forEach(function(l){ putText(l, margin+8, ty, 8, 'F1', textColor); ty -= 9; });
+      y -= 50;
+    }
+    async function signatureFooter(sigSource) {
+      var sigY = 70;
+      line(margin, sigY+92, pageW-margin, sigY+92, lightLine, 0.7);
+      putText('FACILITATOR SIGNATURE', margin, sigY+73, 7, 'F2', muted);
+      rect(margin, sigY+7, 230, 58, [255,255,255], lightLine);
+      var isImageSource = /^data:image\//i.test(clean(sigSource)) || /^https?:\/\//i.test(clean(sigSource));
+      var sigImage = isImageSource ? await signatureToJpeg(sigSource) : null;
+      if (sigImage) {
+        var imgName = 'SigImg' + (imageList.length + 1);
+        var pageIndex = pages.length - 1;
+        imageList.push({ name: imgName, image: sigImage });
+        if (!imageByPage[pageIndex]) imageByPage[pageIndex] = [];
+        imageByPage[pageIndex].push(imgName);
+        var maxW = 210, maxH = 48;
+        var scale = Math.min(maxW / sigImage.width, maxH / sigImage.height);
+        var iw = sigImage.width * scale, ih = sigImage.height * scale;
+        current().push('q '+iw.toFixed(2)+' 0 0 '+ih.toFixed(2)+' '+(margin+10).toFixed(2)+' '+(sigY+12).toFixed(2)+' cm /'+imgName+' Do Q');
+      } else if (sigSource && !isImageSource) {
+        putText(clean(sigSource), margin+10, sigY+35, 11, 'F2', blue);
+      } else if (sigSource) {
+        putText('Signature saved, but could not be embedded.', margin+10, sigY+37, 8, 'F1', muted);
+      } else {
+        putText('No signature uploaded.', margin+10, sigY+37, 8, 'F1', muted);
+      }
+      putText('This claim was generated from the CoDE Facilitator Claims System.', margin+260, sigY+50, 8, 'F1', muted);
+      putText('Generated: ' + new Date().toLocaleString(), margin+260, sigY+34, 8, 'F1', muted);
+    }
+
+    for (var idx=0; idx<items.length; idx++) {
+      var raw = items[idx].data || {};
+      var data = pdfClaimData(items[idx]);
+      data.submittedDate = formatTs(raw.createdAt || raw.submittedAt || raw.timestamp || raw.updatedAt) || '';
+      header(data);
+      twoColumnDetails(data);
+      sessionsTable(data);
+      remarksBlock(data);
+      await signatureFooter(data.signature);
+    }
+
+    pages.forEach(function(cmds, i){
+      line(margin, 36, pageW-margin, 36, lightLine, 0.7);
+      putText('CoDE Undergraduate Facilitator Claim Summary', margin, 22, 8, 'F1', muted, cmds);
+      putText('Page '+(i+1)+' of '+pages.length, pageW-margin-55, 22, 8, 'F1', muted, cmds);
+    });
+
+    var objects = [];
+    function addObj(parts) { objects.push(Array.isArray(parts) ? parts : [strBytes(parts)]); return objects.length; }
+    addObj('<< /Type /Catalog /Pages 2 0 R >>');
+    addObj('');
+    addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+    addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
+    var imageObjIds = {};
+    imageList.forEach(function(entry){
+      imageObjIds[entry.name] = addObj([
+        strBytes('<< /Type /XObject /Subtype /Image /Width '+Math.round(entry.image.width)+' /Height '+Math.round(entry.image.height)+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+entry.image.bytes.length+' >>\nstream\n'),
+        entry.image.bytes,
+        strBytes('\nendstream')
+      ]);
+    });
+    var pageObjIds = [];
+    pages.forEach(function(cmds, pageIdx){
+      var stream = cmds.join('\n');
+      var contentId = addObj('<< /Length '+stream.length+' >>\nstream\n'+stream+'\nendstream');
+      var names = imageByPage[pageIdx] || [];
+      var xObj = '';
+      if (names.length) xObj = ' /XObject << ' + names.map(function(n){ return '/' + n + ' ' + imageObjIds[n] + ' 0 R'; }).join(' ') + ' >>';
+      var pageId = addObj('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+pageW+' '+pageH+'] /Resources << /Font << /F1 3 0 R /F2 4 0 R >>'+xObj+' >> /Contents '+contentId+' 0 R >>');
+      pageObjIds.push(pageId);
+    });
+    objects[1] = [strBytes('<< /Type /Pages /Kids ['+pageObjIds.map(function(id){ return id+' 0 R'; }).join(' ')+'] /Count '+pageObjIds.length+' >>')];
+    var parts = [strBytes('%PDF-1.4\n')];
+    var offset = parts[0].length;
+    var offsets = [0];
+    objects.forEach(function(bodyParts, idx){
+      offsets.push(offset);
+      var head = strBytes((idx+1)+' 0 obj\n');
+      var body = concatParts(bodyParts);
+      var tail = strBytes('\nendobj\n');
+      parts.push(head, body, tail);
+      offset += head.length + body.length + tail.length;
+    });
+    var xrefStart = offset;
+    var xref = 'xref\n0 '+(objects.length+1)+'\n0000000000 65535 f \n';
+    for (var i=1; i<=objects.length; i++) xref += String(offsets[i]).padStart(10,'0')+' 00000 n \n';
+    xref += 'trailer\n<< /Size '+(objects.length+1)+' /Root 1 0 R >>\nstartxref\n'+xrefStart+'\n%%EOF';
+    parts.push(strBytes(xref));
+    return concatParts(parts);
+  }
+
+  async function printClaims(items) {
+    if (!items || !items.length) { alert('No claims to print.'); return; }
+    var old = statusEl.innerHTML;
+    setStatus('ready', 'Preparing tutor-style PDF…');
+    try {
+      var pdfBytes = await buildTutorStylePdf(items);
+      var blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      var url = URL.createObjectURL(blob);
+      var name = items.length === 1
+        ? safeFilePart((items[0].data || {}).staffId) + '-' + safeFilePart((items[0].data || {}).course).slice(0,50) + '-claim.pdf'
+        : 'visible-facilitator-claims.pdf';
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+      setStatus('ready', 'PDF created. Open the downloaded file to print or save.');
+    } catch (e) {
+      console.error(e);
+      setStatus('fail', '<strong>PDF failed:</strong> ' + escapeHTML(e.message || e));
+      alert('PDF failed: ' + (e.message || e));
+    }
+  }
+
+
+  async function downloadClaimsZip(items) {
+    if (!items || !items.length) { alert('No claims available to zip.'); return; }
+    if (!window.JSZip) {
+      alert('ZIP library could not load. Check your internet connection and reload the page.');
+      return;
+    }
+
+    var confirmed = true;
+    if (items.length > 100) {
+      confirmed = confirm('This will generate ' + items.length + ' separate PDF files and may take a while. Continue?');
+    }
+    if (!confirmed) return;
+
+    var zip = new JSZip();
+    var usedNames = {};
+    setStatus('ready', 'Preparing ZIP: 0 of ' + items.length + ' PDFs…');
+
+    try {
+      for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        var d = item.data || {};
+        var baseName = [
+          safeFilePart(d.staffId || 'staff'),
+          safeFilePart(d.tutorName || 'tutor'),
+          safeFilePart(d.course || 'course').slice(0, 45),
+          safeFilePart(d.claimId || item.id || String(i + 1)).slice(0, 35)
+        ].filter(Boolean).join('-') || ('claim-' + (i + 1));
+
+        var fileName = baseName + '.pdf';
+        if (usedNames[fileName]) {
+          usedNames[fileName] += 1;
+          fileName = baseName + '-' + usedNames[fileName] + '.pdf';
+        } else {
+          usedNames[fileName] = 1;
+        }
+
+        var pdfBytes = await buildTutorStylePdf([item]);
+        zip.file(fileName, pdfBytes);
+        setStatus('ready', 'Preparing ZIP: ' + (i + 1) + ' of ' + items.length + ' PDFs…');
+        await new Promise(function(resolve){ setTimeout(resolve, 0); });
+      }
+
+      setStatus('ready', 'Compressing ZIP file…');
+      var blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'all-undergraduate-claim-pdfs.zip';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 3000);
+      setStatus('ready', 'ZIP created with ' + items.length + ' PDF files.');
+    } catch (e) {
+      console.error(e);
+      setStatus('fail', '<strong>ZIP failed:</strong> ' + escapeHTML(e.message || e));
+      alert('ZIP failed: ' + (e.message || e));
+    }
+  }
+
+  function buildAdminPostBody(data) {
+    return new URLSearchParams(data).toString();
+  }
+
+  async function deleteClaimFromGoogleSheet(item) {
+    var d = item.data || {};
+    var payload = {
+      action: 'deleteClaimFromSheet',
+      claimId: d.claimId || item.id || '',
+      firestoreDocId: item.id || '',
+      staffId: d.staffId || '',
+      tutorName: d.tutorName || '',
+      course: d.course || '',
+      sheetName: 'Undergraduate Claims'
+    };
+
+    var response = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: buildAdminPostBody(payload)
+    });
+
+    if (!response.ok) throw new Error('Apps Script returned HTTP ' + response.status);
+
+    var result;
+    try { result = await response.json(); }
+    catch (err) { throw new Error('Could not read Apps Script response. Check the deployed web app URL.'); }
+
+    if (!(result && result.success)) {
+      throw new Error((result && (result.error || result.message)) || 'Google Sheet delete failed.');
+    }
+    return result;
+  }
+
+  async function deleteClaim(item) {
+    if (!item || !item.id) return;
+    var d = item.data || {};
+    var label = [d.tutorName || 'Unknown tutor', d.staffId || '', d.course || ''].filter(Boolean).join(' | ');
+    var claimId = d.claimId || item.id;
+
+    var firstConfirm = confirm(
+      'Delete this claim from Firestore AND Google Sheet?\n\n' +
+      label + '\nClaim ID: ' + claimId + '\n\n' +
+      'This removes it from the admin dashboard, from the tutor\'s submitted claims list, and from the Google Sheet row matched by Claim ID.'
+    );
+    if (!firstConfirm) return;
+
+    var typed = prompt('To confirm deletion from Firestore and Google Sheet, type DELETE');
+    if (typed !== 'DELETE') {
+      setStatus('warn', 'Delete cancelled. You must type DELETE exactly.');
+      return;
+    }
+
+    try {
+      setStatus('warn', 'Deleting matching Google Sheet row…');
+      var sheetResult = await deleteClaimFromGoogleSheet(item);
+
+      setStatus('warn', 'Deleting claim from Firestore…');
+      await db.collection('ug_claims').doc(item.id).delete();
+
+      claims = claims.filter(function(x){ return x.id !== item.id; });
+      filtered = filtered.filter(function(x){ return x.id !== item.id; });
+      if (selected && selected.id === item.id) {
+        selected = null;
+        previewBox.textContent = 'Select a claim to preview it here before downloading the tutor-style PDF.';
+        printSelectedBtn.disabled = true;
+        editSelectedBtn.disabled = true;
+        copyClaimIdBtn.disabled = true;
+        closeEditPanel();
+      }
+      renderClaims();
+
+      var deletedRows = Number(sheetResult.deletedRows || (sheetResult.deleted ? 1 : 0));
+      var extra = deletedRows > 0 ? (' Google Sheet rows deleted: ' + deletedRows + '.') : ' No matching Google Sheet row was found, but the Firestore claim was deleted.';
+      setStatus('ready', 'Claim deleted successfully.' + extra);
+    } catch (e) {
+      console.error(e);
+      setStatus('fail', '<strong>Delete failed:</strong> ' + escapeHTML(e.message || e) + '<br>Nothing was removed from Firestore if the Google Sheet deletion failed first.');
+      alert('Delete failed: ' + (e.message || e));
+    }
+  }
+
+
+
+  function setupEvents() {
+    document.getElementById('loginBtn').addEventListener('click', async function(){
+      var email = clean(document.getElementById('adminEmail').value);
+      var pass = document.getElementById('adminPass').value;
+      if (!email || !pass) { alert('Enter admin email and password.'); return; }
+      try { await auth.signInWithEmailAndPassword(email, pass); document.getElementById('adminPass').value = ''; }
+      catch(e) { setStatus('fail', '<strong>Sign-in failed:</strong> ' + escapeHTML(e.message || e)); }
+    });
+    document.getElementById('adminPass').addEventListener('keydown', function(e){ if (e.key === 'Enter') document.getElementById('loginBtn').click(); });
+    logoutBtn.addEventListener('click', function(){ auth.signOut(); });
+    document.getElementById('loadBtn').addEventListener('click', loadClaims);
+    document.getElementById('searchInput').addEventListener('input', applyFilters);
+    document.getElementById('blockFilter').addEventListener('change', applyFilters);
+    document.getElementById('syncFilter').addEventListener('change', applyFilters);
+    document.getElementById('clearFiltersBtn').addEventListener('click', function(){
+      document.getElementById('searchInput').value = '';
+      document.getElementById('blockFilter').value = '';
+      document.getElementById('syncFilter').value = '';
+      applyFilters();
+    });
+    document.getElementById('printVisibleBtn').addEventListener('click', function(){ printClaims(filtered); });
+    document.getElementById('zipAllBtn').addEventListener('click', function(){ downloadClaimsZip(claims); });
+    printSelectedBtn.addEventListener('click', function(){ if (selected) printClaims([selected]); });
+    editSelectedBtn.addEventListener('click', function(){ if (selected) openEditPanel(selected); });
+    document.getElementById('cancelEditBtn').addEventListener('click', closeEditPanel);
+    document.getElementById('downloadEditedPdfBtn').addEventListener('click', function(){ if (selected) printClaims([selected]); });
+    document.getElementById('editF2fSessions').addEventListener('input', updateEditTotalPreview);
+    document.getElementById('editOnlineSessions').addEventListener('input', updateEditTotalPreview);
+    editForm.addEventListener('submit', async function(e){
+      e.preventDefault();
+      try { await saveEditedClaim(); }
+      catch (err) {
+        console.error(err);
+        setStatus('fail', '<strong>Edit failed:</strong> ' + escapeHTML(err.message || err));
+        alert('Edit failed: ' + (err.message || err));
+      }
+    });
+    copyClaimIdBtn.addEventListener('click', async function(){
+      if (!selected) return;
+      var text = selected.data.claimId || selected.id;
+      try { await navigator.clipboard.writeText(text); alert('Claim ID copied.'); }
+      catch(e) { prompt('Copy Claim ID:', text); }
+    });
+    claimsBody.addEventListener('click', function(e){
+      var view = e.target.closest('.viewBtn');
+      var edit = e.target.closest('.editBtn');
+      var print = e.target.closest('.printBtn');
+      var del = e.target.closest('.deleteBtn');
+      if (view || edit || print || del) {
+        var item = filtered[Number((view || edit || print || del).getAttribute('data-index'))];
+        if (!item) return;
+        if (del) {
+          deleteClaim(item);
+          return;
+        }
+        selectClaim(item);
+        if (edit) openEditPanel(item);
+        if (print) printClaims([item]);
+      }
+    });
+  }
+
+  function init() {
+    if (!window.firebase) {
+      setStatus('fail', 'Firebase could not load. Check your internet connection.');
+      return;
+    }
+    try {
+      firebase.initializeApp(firebaseConfig);
+      auth = firebase.auth();
+      db = firebase.firestore();
+      setupEvents();
+      auth.onAuthStateChanged(async function(user){
+        if (user) {
+          showDashboard(true);
+          document.getElementById('adminUid').textContent = user.uid;
+          document.getElementById('uidHelp').textContent = '';
+          var adminProfile = await loadCurrentAdminProfile(user);
+          setStatus('ready', 'Signed in as ' + escapeHTML(adminProfile.name) + (adminProfile.email ? ' (' + escapeHTML(adminProfile.email) + ')' : '') + '.');
+          loadClaims();
+        } else {
+          showDashboard(false);
+          selected = null;
+          previewBox.textContent = 'Select a claim to preview it here before downloading the tutor-style PDF.';
+          printSelectedBtn.disabled = true;
+          copyClaimIdBtn.disabled = true;
+          setStatus('ready', 'Firebase loaded. Sign in to print claim PDFs.');
+        }
+      });
+    } catch(e) { setStatus('fail', 'Firebase init failed: ' + escapeHTML(e.message || e)); }
+  }
+  init();
+})();
+</script>
+</body>
+</html>
