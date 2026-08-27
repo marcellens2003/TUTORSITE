@@ -75,6 +75,13 @@
         .sub-label { font-weight:600; font-size:13px; margin:12px 0 4px; color:#444; }
         .hint { font-size:12px; color:#666; margin-top:4px; line-height:1.45; }
         .note-box { background:#fff8e1; border:1px solid #ffe082; border-radius:8px; padding:12px 14px; margin-top:16px; font-size:13.5px; line-height:1.55; color:#5d4b00; }
+        .new-tutor-callout { margin:18px 0 4px; padding:14px; border:1px solid #b9d0ff; border-radius:10px; background:#eef4ff; }
+        .new-tutor-link, .registered-tutor-link { display:inline-flex; align-items:center; justify-content:center; padding:10px 14px; border-radius:7px; background:#0a2a6b; color:#fff; text-decoration:none; font-weight:700; }
+        .new-tutor-link:hover, .registered-tutor-link:hover { background:#051d50; }
+        .new-tutor-banner { margin:4px 0 18px; padding:14px; border:1px solid #b9d0ff; border-left:5px solid #0a2a6b; border-radius:10px; background:#eef4ff; color:#0a2a6b; }
+        .new-tutor-banner strong { display:block; margin-bottom:4px; font-size:16px; }
+        .sensitive-warning { margin-top:14px; padding:12px 14px; border:1px solid #f2c36b; border-radius:8px; background:#fff8e1; color:#5d4b00; font-size:13px; line-height:1.5; }
+        #registeredTutorFields[hidden], #manualTutorFields[hidden] { display:none !important; }
         .section-head { margin:24px 0 6px; font-size:16px; color:#0a2a6b; border-bottom:2px solid #0a2a6b; padding-bottom:5px; }
         .delivery-section { border:1px solid #d9e1ef; border-radius:10px; padding:6px 14px 16px; margin-top:14px; background:#fafcff; }
         .row-2 { display:flex; gap:14px; flex-wrap:wrap; }
@@ -328,7 +335,7 @@
 </div>
 
 <div class="container">
-    <h2>Undergraduate Facilitator Claim Summary</h2>
+    <h2 id="claimFormTitle">Undergraduate Facilitator Claim Summary</h2>
     <div class="edit-notice" id="editNotice"><strong>Editing saved claim:</strong> <span id="editClaimLabel"></span><div class="claims-actions" style="margin-bottom:0;"><button type="button" class="secondary" id="cancelEditBtn">Cancel edit / start fresh</button></div></div>
 
     <form id="reportForm">
@@ -338,6 +345,18 @@
         <div class="field-label">NAME OF MONITOR</div>
         <input type="text" id="monitorName" name="monitorName" readonly required style="background:#f0f7ff;cursor:not-allowed;">
         <div class="hint" id="monitorHint">Loading monitor profile…</div>
+
+        <div class="field-label">SEMESTER *</div>
+        <div class="mode-delivery-container">
+            <label class="mode-option"><input type="radio" name="semester" value="First Semester"><span class="mode-text">First Semester</span></label>
+            <label class="mode-option"><input type="radio" name="semester" value="Second Semester" checked><span class="mode-text">Second Semester</span></label>
+        </div>
+
+        <div id="registeredTutorFields">
+        <div class="new-tutor-callout">
+            <a id="newTutorModeLink" class="new-tutor-link" href="ug-tutor-report.html?mode=manual">New tutor? Click here</a>
+            <div class="hint">Use this for tutors who have no Staff ID or are not yet in the system.</div>
+        </div>
 
         <div class="field-label">SEARCH / SELECT FACILITATOR *</div>
         <div id="tutorSearchContainer" class="searchable-select-wrapper">
@@ -354,12 +373,6 @@
         <input type="text" id="tutorName" name="tutorName" readonly required style="background:#f0f7ff;cursor:not-allowed;">
         <div class="hint" id="tutorHint">Select a facilitator to load their courses.</div>
 
-        <div class="field-label">SEMESTER *</div>
-        <div class="mode-delivery-container">
-            <label class="mode-option"><input type="radio" name="semester" value="First Semester"><span class="mode-text">First Semester</span></label>
-            <label class="mode-option"><input type="radio" name="semester" value="Second Semester" checked><span class="mode-text">Second Semester</span></label>
-        </div>
-
         <div class="field-label">COURSE CODE & TITLE *</div>
         <div id="courseSearchContainer" class="searchable-select-wrapper">
             <select id="courseSearchInput" class="searchable-input" required disabled><option value="">Select a facilitator first…</option></select>
@@ -372,6 +385,42 @@
 
         <div class="field-label">STUDY CENTRE *</div>
         <input type="text" id="studyCentre" name="studyCentre" placeholder="Auto-fills from the course; edit if different" required>
+        </div>
+
+        <div id="manualTutorFields" hidden>
+            <div class="new-tutor-banner">
+                <strong>New Tutor Claim</strong>
+                Use this form only when the tutor has no Staff ID or is not yet in the tutor system.
+                <div style="margin-top:10px;"><a class="registered-tutor-link" href="ug-tutor-report.html">Back to registered tutors</a></div>
+            </div>
+
+            <div class="field-label">NAME OF TUTOR / FACILITATOR *</div>
+            <input type="text" id="manualTutorName" autocomplete="name" required>
+
+            <div class="field-label">COURSE CODE &amp; TITLE *</div>
+            <input type="text" id="manualCourse" placeholder="e.g. ABC101 | Course title" required>
+
+            <div class="field-label">PROGRAMME *</div>
+            <input type="text" id="manualProgram" required>
+
+            <div class="field-label">STUDY CENTRE *</div>
+            <input type="text" id="manualStudyCentre" required>
+
+            <h3 class="section-head">Bank and Contact Details</h3>
+            <div class="row-2">
+                <div><div class="field-label">BANK NAME *</div><input type="text" id="bankName" autocomplete="organization" required></div>
+                <div><div class="field-label">BANK BRANCH *</div><input type="text" id="bankBranch" required></div>
+            </div>
+            <div class="row-2">
+                <div><div class="field-label">ACCOUNT NAME *</div><input type="text" id="accountName" autocomplete="name" required></div>
+                <div><div class="field-label">ACCOUNT NUMBER *</div><input type="text" id="accountNumber" inputmode="numeric" autocomplete="off" placeholder="6 to 20 digits" required></div>
+            </div>
+            <div class="row-2">
+                <div><div class="field-label">GHANA CARD NUMBER *</div><input type="text" id="ghanaCardNumber" autocomplete="off" placeholder="GHA-123456789-1" required></div>
+                <div><div class="field-label">PHONE NUMBER *</div><input type="tel" id="phoneNumber" autocomplete="tel" placeholder="0241234567" required></div>
+            </div>
+            <div class="sensitive-warning"><strong>Private information:</strong> The downloaded claim PDF will include these banking, Ghana Card, and phone details for claim processing.</div>
+        </div>
 
         <div class="note-box">
             <strong>Please note:</strong> Monitors should fill out <strong>one form per tutor, course, programme, centre, and semester</strong>.
@@ -461,17 +510,69 @@ let CURRENT_TUTOR = null;
 let ALL_TUTORS = [];
 let CURRENT_EDIT_CLAIM_ID = '';
 let CURRENT_EDIT_DOC_ID = '';
+let CURRENT_EDIT_COLLECTION = '';
+let CURRENT_MANUAL_TUTOR_ID = '';
 let DUPLICATE_NOTICE_CLAIM_ID = '';
+let DUPLICATE_NOTICE_COLLECTION = '';
 let DUPLICATE_CHECK_TIMER = null;
 
 const $ = id => document.getElementById(id);
+function isManualTutorMode(){return new URLSearchParams(window.location.search).get('mode')==='manual';}
+function normalizeManualClaimFields(data){
+    data=data||{};
+    const out={};
+    ['tutorName','course','program','studyCentre','bankName','accountName','bankBranch'].forEach(key=>{out[key]=String(data[key]||'').trim();});
+    out.accountNumber=String(data.accountNumber||'').replace(/[\s-]/g,'');
+    const ghana=String(data.ghanaCardNumber||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+    out.ghanaCardNumber=/^GHA\d{10}$/.test(ghana)?'GHA-'+ghana.slice(3,12)+'-'+ghana.slice(12):String(data.ghanaCardNumber||'').trim().toUpperCase();
+    const phone=String(data.phoneNumber||'').replace(/[^0-9+]/g,'');
+    out.phoneNumber=/^0\d{9}$/.test(phone)?'+233'+phone.slice(1):(/^233\d{9}$/.test(phone)?'+'+phone:phone);
+    return out;
+}
+function validateManualClaimFields(data){
+    const normalized=normalizeManualClaimFields(data);
+    const required=[['tutorName','Enter the tutor/facilitator name.'],['course','Enter the course code and title.'],['program','Enter the programme.'],['studyCentre','Enter the study centre.'],['bankName','Enter the bank name.'],['accountName','Enter the account name.'],['bankBranch','Enter the bank branch.']];
+    for(const item of required){if(!normalized[item[0]])return {field:item[0],message:item[1]};}
+    if(!/^\d{6,20}$/.test(normalized.accountNumber))return {field:'accountNumber',message:'Account number must contain 6 to 20 digits.'};
+    if(!/^GHA-\d{9}-\d$/.test(normalized.ghanaCardNumber))return {field:'ghanaCardNumber',message:'Enter a valid Ghana Card number in the format GHA-123456789-1.'};
+    if(!/^\+233\d{9}$/.test(normalized.phoneNumber))return {field:'phoneNumber',message:'Enter a valid Ghana phone number.'};
+    return null;
+}
+async function createManualTutorId(data){
+    const normalized=normalizeManualClaimFields(data);
+    const raw=[normalizeClaimPart(normalized.tutorName),normalized.ghanaCardNumber,normalized.phoneNumber].join('|');
+    if(!(window.crypto&&window.crypto.subtle))throw new Error('Secure tutor identity hashing is unavailable. Refresh and try again.');
+    const digest=await window.crypto.subtle.digest('SHA-256',new TextEncoder().encode(raw));
+    const hex=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('').slice(0,24).toUpperCase();
+    return 'MT-'+hex;
+}
+function claimCollectionName(){return isManualTutorMode()?'ug_manual_claims':'ug_claims';}
+function claimSheetName(){return isManualTutorMode()?'Undergraduate Manual Tutor Claims':'Undergraduate Claims';}
+function buildManualClaimKeyFromData(data){data=data||{};return [String(data.manualTutorId||'').trim().toUpperCase(),normalizeClaimPart(courseCodeFromLabel(data.course)),normalizeClaimPart(data.program||data.programme),normalizeClaimPart(data.studyCentre||data.centre),normalizeClaimPart(data.semester)].join('__');}
+function configureTutorEntryMode(){
+    const manual=isManualTutorMode();
+    const registered=$('registeredTutorFields'),manualFields=$('manualTutorFields'),title=$('claimFormTitle');
+    if(registered)registered.hidden=manual;
+    if(manualFields)manualFields.hidden=!manual;
+    if(title)title.textContent=manual?'New Tutor Claim':'Undergraduate Facilitator Claim Summary';
+    ['tutorSearchInput','selectedTutorId','staffId','tutorName','courseSearchInput','course','program','studyCentre'].forEach(id=>{const el=$(id);if(!el)return;el.disabled=manual;if(manual)el.removeAttribute('required');else el.setAttribute('required','');});
+    ['manualTutorName','manualCourse','manualProgram','manualStudyCentre','bankName','accountNumber','accountName','bankBranch','ghanaCardNumber','phoneNumber'].forEach(id=>{const el=$(id);if(!el)return;el.disabled=!manual;if(manual)el.setAttribute('required','');else el.removeAttribute('required');});
+}
+window.isManualTutorMode=isManualTutorMode;
+window.normalizeManualClaimFields=normalizeManualClaimFields;
+window.validateManualClaimFields=validateManualClaimFields;
+window.createManualTutorId=createManualTutorId;
+window.claimCollectionName=claimCollectionName;
+window.claimSheetName=claimSheetName;
+window.buildManualClaimKeyFromData=buildManualClaimKeyFromData;
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function pval(v){const s=String(v||'').trim();return s?'<span class="pval">'+esc(s)+'</span>':'<span class="pval empty">—</span>';}
 function pitem(l,v){return '<div class="preview-item"><label>'+esc(l)+'</label>'+pval(v)+'</div>';}
 function normalizeClaimPart(value){return String(value||'').trim().toUpperCase().normalize('NFKD').replace(/[^\x20-\x7E]/g,'').replace(/&/g,' AND ').replace(/[^A-Z0-9]+/g,'-').replace(/^-+|-+$/g,'')||'NA';}
 function courseCodeFromLabel(course){const raw=String(course||'').trim(); if(!raw)return ''; const beforePipe=raw.split('|')[0].trim(); return (beforePipe.split(/\s+/)[0]||beforePipe||raw).trim();}
-function buildClaimKeyFromData(data){data=data||{};return [normalizeClaimPart(data.staffId||$('staffId')?.value||sessionStorage.getItem('tutorStaffId')),normalizeClaimPart(courseCodeFromLabel(data.course||$('course')?.value||$('courseSearchInput')?.value)),normalizeClaimPart(data.program||data.programme||$('program')?.value),normalizeClaimPart(data.studyCentre||data.centre||$('studyCentre')?.value),normalizeClaimPart(data.semester||(document.querySelector('input[name="semester"]:checked')||{}).value)].join('__');}
-function buildDeterministicClaimId(data){return 'CLAIM-'+buildClaimKeyFromData(data);}
+function buildClaimKeyFromData(data){data=data||{};if(data.manualTutor||data.tutorEntryMode==='manual'||data.manualTutorId)return buildManualClaimKeyFromData(data);return [normalizeClaimPart(data.staffId||$('staffId')?.value||sessionStorage.getItem('tutorStaffId')),normalizeClaimPart(courseCodeFromLabel(data.course||$('course')?.value||$('courseSearchInput')?.value)),normalizeClaimPart(data.program||data.programme||$('program')?.value),normalizeClaimPart(data.studyCentre||data.centre||$('studyCentre')?.value),normalizeClaimPart(data.semester||(document.querySelector('input[name="semester"]:checked')||{}).value)].join('__');}
+function buildDeterministicClaimId(data){const manual=!!(data&&(data.manualTutor||data.tutorEntryMode==='manual'||data.manualTutorId));return (manual?'MANUAL-CLAIM-':'CLAIM-')+buildClaimKeyFromData(data);}
+window.buildDeterministicClaimId=buildDeterministicClaimId;
 function timestampToMillis(value){if(!value)return 0;if(typeof value.toMillis==='function')return value.toMillis();if(typeof value.seconds==='number')return value.seconds*1000;const parsed=Date.parse(value);return Number.isNaN(parsed)?0:parsed;}
 function formatClaimDate(value){const ms=timestampToMillis(value);return ms?new Date(ms).toLocaleString():'';}
 function safeMonitorDocId(staffId){const cleaned=String(staffId||'').trim().toUpperCase().replace(/[\/]+/g,'-').replace(/[^A-Z0-9_.-]+/g,'-').replace(/^-+|-+$/g,'');return cleaned||'monitor';}
@@ -526,12 +627,14 @@ async function fillTutorFromLogin(){
         }
         CURRENT_MONITOR=Object.assign({},rec,{staffId:rawId,uid:recordUid||loggedUid});
         if(monitorNameField)monitorNameField.value=CURRENT_MONITOR.name||CURRENT_MONITOR.fullName||fbName||rawId;
-        if(monitorHint)monitorHint.textContent='Monitor profile loaded. Loading facilitator list…';
+        if(monitorHint)monitorHint.textContent=isManualTutorMode()?'Monitor profile loaded for a new-tutor claim.':'Monitor profile loaded. Loading facilitator list…';
 
-        await loadAllTutorsForMonitor();
-        if(tutorSearchInput){tutorSearchInput.disabled=false;tutorSearchInput.placeholder='🔍 Search tutor by name or Staff ID...';}
-        renderTutorResults('',false);
-        if($('tutorSearchHint'))$('tutorSearchHint').textContent=ALL_TUTORS.length+' facilitator record'+(ALL_TUTORS.length===1?'':'s')+' available. Search by name or Staff ID.';
+        if(!isManualTutorMode()){
+            await loadAllTutorsForMonitor();
+            if(tutorSearchInput){tutorSearchInput.disabled=false;tutorSearchInput.placeholder='🔍 Search tutor by name or Staff ID...';}
+            renderTutorResults('',false);
+            if($('tutorSearchHint'))$('tutorSearchHint').textContent=ALL_TUTORS.length+' facilitator record'+(ALL_TUTORS.length===1?'':'s')+' available. Search by name or Staff ID.';
+        }
         if(monitorHint)monitorHint.textContent='Signed in as '+rawId+' — '+(CURRENT_MONITOR.name||CURRENT_MONITOR.fullName||fbName||'monitor')+'.';
     }catch(e){
         console.error('Could not load undergraduate monitor/tutor data:',e);
@@ -544,7 +647,8 @@ async function fillTutorFromLogin(){
 
     populateProgramDropdown();
     updateCourseAvailability();
-    loadMyClaims();
+    await loadMyClaims();
+    const routeParams=new URLSearchParams(window.location.search);const routedClaim=routeParams.get('editClaim')||routeParams.get('downloadClaim');if(routedClaim){const routedCollection=isManualTutorMode()?'ug_manual_claims':'ug_claims';if(routeParams.get('downloadClaim'))await downloadSubmittedClaimPdf(routedClaim,routedCollection);else await loadClaimForEdit(routedClaim,routedCollection);}
     applyMode();
 }
 window.fillTutorFromLogin=fillTutorFromLogin;
@@ -610,15 +714,17 @@ function buildSessionTable(target='on') {
 }
 function showPreview(){
     recomputeTotals();
+    const manual=isManualTutorMode();
+    const manualData=manual?normalizeManualClaimFields({tutorName:$('manualTutorName').value,course:$('manualCourse').value,program:$('manualProgram').value,studyCentre:$('manualStudyCentre').value,bankName:$('bankName').value,accountNumber:$('accountNumber').value,accountName:$('accountName').value,bankBranch:$('bankBranch').value,ghanaCardNumber:$('ghanaCardNumber').value,phoneNumber:$('phoneNumber').value}):null;
     const mode=currentMode();
     const semester=(document.querySelector('input[name="semester"]:checked')||{}).value||'';
-    const staffId=$('staffId').value;
-    const tutorName=$('tutorName').value;
+    const staffId=manual?'No Staff ID':$('staffId').value;
+    const tutorName=manual?manualData.tutorName:$('tutorName').value;
     const monitorStaffId=$('monitorStaffId').value;
     const monitorName=$('monitorName').value;
-    const course=$('courseSearchInput').value;
-    const program=$('program').value;
-    const studyCentre=$('studyCentre').value;
+    const course=manual?manualData.course:$('courseSearchInput').value;
+    const program=manual?manualData.program:$('program').value;
+    const studyCentre=manual?manualData.studyCentre:$('studyCentre').value;
     const f2fTotal=$('f2fTotal')?$('f2fTotal').textContent:'0.00';
     const onTotal=$('onTotal')?$('onTotal').textContent:'0.00';
     const grandTotal=$('grandTotal').textContent;
@@ -626,12 +732,13 @@ function showPreview(){
     const sigText=$('facilitatorSignature').value.trim();
     let html='';
     html+='<div class="preview-section"><div class="preview-section-title">Monitor</div><div class="preview-grid">'+pitem('Monitor Staff ID',monitorStaffId)+pitem('Monitor Name',monitorName)+'</div></div>';
-    html+='<div class="preview-section"><div class="preview-section-title">Facilitator</div><div class="preview-grid">'+pitem('Staff ID',staffId)+pitem('Name',tutorName)+'</div></div>';
+    html+='<div class="preview-section"><div class="preview-section-title">Facilitator'+(manual?' — New Tutor':'')+'</div><div class="preview-grid">'+pitem('Staff ID',staffId)+pitem('Name',tutorName)+'</div></div>';
     html+='<div class="preview-section"><div class="preview-section-title">Course Details</div><div class="preview-grid single">'+pitem('Course',course)+'</div><div class="preview-grid" style="margin-top:8px;">'+pitem('Programme',program)+pitem('Study Centre',studyCentre)+'</div></div>';
     html+='<div class="preview-section"><div class="preview-section-title">Schedule</div><div class="preview-grid">'+pitem('Mode of Delivery',mode)+pitem('Semester',semester)+'</div></div>';
     if(mode==='Face-to-Face')html+='<div class="preview-section"><div class="preview-section-title">Face-to-Face Sessions</div>'+buildSessionTable('f2f')+'<div style="margin:6px 0 14px;font-size:13px;color:#555;">Total face-to-face hours: <strong>'+esc(f2fTotal)+'</strong></div></div>';
     else html+='<div class="preview-section"><div class="preview-section-title">Online Sessions</div>'+buildSessionTable('on')+'<div style="margin:6px 0 14px;font-size:13px;color:#555;">Total online hours: <strong>'+esc(onTotal)+'</strong></div></div>';
     html+='<div class="preview-total">Grand total teaching hours: '+esc(grandTotal)+'</div>';
+    if(manual){html+='<div class="sensitive-warning"><strong>Private information:</strong> This PDF will include the banking, Ghana Card, and phone details shown below.</div><div class="preview-section" style="margin-top:14px;"><div class="preview-section-title">Bank and Contact Details</div><div class="preview-grid">'+pitem('Bank Name',manualData.bankName)+pitem('Bank Branch',manualData.bankBranch)+pitem('Account Name',manualData.accountName)+pitem('Account Number',manualData.accountNumber)+pitem('Ghana Card Number',manualData.ghanaCardNumber)+pitem('Phone Number',manualData.phoneNumber)+'</div></div>';}
     if(remarks.trim())html+='<div class="preview-section"><div class="preview-section-title">Remarks</div><div class="preview-grid single">'+pitem('',remarks)+'</div></div>';
     html+='<div class="preview-section"><div class="preview-section-title">Signature</div><div class="preview-grid single">'+pitem('Facilitator full name / initials',sigText||'Not provided')+'</div></div>';
     $('previewBody').innerHTML=html;
@@ -644,28 +751,32 @@ function closePreview(){
 function prepareFormData(){
     const data={};new FormData($('reportForm')).forEach((v,k)=>data[k]=v);
     const mode=currentMode(),f2fItems=mode==='Face-to-Face'?collectSessionItems('f2f'):[],onItems=mode==='Purely Online'?collectSessionItems('on'):[];
-    data.formType='UndergraduateFacilitatorClaim';data.action=CURRENT_EDIT_CLAIM_ID?'updateClaim':'submitClaim';data.claimId=CURRENT_EDIT_CLAIM_ID||'';data.firestoreDocId=CURRENT_EDIT_DOC_ID||'';data.claimStatus='Submitted';data.modeOfDelivery=mode;
+    const manual=isManualTutorMode();
+    data.formType=manual?'UndergraduateManualTutorClaim':'UndergraduateFacilitatorClaim';data.action=CURRENT_EDIT_CLAIM_ID?'updateClaim':'submitClaim';data.claimId=CURRENT_EDIT_CLAIM_ID||'';data.firestoreDocId=CURRENT_EDIT_DOC_ID||'';data.claimStatus='Submitted';data.modeOfDelivery=mode;
+    data.collectionId=claimCollectionName();data.targetCollection=data.collectionId;data.firestoreCollection=data.collectionId;data.targetSheetName=claimSheetName();data.sheetName=data.targetSheetName;
     data.monitorStaffId=$('monitorStaffId').value.trim().toUpperCase();data.monitorName=$('monitorName').value;data.monitorUid=window.__currentUserUid||'';data.submittedByUid=window.__currentUserUid||'';data.submittedByRole='monitor';data.submittedByName=data.monitorName;
-    data.staffId=$('staffId').value.trim().toUpperCase();data.tutorStaffId=data.staffId;data.tutorName=$('tutorName').value;data.course=$('course').value;data.program=$('program').value;data.studyCentre=$('studyCentre').value;data.semester=(document.querySelector('input[name="semester"]:checked')||{}).value||'';
+    if(manual){const manualData=normalizeManualClaimFields({tutorName:$('manualTutorName').value,course:$('manualCourse').value,program:$('manualProgram').value,studyCentre:$('manualStudyCentre').value,bankName:$('bankName').value,accountNumber:$('accountNumber').value,accountName:$('accountName').value,bankBranch:$('bankBranch').value,ghanaCardNumber:$('ghanaCardNumber').value,phoneNumber:$('phoneNumber').value});Object.assign(data,manualData,{staffId:'',tutorStaffId:'',tutorEntryMode:'manual',manualTutor:true,source:'ug-tutor-report-manual'});}else{data.staffId=$('staffId').value.trim().toUpperCase();data.tutorStaffId=data.staffId;data.tutorName=$('tutorName').value;data.course=$('course').value;data.program=$('program').value;data.studyCentre=$('studyCentre').value;data.source='ug-tutor-report';}
+    data.semester=(document.querySelector('input[name="semester"]:checked')||{}).value||'';
     recomputeTotals();data.f2fHours=mode==='Face-to-Face'?$('f2fHours').value:'0.00';data.f2fSessions=f2fItems.map(item=>(item.date||'?')+' '+(item.startDisplay||'?')+'-'+(item.endDisplay||'?')+' | '+(item.studentCount===''?'?':item.studentCount)+' students').join('; ');data.f2fStudentCounts=f2fItems.map((item,index)=>(item.date||('Session '+(index+1)))+': '+(item.studentCount===''?'':item.studentCount)).join('; ');data.f2fSessionItemsJson=JSON.stringify(f2fItems);
     data.onHours=mode==='Purely Online'?$('onHours').value:'0.00';data.onSessions=onItems.map(item=>(item.date||'?')+' '+(item.startDisplay||'?')+'-'+(item.endDisplay||'?')+' | '+(item.studentCount===''?'?':item.studentCount)+' students').join('; ');data.onStudentCounts=onItems.map((item,index)=>(item.date||('Session '+(index+1)))+': '+(item.studentCount===''?'':item.studentCount)).join('; ');data.onSessionItemsJson=JSON.stringify(onItems);
     data.totalHours=$('totalHours').value;data.remarks=$('remarks').value;data.facilitatorSignature=$('facilitatorSignature').value.trim();data.facilitatorSignatureText=data.facilitatorSignature;data.facilitatorSignatureType='typed_name_or_initials';data.claimKey=buildClaimKeyFromData(data);data.uniqueClaimKey=data.claimKey;return data;
 }
+window.prepareFormData=prepareFormData;
 function validateSessionStudentCounts(){const tbody=currentMode()==='Face-to-Face'?$('f2fRows'):$('onRows');if(!tbody)return true;for(const tr of tbody.querySelectorAll('tr')){const used=tr.querySelector('.s-date').value||tr.querySelector('.s-start').value||tr.querySelector('.s-end').value;const input=tr.querySelector('.s-students');input.style.borderColor='';if(used&&(input.value===''||!Number.isInteger(Number(input.value))||Number(input.value)<0)){input.style.borderColor='red';input.focus();alert('Enter the number of students for every teaching session.');return false;}}return true;}
-function validateForm(){let ok=true;document.querySelectorAll('[required]').forEach(f=>f.style.borderColor='');document.querySelectorAll('[required]').forEach(f=>{if(!String(f.value||'').trim()){f.style.borderColor='red';ok=false;}});if(!CURRENT_MONITOR){alert('Your monitor profile has not loaded. Sign out and sign in again.');return false;}if(!CURRENT_TUTOR||!$('selectedTutorId').value){alert('Please select the facilitator/tutor first.');return false;}if(!$('course').value||!tutorCourses().includes($('course').value)){alert('Please select one of the selected facilitator’s assigned courses.');return false;}if(!$('facilitatorSignature').value.trim()){$('facilitatorSignature').style.borderColor='red';alert("Please enter the facilitator's full name or initials.");return false;}if(!validateSessionStudentCounts())return false;recomputeTotals();const total=parseFloat($('totalHours').value||'0');if(total<=0){alert('Add at least one teaching session with valid start/end times.');return false;}if(total>MAX_CLAIM_HOURS){alert('Total teaching hours cannot exceed '+MAX_CLAIM_HOURS+'.');return false;}return ok;}
+function validateForm(){let ok=true;document.querySelectorAll('[required]:not([disabled])').forEach(f=>f.style.borderColor='');document.querySelectorAll('[required]:not([disabled])').forEach(f=>{if(!String(f.value||'').trim()){f.style.borderColor='red';ok=false;}});if(!CURRENT_MONITOR){alert('Your monitor profile has not loaded. Sign out and sign in again.');return false;}if(isManualTutorMode()){const manualData=normalizeManualClaimFields({tutorName:$('manualTutorName').value,course:$('manualCourse').value,program:$('manualProgram').value,studyCentre:$('manualStudyCentre').value,bankName:$('bankName').value,accountNumber:$('accountNumber').value,accountName:$('accountName').value,bankBranch:$('bankBranch').value,ghanaCardNumber:$('ghanaCardNumber').value,phoneNumber:$('phoneNumber').value});const problem=validateManualClaimFields(manualData);if(problem){const fieldId={tutorName:'manualTutorName',course:'manualCourse',program:'manualProgram',studyCentre:'manualStudyCentre'}[problem.field]||problem.field;const field=$(fieldId);if(field){field.style.borderColor='red';field.focus();}alert(problem.message);return false;}Object.entries(manualData).forEach(([key,value])=>{const id={tutorName:'manualTutorName',course:'manualCourse',program:'manualProgram',studyCentre:'manualStudyCentre'}[key]||key;if($(id))$(id).value=value;});}else{if(!CURRENT_TUTOR||!$('selectedTutorId').value){alert('Please select the facilitator/tutor first.');return false;}if(!$('course').value||!tutorCourses().includes($('course').value)){alert('Please select one of the selected facilitator’s assigned courses.');return false;}}if(!ok){alert('Please complete every required field.');return false;}if(!$('facilitatorSignature').value.trim()){$('facilitatorSignature').style.borderColor='red';$('facilitatorSignature').focus();alert("Please enter the facilitator's full name or initials.");return false;}if(!validateSessionStudentCounts())return false;recomputeTotals();const total=parseFloat($('totalHours').value||'0');if(total<=0){alert('Add at least one teaching session with valid start/end times.');return false;}if(total>MAX_CLAIM_HOURS){alert('Total teaching hours cannot exceed '+MAX_CLAIM_HOURS+'.');return false;}return true;}
 function hideMessages(){['errorMessage','successMessage'].forEach(id=>$(id).style.display='none');}
 function showSuccessMessage(t){const msg=$('successMessage');msg.innerHTML='✅ <strong>Success!</strong> '+(t||'Claim saved.');msg.style.display='block';}
 function showErrorMessage(m){const msg=$('errorMessage');msg.innerHTML='❌ <strong>Error:</strong> '+esc(m);msg.style.display='block';}
 function showSubmitSuccessPopup(message){return new Promise(resolve=>{const overlay=$('submitSuccessModal'),body=$('submitSuccessBody'),close=$('submitSuccessClose');body.textContent=message||'The tutor claim has been saved successfully.';overlay.classList.add('active');const fn=()=>{overlay.classList.remove('active');close.removeEventListener('click',fn);resolve();};close.addEventListener('click',fn);setTimeout(()=>close.focus(),50);});}
 
-function getCurrentClaimIdentityData(){return {staffId:$('staffId').value.trim().toUpperCase(),course:$('course').value.trim(),program:$('program').value.trim(),studyCentre:$('studyCentre').value.trim(),semester:(document.querySelector('input[name="semester"]:checked')||{}).value||''};}
-function hasClaimIdentityFields(data){return !!(data&&data.staffId&&data.course&&data.program&&data.studyCentre&&data.semester);}
+function getCurrentClaimIdentityData(){if(isManualTutorMode()){const data=normalizeManualClaimFields({tutorName:$('manualTutorName').value,course:$('manualCourse').value,program:$('manualProgram').value,studyCentre:$('manualStudyCentre').value,ghanaCardNumber:$('ghanaCardNumber').value,phoneNumber:$('phoneNumber').value});return Object.assign(data,{manualTutor:true,tutorEntryMode:'manual',manualTutorId:CURRENT_MANUAL_TUTOR_ID,semester:(document.querySelector('input[name="semester"]:checked')||{}).value||''});}return {staffId:$('staffId').value.trim().toUpperCase(),course:$('course').value.trim(),program:$('program').value.trim(),studyCentre:$('studyCentre').value.trim(),semester:(document.querySelector('input[name="semester"]:checked')||{}).value||''};}
+function hasClaimIdentityFields(data){if(data&&(data.manualTutor||data.tutorEntryMode==='manual'||data.manualTutorId))return !!(data.tutorName&&data.course&&data.program&&data.studyCentre&&data.semester&&data.ghanaCardNumber&&data.phoneNumber);return !!(data&&data.staffId&&data.course&&data.program&&data.studyCentre&&data.semester);}
 function describeClaimIdentity(data){return [data.course,data.program||data.programme,data.studyCentre||data.centre,data.semester].filter(Boolean).join(' • ');}
-async function findExistingClaimForSameCourse(data,currentDocId){if(!hasClaimIdentityFields(data))return null;const fs=window.__firestore;const key=buildClaimKeyFromData(data),det=buildDeterministicClaimId(data),current=String(currentDocId||CURRENT_EDIT_DOC_ID||CURRENT_EDIT_CLAIM_ID||'').trim();try{const exact=await fs.getDoc(fs.doc(fs.db,'ug_claims',det));if(exact.exists()&&exact.id!==current){const d=exact.data()||{};if(String(d.claimStatus||'Submitted').toLowerCase()!=='cancelled')return {id:exact.id,data:d};}}catch(e){console.warn('Exact duplicate check skipped:',e);}try{const uid=window.__currentUserUid||'';const q=uid?fs.query(fs.collection(fs.db,'ug_claims'),fs.where('uid','==',uid)):fs.query(fs.collection(fs.db,'ug_claims'),fs.where('staffId','==',data.staffId));const snap=await fs.getDocs(q);let found=null;snap.forEach(docSnap=>{if(found||docSnap.id===current)return;const d=docSnap.data()||{};if(String(d.claimStatus||'Submitted').toLowerCase()==='cancelled')return;const dKey=buildClaimKeyFromData(d);if(dKey===key)found={id:docSnap.id,data:d};});return found;}catch(e){console.warn('Duplicate scan skipped:',e);return null;}}
-function showDuplicateNotice(existing,identityData){DUPLICATE_NOTICE_CLAIM_ID=existing.id||existing.claimId||'';$('duplicateNoticeText').textContent='You have already submitted a claim for '+(describeClaimIdentity(existing.data)||describeClaimIdentity(identityData)||'this course')+'. Please open and edit the existing claim instead of submitting a new one.';$('duplicateNotice').style.display='block';}
-function clearDuplicateNotice(){DUPLICATE_NOTICE_CLAIM_ID='';$('duplicateNotice').style.display='none';}
-async function openDuplicateClaimFromNotice(){if(DUPLICATE_NOTICE_CLAIM_ID)await loadClaimForEdit(DUPLICATE_NOTICE_CLAIM_ID);}
-async function checkDuplicateForCurrentSelection(){const data=getCurrentClaimIdentityData();if(!hasClaimIdentityFields(data)||CURRENT_EDIT_CLAIM_ID){clearDuplicateNotice();return null;}const existing=await findExistingClaimForSameCourse(data);if(existing)showDuplicateNotice(existing,data);else clearDuplicateNotice();return existing;}
+async function findExistingClaimForSameCourse(data,currentDocId){if(!hasClaimIdentityFields(data))return null;const fs=window.__firestore;const manual=!!(data.manualTutor||data.tutorEntryMode==='manual'||data.manualTutorId);if(manual&&!data.manualTutorId)data.manualTutorId=await createManualTutorId(data);const collection=manual?'ug_manual_claims':'ug_claims';const key=buildClaimKeyFromData(data),det=buildDeterministicClaimId(data),current=String(currentDocId||CURRENT_EDIT_DOC_ID||CURRENT_EDIT_CLAIM_ID||'').trim();try{const exact=await fs.getDoc(fs.doc(fs.db,collection,det));if(exact.exists()&&exact.id!==current){const d=exact.data()||{};if(String(d.claimStatus||'Submitted').toLowerCase()!=='cancelled')return {id:exact.id,collection,data:d};}}catch(e){console.warn('Exact duplicate check skipped:',e);}try{const uid=window.__currentUserUid||'';const q=uid?fs.query(fs.collection(fs.db,collection),fs.where('uid','==',uid)):fs.query(fs.collection(fs.db,collection),fs.where(manual?'manualTutorId':'staffId','==',manual?data.manualTutorId:data.staffId));const snap=await fs.getDocs(q);let found=null;snap.forEach(docSnap=>{if(found||docSnap.id===current)return;const d=docSnap.data()||{};if(String(d.claimStatus||'Submitted').toLowerCase()==='cancelled')return;const dKey=buildClaimKeyFromData(d);if(dKey===key)found={id:docSnap.id,collection,data:d};});return found;}catch(e){console.warn('Duplicate scan skipped:',e);return null;}}
+function showDuplicateNotice(existing,identityData){DUPLICATE_NOTICE_CLAIM_ID=existing.id||existing.claimId||'';DUPLICATE_NOTICE_COLLECTION=existing.collection||claimCollectionName();$('duplicateNoticeText').textContent='You have already submitted a claim for '+(describeClaimIdentity(existing.data)||describeClaimIdentity(identityData)||'this course')+'. Please open and edit the existing claim instead of submitting a new one.';$('duplicateNotice').style.display='block';}
+function clearDuplicateNotice(){DUPLICATE_NOTICE_CLAIM_ID='';DUPLICATE_NOTICE_COLLECTION='';$('duplicateNotice').style.display='none';}
+async function openDuplicateClaimFromNotice(){if(DUPLICATE_NOTICE_CLAIM_ID)await loadClaimForEdit(DUPLICATE_NOTICE_CLAIM_ID,DUPLICATE_NOTICE_COLLECTION||claimCollectionName());}
+async function checkDuplicateForCurrentSelection(){const data=getCurrentClaimIdentityData();if(!hasClaimIdentityFields(data)||CURRENT_EDIT_CLAIM_ID){clearDuplicateNotice();return null;}if(data.manualTutor&&!data.manualTutorId)data.manualTutorId=await createManualTutorId(data);const existing=await findExistingClaimForSameCourse(data);if(existing)showDuplicateNotice(existing,data);else clearDuplicateNotice();return existing;}
 function scheduleDuplicateCheck(){if(DUPLICATE_CHECK_TIMER)clearTimeout(DUPLICATE_CHECK_TIMER);DUPLICATE_CHECK_TIMER=setTimeout(()=>checkDuplicateForCurrentSelection().catch(console.warn),650);}
 
 async function postClaimToAppsScriptEndpoint(data){
@@ -674,12 +785,12 @@ async function postClaimToAppsScriptEndpoint(data){
     const fd = new FormData();
     const payload = Object.assign({}, data || {}, {
         action: data && data.action ? data.action : 'submitClaim',
-        collectionId: 'ug_claims',
-        targetCollection: 'ug_claims',
-        firestoreCollection: 'ug_claims',
-        sheetName: 'Undergraduate Claims',
-        targetSheetName: 'Undergraduate Claims',
-        source: 'ug-tutor-report',
+        collectionId: data&&data.collectionId?data.collectionId:claimCollectionName(),
+        targetCollection: data&&data.targetCollection?data.targetCollection:claimCollectionName(),
+        firestoreCollection: data&&data.firestoreCollection?data.firestoreCollection:claimCollectionName(),
+        sheetName: data&&data.sheetName?data.sheetName:claimSheetName(),
+        targetSheetName: data&&data.targetSheetName?data.targetSheetName:claimSheetName(),
+        source: data&&data.source?data.source:(isManualTutorMode()?'ug-tutor-report-manual':'ug-tutor-report'),
         deploymentId: window.__ugAppsScriptDeploymentId || ''
     });
     Object.keys(payload).forEach(key => {
@@ -693,24 +804,26 @@ async function postClaimToAppsScriptEndpoint(data){
     await fetch(url, { method:'POST', mode:'no-cors', body:fd });
     return {attempted:true, message:'Claim sent to Apps Script web app endpoint.'};
 }
-async function saveClaimToFirestore(data){const fs=window.__firestore;if(!fs||!fs.db)throw new Error('Firestore is not ready. Refresh and try again.');data.staffId=data.staffId.trim().toUpperCase();const duplicate=await findExistingClaimForSameCourse(data,CURRENT_EDIT_DOC_ID||CURRENT_EDIT_CLAIM_ID);if(duplicate){showDuplicateNotice(duplicate,data);throw new Error('You have already submitted a claim for this course, programme, centre, and semester. Open the existing claim and edit it.');}const isEdit=!!CURRENT_EDIT_CLAIM_ID;const claimId=isEdit?CURRENT_EDIT_CLAIM_ID:buildDeterministicClaimId(data);const claimKey=buildClaimKeyFromData(data);const payload=Object.assign({},data,{claimId,firestoreDocId:claimId,claimKey,uniqueClaimKey:claimKey,claimStatus:'Submitted',modeOfDelivery:data.modeOfDelivery||currentMode(),uid:window.__currentUserUid||'',monitorUid:window.__currentUserUid||'',submittedByUid:window.__currentUserUid||'',submittedByRole:'monitor',monitorStaffId:data.monitorStaffId||($('monitorStaffId')?$('monitorStaffId').value.trim().toUpperCase():''),monitorName:data.monitorName||($('monitorName')?$('monitorName').value:''),submittedByName:data.monitorName||($('monitorName')?$('monitorName').value:''),tutorStaffId:data.staffId,tutorDocPath:'ug_tutors/'+data.staffId,monitorDocPath:'ug_monitors/'+safeMonitorDocId(data.monitorStaffId||($('monitorStaffId')?$('monitorStaffId').value.trim().toUpperCase():'')),f2fSessionItems:data.modeOfDelivery==='Face-to-Face'?collectSessionItems('f2f'):[],onSessionItems:data.modeOfDelivery==='Purely Online'?collectSessionItems('on'):[],source:'ug-tutor-report',sheetSyncStatus:'pending',updatedAt:fs.serverTimestamp()});if(!isEdit)payload.createdAt=fs.serverTimestamp();await fs.setDoc(fs.doc(fs.db,'ug_claims',claimId),payload,{merge:true});CURRENT_EDIT_CLAIM_ID=claimId;CURRENT_EDIT_DOC_ID=claimId;return claimId;}
+async function saveClaimToFirestore(data){const fs=window.__firestore;if(!fs||!fs.db)throw new Error('Firestore is not ready. Refresh and try again.');const manual=!!(data.manualTutor||data.tutorEntryMode==='manual'||isManualTutorMode());data.staffId=manual?'':String(data.staffId||'').trim().toUpperCase();data.tutorStaffId=manual?'':data.staffId;if(manual){data.manualTutor=true;data.tutorEntryMode='manual';data.manualTutorId=CURRENT_MANUAL_TUTOR_ID||data.manualTutorId||await createManualTutorId(data);CURRENT_MANUAL_TUTOR_ID=data.manualTutorId;}const duplicate=await findExistingClaimForSameCourse(data,CURRENT_EDIT_DOC_ID||CURRENT_EDIT_CLAIM_ID);if(duplicate){showDuplicateNotice(duplicate,data);throw new Error('You have already submitted a claim for this course, programme, centre, and semester. Open the existing claim and edit it.');}const isEdit=!!CURRENT_EDIT_CLAIM_ID;const collection=manual?'ug_manual_claims':'ug_claims';if(isEdit&&CURRENT_EDIT_COLLECTION&&CURRENT_EDIT_COLLECTION!==collection)throw new Error('A registered claim cannot be converted into a new-tutor claim, or vice versa.');const claimId=isEdit?CURRENT_EDIT_CLAIM_ID:buildDeterministicClaimId(data);const claimKey=buildClaimKeyFromData(data);const payload=Object.assign({},data,{claimId,firestoreDocId:claimId,claimKey,uniqueClaimKey:claimKey,claimStatus:'Submitted',modeOfDelivery:data.modeOfDelivery||currentMode(),uid:window.__currentUserUid||'',monitorUid:window.__currentUserUid||'',submittedByUid:window.__currentUserUid||'',submittedByRole:'monitor',monitorStaffId:data.monitorStaffId||($('monitorStaffId')?$('monitorStaffId').value.trim().toUpperCase():''),monitorName:data.monitorName||($('monitorName')?$('monitorName').value:''),submittedByName:data.monitorName||($('monitorName')?$('monitorName').value:''),monitorDocPath:'ug_monitors/'+safeMonitorDocId(data.monitorStaffId||($('monitorStaffId')?$('monitorStaffId').value.trim().toUpperCase():'')),f2fSessionItems:data.modeOfDelivery==='Face-to-Face'?collectSessionItems('f2f'):[],onSessionItems:data.modeOfDelivery==='Purely Online'?collectSessionItems('on'):[],source:manual?'ug-tutor-report-manual':'ug-tutor-report',collectionId:collection,targetCollection:collection,firestoreCollection:collection,targetSheetName:manual?'Undergraduate Manual Tutor Claims':'Undergraduate Claims',sheetName:manual?'Undergraduate Manual Tutor Claims':'Undergraduate Claims',sheetSyncStatus:'pending',updatedAt:fs.serverTimestamp()});if(manual){payload.staffId='';payload.tutorStaffId='';delete payload.tutorDocPath;}else{payload.tutorDocPath='ug_tutors/'+data.staffId;['bankName','accountNumber','accountName','bankBranch','ghanaCardNumber','phoneNumber','manualTutorId','manualTutor','tutorEntryMode'].forEach(key=>delete payload[key]);}if(!isEdit)payload.createdAt=fs.serverTimestamp();await fs.setDoc(fs.doc(fs.db,collection,claimId),payload,{merge:true});Object.assign(data,payload);CURRENT_EDIT_CLAIM_ID=claimId;CURRENT_EDIT_DOC_ID=claimId;CURRENT_EDIT_COLLECTION=collection;return claimId;}
 async function submitAndDownloadFromPreview(){const btn=$('confirmSubmitBtn'),old=btn.textContent;btn.disabled=true;btn.textContent='⏳ Submitting…';hideMessages();try{if(!validateForm())return;const data=prepareFormData();$('loading').style.display='block';const id=await saveClaimToFirestore(data);data.claimId=id;data.firestoreDocId=id;try{await postClaimToAppsScriptEndpoint(data);showSuccessMessage('Claim saved to Firestore and sent to the undergraduate Google Sheet endpoint. Preparing your PDF download now.');}catch(syncErr){console.warn('Direct Apps Script post failed; time-trigger sync can still process the Firestore claim.',syncErr);showSuccessMessage('Claim saved to Firestore. Direct Google Sheet posting did not complete, but the Apps Script trigger can still sync it automatically. Preparing your PDF download now.');}$('loading').style.display='none';btn.textContent='⬇️ Preparing PDF…';await downloadPreviewPdf();closePreview();await showSubmitSuccessPopup('Your claim has been successfully submitted and your PDF download has started. The undergraduate Google Sheet endpoint has been called.');await loadMyClaims();resetForm();}catch(e){$('loading').style.display='none';showErrorMessage(e.message||e);closePreview();}finally{btn.disabled=false;btn.textContent=old||'✅ Submit & Download PDF';updateHoursLimitWarning(parseFloat($('totalHours').value||'0'));}}
 function setupFormSubmission(form){form.addEventListener('submit',e=>{e.preventDefault();if(sessionStorage.getItem('forcePasswordChange')==='1'){openPwModal(true);return;}if(!validateForm())return;showPreview();});}
 
-async function loadMyClaims(){const staffId=($('monitorStaffId').value||sessionStorage.getItem('monitorStaffId')||'').trim().toUpperCase(),list=$('claimsList'),fs=window.__firestore;list.innerHTML='';if(!staffId||!fs){$('claimsStatus').textContent='Sign in first so your claims can be loaded.';return;}$('claimsStatus').textContent='Loading claims entered by this monitor...';try{const uid=window.__currentUserUid||'';const q=uid?fs.query(fs.collection(fs.db,'ug_claims'),fs.where('uid','==',uid)):fs.query(fs.collection(fs.db,'ug_claims'),fs.where('monitorStaffId','==',staffId));const snap=await fs.getDocs(q);const claims=[];snap.forEach(docSnap=>claims.push({id:docSnap.id,data:docSnap.data()||{}}));claims.sort((a,b)=>timestampToMillis(b.data.updatedAt||b.data.createdAt)-timestampToMillis(a.data.updatedAt||a.data.createdAt));renderClaimsList(claims);}catch(err){console.error(err);$('claimsStatus').textContent='Could not load claims: '+(err.message||err);}}
-function renderClaimsList(claims){const list=$('claimsList');list.innerHTML='';if(!claims.length){$('claimsStatus').textContent='No claims submitted by this monitor yet.';return;}$('claimsStatus').textContent=claims.length+' claim(s) found.';claims.forEach(item=>{const d=item.data||{};const div=document.createElement('div');div.className='claim-item';const meta=[d.claimId||item.id,d.tutorName||'',d.staffId||d.tutorStaffId||'',d.semester||'',d.modeOfDelivery||'Purely Online',d.totalHours?('Total hours: '+d.totalHours):'',formatClaimDate(d.updatedAt||d.createdAt)?('Updated: '+formatClaimDate(d.updatedAt||d.createdAt)):''].filter(Boolean).join(' • ');div.innerHTML='<div class="claim-main"><div class="claim-title"></div><div class="claim-meta"></div></div><div class="claim-button-row"><button type="button" class="download-claim-pdf-btn">Download PDF</button><button type="button" class="edit-claim-btn">Edit</button></div>';div.querySelector('.claim-title').textContent=d.course||'Untitled course';div.querySelector('.claim-meta').textContent=meta;div.querySelector('.download-claim-pdf-btn').addEventListener('click',()=>downloadSubmittedClaimPdf(item.id));div.querySelector('.edit-claim-btn').addEventListener('click',()=>loadClaimForEdit(item.id));list.appendChild(div);});}
-async function loadClaimForEdit(id){const fs=window.__firestore;try{$('claimsStatus').textContent='Opening claim...';const snap=await fs.getDoc(fs.doc(fs.db,'ug_claims',id));if(!snap.exists()){$('claimsStatus').textContent='Claim not found.';return;}const data=snap.data()||{};const uid=window.__currentUserUid||'';if(data.uid&&uid&&data.uid!==uid){alert('You cannot edit a claim submitted by another monitor.');return;}fillFormFromClaim(data,id);$('claimsStatus').textContent='Claim loaded for editing.';$('reportForm').scrollIntoView({behavior:'smooth',block:'start'});}catch(e){console.error(e);$('claimsStatus').textContent='Could not open claim: '+(e.message||e);}}
-function fillFormFromClaim(data,id){CURRENT_EDIT_DOC_ID=id||data.claimId||'';CURRENT_EDIT_CLAIM_ID=data.claimId||id||'';const tutorId=String(data.staffId||data.tutorStaffId||'').trim().toUpperCase();const tutor=ALL_TUTORS.find(t=>tutorDisplayId(t)===tutorId)||{staffId:tutorId,name:data.tutorName||tutorId,courses:[]};tutor.optionLabel=tutor.optionLabel||tutorOptionLabel(tutor);$('tutorSearchInput').value=tutor.optionLabel;$('selectedTutorId').value=tutorId;setSelectedTutor(tutor);$('courseSearchInput').value=data.course||'';$('course').value=data.course||'';ensureSelectOption($('program'),data.program||data.programme||'');$('program').value=data.program||data.programme||'';$('studyCentre').value=data.studyCentre||'';document.querySelectorAll('input[name="semester"]').forEach(r=>r.checked=(r.value===(data.semester||'Second Semester')));const savedMode=data.modeOfDelivery==='Face-to-Face'?'Face-to-Face':'Purely Online';document.querySelectorAll('input[name="modeOfDelivery"]').forEach(r=>r.checked=(r.value===savedMode));setSessionRows('f2f',data.f2fSessionItems||[]);setSessionRows('on',data.onSessionItems||[]);applyMode();$('remarks').value=data.remarks||'';clearSignatureUi();setSignatureImageFromDataUrl(data.facilitatorSignature||data.facilitatorSignatureText||data.facilitatorSignatureUrl||'');showEditMode(CURRENT_EDIT_CLAIM_ID);}
+async function loadMyClaims(){const staffId=($('monitorStaffId').value||sessionStorage.getItem('monitorStaffId')||'').trim().toUpperCase(),list=$('claimsList'),fs=window.__firestore;list.innerHTML='';if(!staffId||!fs){$('claimsStatus').textContent='Sign in first so your claims can be loaded.';return;}$('claimsStatus').textContent='Loading claims entered by this monitor...';try{const uid=window.__currentUserUid||'';const collections=['ug_claims','ug_manual_claims'];const snaps=await Promise.all(collections.map(collection=>{const q=uid?fs.query(fs.collection(fs.db,collection),fs.where('uid','==',uid)):fs.query(fs.collection(fs.db,collection),fs.where('monitorStaffId','==',staffId));return fs.getDocs(q);}));const claims=[];snaps.forEach((snap,index)=>snap.forEach(docSnap=>claims.push({id:docSnap.id,collection:collections[index],data:docSnap.data()||{}})));claims.sort((a,b)=>timestampToMillis(b.data.updatedAt||b.data.createdAt)-timestampToMillis(a.data.updatedAt||a.data.createdAt));renderClaimsList(claims);}catch(err){console.error(err);$('claimsStatus').textContent='Could not load claims: '+(err.message||err);}}
+function routeToClaimMode(item,action){const manual=item.collection==='ug_manual_claims';if(manual!==isManualTutorMode()){window.location.href='ug-tutor-report.html'+(manual?'?mode=manual&':'?')+action+'='+encodeURIComponent(item.id);return true;}return false;}
+function renderClaimsList(claims){const list=$('claimsList');list.innerHTML='';if(!claims.length){$('claimsStatus').textContent='No claims submitted by this monitor yet.';return;}$('claimsStatus').textContent=claims.length+' claim(s) found.';claims.forEach(item=>{const d=item.data||{};const manual=item.collection==='ug_manual_claims'||d.manualTutor===true;const div=document.createElement('div');div.className='claim-item';const meta=[manual?'New Tutor':'Registered Tutor',d.claimId||item.id,d.tutorName||'',manual?'No Staff ID':(d.staffId||d.tutorStaffId||''),d.semester||'',d.modeOfDelivery||'Purely Online',d.totalHours?('Total hours: '+d.totalHours):'',formatClaimDate(d.updatedAt||d.createdAt)?('Updated: '+formatClaimDate(d.updatedAt||d.createdAt)):''].filter(Boolean).join(' • ');div.innerHTML='<div class="claim-main"><div class="claim-title"></div><div class="claim-meta"></div></div><div class="claim-button-row"><button type="button" class="download-claim-pdf-btn">Download PDF</button><button type="button" class="edit-claim-btn">Edit</button></div>';div.querySelector('.claim-title').textContent=d.course||'Untitled course';div.querySelector('.claim-meta').textContent=meta;div.querySelector('.download-claim-pdf-btn').addEventListener('click',()=>{if(!routeToClaimMode(item,'downloadClaim'))downloadSubmittedClaimPdf(item.id,item.collection);});div.querySelector('.edit-claim-btn').addEventListener('click',()=>{if(!routeToClaimMode(item,'editClaim'))loadClaimForEdit(item.id,item.collection);});list.appendChild(div);});}
+async function loadClaimForEdit(id,collection=claimCollectionName()){if((collection==='ug_manual_claims')!==isManualTutorMode()){routeToClaimMode({id,collection},'editClaim');return;}const fs=window.__firestore;try{$('claimsStatus').textContent='Opening claim...';const snap=await fs.getDoc(fs.doc(fs.db,collection,id));if(!snap.exists()){$('claimsStatus').textContent='Claim not found.';return;}const data=snap.data()||{};const uid=window.__currentUserUid||'';if(data.uid&&uid&&data.uid!==uid){alert('You cannot edit a claim submitted by another monitor.');return;}fillFormFromClaim(data,id,collection);$('claimsStatus').textContent='Claim loaded for editing.';$('reportForm').scrollIntoView({behavior:'smooth',block:'start'});}catch(e){console.error(e);$('claimsStatus').textContent='Could not open claim: '+(e.message||e);}}
+function fillFormFromClaim(data,id,collection=claimCollectionName()){const manual=collection==='ug_manual_claims'||data.manualTutor===true;CURRENT_EDIT_DOC_ID=id||data.claimId||'';CURRENT_EDIT_CLAIM_ID=data.claimId||id||'';CURRENT_EDIT_COLLECTION=manual?'ug_manual_claims':'ug_claims';CURRENT_MANUAL_TUTOR_ID=manual?(data.manualTutorId||''):'';if(manual){$('manualTutorName').value=data.tutorName||'';$('manualCourse').value=data.course||'';$('manualProgram').value=data.program||data.programme||'';$('manualStudyCentre').value=data.studyCentre||'';$('bankName').value=data.bankName||'';$('accountNumber').value=data.accountNumber||'';$('accountName').value=data.accountName||'';$('bankBranch').value=data.bankBranch||'';$('ghanaCardNumber').value=data.ghanaCardNumber||'';$('phoneNumber').value=data.phoneNumber||'';}else{const tutorId=String(data.staffId||data.tutorStaffId||'').trim().toUpperCase();const tutor=ALL_TUTORS.find(t=>tutorDisplayId(t)===tutorId)||{staffId:tutorId,name:data.tutorName||tutorId,courses:[]};tutor.optionLabel=tutor.optionLabel||tutorOptionLabel(tutor);$('tutorSearchInput').value=tutor.optionLabel;$('selectedTutorId').value=tutorId;setSelectedTutor(tutor);$('courseSearchInput').value=data.course||'';$('course').value=data.course||'';ensureSelectOption($('program'),data.program||data.programme||'');$('program').value=data.program||data.programme||'';$('studyCentre').value=data.studyCentre||'';}document.querySelectorAll('input[name="semester"]').forEach(r=>r.checked=(r.value===(data.semester||'Second Semester')));const savedMode=data.modeOfDelivery==='Face-to-Face'?'Face-to-Face':'Purely Online';document.querySelectorAll('input[name="modeOfDelivery"]').forEach(r=>r.checked=(r.value===savedMode));setSessionRows('f2f',data.f2fSessionItems||[]);setSessionRows('on',data.onSessionItems||[]);applyMode();$('remarks').value=data.remarks||'';clearSignatureUi();setSignatureImageFromDataUrl(data.facilitatorSignature||data.facilitatorSignatureText||data.facilitatorSignatureUrl||'');showEditMode(CURRENT_EDIT_CLAIM_ID);}
 function showEditMode(claimId){$('editClaimLabel').textContent=claimId||'';$('editNotice').style.display='block';$('submitBtn').textContent='Update Claim Summary';}
-function clearEditMode(){CURRENT_EDIT_CLAIM_ID='';CURRENT_EDIT_DOC_ID='';$('editNotice').style.display='none';$('editClaimLabel').textContent='';$('submitBtn').textContent='Submit Claim Summary';}
-function resetForm(){const keepMonitorId=$('monitorStaffId').value,keepMonitorName=$('monitorName').value;$('reportForm').reset();$('monitorStaffId').value=keepMonitorId;$('monitorName').value=keepMonitorName;$('tutorSearchInput').value='';$('selectedTutorId').value='';setSelectedTutor(null);$('courseSearchInput').value='';$('course').value='';$('studyCentre').value='';if($('f2fRows'))$('f2fRows').innerHTML='';if($('onRows'))$('onRows').innerHTML='';document.querySelector('input[name="semester"][value="Second Semester"]').checked=true;document.querySelector('input[name="modeOfDelivery"][value="Purely Online"]').checked=true;clearSignatureUi();clearEditMode();clearDuplicateNotice();applyMode();hideMessages();}
+function clearEditMode(){CURRENT_EDIT_CLAIM_ID='';CURRENT_EDIT_DOC_ID='';CURRENT_EDIT_COLLECTION='';CURRENT_MANUAL_TUTOR_ID='';$('editNotice').style.display='none';$('editClaimLabel').textContent='';$('submitBtn').textContent='Submit Claim Summary';}
+function resetForm(){const keepMonitorId=$('monitorStaffId').value,keepMonitorName=$('monitorName').value;$('reportForm').reset();$('monitorStaffId').value=keepMonitorId;$('monitorName').value=keepMonitorName;$('tutorSearchInput').value='';$('selectedTutorId').value='';setSelectedTutor(null);$('courseSearchInput').value='';$('course').value='';$('studyCentre').value='';['manualTutorName','manualCourse','manualProgram','manualStudyCentre','bankName','accountNumber','accountName','bankBranch','ghanaCardNumber','phoneNumber'].forEach(id=>{if($(id))$(id).value='';});if($('f2fRows'))$('f2fRows').innerHTML='';if($('onRows'))$('onRows').innerHTML='';document.querySelector('input[name="semester"][value="Second Semester"]').checked=true;document.querySelector('input[name="modeOfDelivery"][value="Purely Online"]').checked=true;clearSignatureUi();clearEditMode();clearDuplicateNotice();configureTutorEntryMode();applyMode();hideMessages();}
 
-function captureFormStateForClaimPdfDownload(){return {editClaimId:CURRENT_EDIT_CLAIM_ID,editDocId:CURRENT_EDIT_DOC_ID,courseSearchInput:$('courseSearchInput').value,course:$('course').value,program:$('program').value,studyCentre:$('studyCentre').value,modeOfDelivery:currentMode(),semester:(document.querySelector('input[name="semester"]:checked')||{}).value||'',f2fSessions:collectSessionItems('f2f'),onSessions:collectSessionItems('on'),remarks:$('remarks').value,signature:$('facilitatorSignature').value};}
-function restoreFormStateAfterClaimPdfDownload(s){if(!s)return;CURRENT_EDIT_CLAIM_ID=s.editClaimId||'';CURRENT_EDIT_DOC_ID=s.editDocId||'';$('courseSearchInput').value=s.courseSearchInput||'';$('course').value=s.course||'';ensureSelectOption($('program'),s.program||'');$('program').value=s.program||'';$('studyCentre').value=s.studyCentre||'';document.querySelectorAll('input[name="semester"]').forEach(r=>r.checked=(r.value===s.semester));document.querySelectorAll('input[name="modeOfDelivery"]').forEach(r=>r.checked=(r.value===(s.modeOfDelivery||'Purely Online')));setSessionRows('f2f',s.f2fSessions||[]);setSessionRows('on',s.onSessions||[]);applyMode();$('remarks').value=s.remarks||'';clearSignatureUi();setSignatureImageFromDataUrl(s.signature||'');if(CURRENT_EDIT_CLAIM_ID)showEditMode(CURRENT_EDIT_CLAIM_ID);else clearEditMode();recomputeTotals();}
-async function downloadSubmittedClaimPdf(id){const fs=window.__firestore;const state=captureFormStateForClaimPdfDownload();try{const snap=await fs.getDoc(fs.doc(fs.db,'ug_claims',id));if(!snap.exists())throw new Error('Claim not found.');fillFormFromClaim(snap.data()||{},id);await new Promise(r=>setTimeout(r,80));await downloadPreviewPdf();}catch(e){alert('Could not download PDF: '+(e.message||e));}finally{restoreFormStateAfterClaimPdfDownload(state);}}
+function captureFormStateForClaimPdfDownload(){const manual={};['manualTutorName','manualCourse','manualProgram','manualStudyCentre','bankName','accountNumber','accountName','bankBranch','ghanaCardNumber','phoneNumber'].forEach(id=>manual[id]=$(id)?$(id).value:'');return {editClaimId:CURRENT_EDIT_CLAIM_ID,editDocId:CURRENT_EDIT_DOC_ID,editCollection:CURRENT_EDIT_COLLECTION,manualTutorId:CURRENT_MANUAL_TUTOR_ID,manual,courseSearchInput:$('courseSearchInput').value,course:$('course').value,program:$('program').value,studyCentre:$('studyCentre').value,modeOfDelivery:currentMode(),semester:(document.querySelector('input[name="semester"]:checked')||{}).value||'',f2fSessions:collectSessionItems('f2f'),onSessions:collectSessionItems('on'),remarks:$('remarks').value,signature:$('facilitatorSignature').value};}
+function restoreFormStateAfterClaimPdfDownload(s){if(!s)return;CURRENT_EDIT_CLAIM_ID=s.editClaimId||'';CURRENT_EDIT_DOC_ID=s.editDocId||'';CURRENT_EDIT_COLLECTION=s.editCollection||'';CURRENT_MANUAL_TUTOR_ID=s.manualTutorId||'';Object.entries(s.manual||{}).forEach(([id,value])=>{if($(id))$(id).value=value||'';});$('courseSearchInput').value=s.courseSearchInput||'';$('course').value=s.course||'';ensureSelectOption($('program'),s.program||'');$('program').value=s.program||'';$('studyCentre').value=s.studyCentre||'';document.querySelectorAll('input[name="semester"]').forEach(r=>r.checked=(r.value===s.semester));document.querySelectorAll('input[name="modeOfDelivery"]').forEach(r=>r.checked=(r.value===(s.modeOfDelivery||'Purely Online')));setSessionRows('f2f',s.f2fSessions||[]);setSessionRows('on',s.onSessions||[]);applyMode();$('remarks').value=s.remarks||'';clearSignatureUi();setSignatureImageFromDataUrl(s.signature||'');if(CURRENT_EDIT_CLAIM_ID)showEditMode(CURRENT_EDIT_CLAIM_ID);else clearEditMode();recomputeTotals();}
+async function downloadSubmittedClaimPdf(id,collection=claimCollectionName()){if((collection==='ug_manual_claims')!==isManualTutorMode()){routeToClaimMode({id,collection},'downloadClaim');return;}const fs=window.__firestore;const state=captureFormStateForClaimPdfDownload();try{const snap=await fs.getDoc(fs.doc(fs.db,collection,id));if(!snap.exists())throw new Error('Claim not found.');fillFormFromClaim(snap.data()||{},id,collection);await new Promise(r=>setTimeout(r,80));await downloadPreviewPdf();}catch(e){alert('Could not download PDF: '+(e.message||e));}finally{restoreFormStateAfterClaimPdfDownload(state);}}
 
 async function downloadPreviewPdf(){
     recomputeTotals();
+    const manual=isManualTutorMode();
     const pageW=595.28,pageH=841.89,margin=38,contentW=pageW-margin*2,footerTop=802;
     const colors={navy:'0.035 0.176 0.310',blue:'0.090 0.345 0.565',gold:'0.925 0.675 0.130',ink:'0.100 0.125 0.150',muted:'0.360 0.405 0.450',line:'0.790 0.825 0.855',pale:'0.945 0.965 0.980',white:'1 1 1'};
     const mode=currentMode();
@@ -728,7 +841,7 @@ async function downloadPreviewPdf(){
     function textWidth(value,size,bold=false){return clean(value).length*size*(bold?.54:.50);}
     function drawText(value,x,top,size=9,bold=false,color=colors.ink,align='left',boxWidth=0){let tx=x;const valueWidth=textWidth(value,size,bold);if(align==='center')tx=x+(boxWidth-valueWidth)/2;if(align==='right')tx=x+boxWidth-valueWidth;current().push('BT '+color+' rg /'+(bold?'F2':'F1')+' '+size+' Tf 1 0 0 1 '+tx.toFixed(2)+' '+(pageH-top-size).toFixed(2)+' Tm ('+escPdf(value)+') Tj ET');}
     function wrap(value,size,width){const words=clean(value).split(' ').filter(Boolean);if(!words.length)return [''];const lines=[];let line='';words.forEach(word=>{const candidate=line?line+' '+word:word;if(line&&textWidth(candidate,size)>width){lines.push(line);line=word;}else line=candidate;});if(line)lines.push(line);return lines;}
-    function drawHeader(continued=false){rect(0,0,pageW,continued?56:92,colors.navy);rect(0,continued?56:92,pageW,4,colors.gold);if(continued){drawText('UCC - UNDERGRADUATE FACILITATOR CLAIM SUMMARY',margin,18,11,true,colors.white);drawText('Continued',margin,35,8,false,'0.820 0.875 0.920');y=76;return;}drawText('UNIVERSITY OF CAPE COAST',margin,18,17,true,colors.white);drawText('College of Distance Education (CoDE)',margin,43,10,false,'0.850 0.900 0.940');drawText('UNDERGRADUATE FACILITATOR CLAIM SUMMARY',margin,62,12,true,colors.white);drawText('Generated '+new Date().toLocaleString(),margin,104,8,false,colors.muted);y=124;}
+    function drawHeader(continued=false){const title=manual?'UNDERGRADUATE NEW TUTOR CLAIM SUMMARY':'UNDERGRADUATE FACILITATOR CLAIM SUMMARY';rect(0,0,pageW,continued?56:92,colors.navy);rect(0,continued?56:92,pageW,4,colors.gold);if(continued){drawText('UCC - '+title,margin,18,11,true,colors.white);drawText('Continued',margin,35,8,false,'0.820 0.875 0.920');y=76;return;}drawText('UNIVERSITY OF CAPE COAST',margin,18,17,true,colors.white);drawText('College of Distance Education (CoDE)',margin,43,10,false,'0.850 0.900 0.940');drawText(title,margin,62,12,true,colors.white);drawText('Generated '+new Date().toLocaleString(),margin,104,8,false,colors.muted);y=124;}
     function newPage(continued=false){pages.push([]);drawHeader(continued);}
     function ensure(height){if(y+height>footerTop-14)newPage(true);}
     function fieldLines(field,width){return wrap(field[1]||'-',9,width-20);}
@@ -738,16 +851,17 @@ async function downloadPreviewPdf(){
     function drawSignature(){ensure(72);rect(margin,y,contentW,62,colors.white,colors.line);drawText('TUTOR SIGNATURE CONFIRMATION',margin+12,y+10,7,true,colors.muted);const signature=clean($('facilitatorSignature').value)||'Not provided';drawText(signature,margin+12,y+27,12,true,colors.navy);rule(margin+12,y+48,margin+contentW-12,y+48,colors.line,.8);drawText('Tutor/facilitator full name or initials',margin+12,y+51,7,false,colors.muted);y+=72;}
     newPage(false);
     drawCard('MONITOR DETAILS',[[['Monitor Staff ID',$('monitorStaffId').value],['Monitor Name',$('monitorName').value]]]);
-    drawCard('FACILITATOR DETAILS',[[['Facilitator Staff ID',$('staffId').value],['Facilitator Name',$('tutorName').value]]]);
-    drawCard('COURSE DETAILS',[[['Course Code and Title',$('courseSearchInput').value||$('course').value]],[['Programme',$('program').value],['Study Centre',$('studyCentre').value]],[['Mode of Delivery',mode],['Semester',semester]]]);
+    drawCard('FACILITATOR DETAILS',[[['Tutor Type',manual?'New Tutor / No Staff ID':'Registered Tutor'],['Facilitator Name',manual?$('manualTutorName').value:$('tutorName').value]]]);
+    drawCard('COURSE DETAILS',[[['Course Code and Title',manual?$('manualCourse').value:($('courseSearchInput').value||$('course').value)]],[['Programme',manual?$('manualProgram').value:$('program').value],['Study Centre',manual?$('manualStudyCentre').value:$('studyCentre').value]],[['Mode of Delivery',mode],['Semester',semester]]]);
     drawSessions();
     drawTotal();
+    if(manual)drawCard('BANK AND CONTACT DETAILS',[[['Bank Name',$('bankName').value],['Bank Branch',$('bankBranch').value]],[['Account Name',$('accountName').value],['Account Number',$('accountNumber').value]],[['Ghana Card Number',$('ghanaCardNumber').value],['Phone Number',$('phoneNumber').value]]]);
     if($('remarks').value.trim())drawCard('REMARKS',[[['Additional Remarks',$('remarks').value.trim()]]]);
     drawSignature();
     pages.forEach((commands,index)=>{commands.push(colors.line+' RG 0.6 w '+margin+' 38 m '+(pageW-margin)+' 38 l S');commands.push('BT '+colors.muted+' rg /F1 7 Tf 1 0 0 1 '+margin+' 24 Tm (College of Distance Education - University of Cape Coast) Tj ET');commands.push('BT '+colors.muted+' rg /F1 7 Tf 1 0 0 1 '+(pageW-margin-58)+' 24 Tm (Page '+(index+1)+' of '+pages.length+') Tj ET');});
     const objs=[];const obj=s=>{objs.push(s);return objs.length;};obj('<< /Type /Catalog /Pages 2 0 R >>');obj('');obj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');obj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');const pageIds=[];pages.forEach(cmds=>{const stream=cmds.join('\n');const contentId=obj('<< /Length '+stream.length+' >>\nstream\n'+stream+'\nendstream');const pageId=obj('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+pageW+' '+pageH+'] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents '+contentId+' 0 R >>');pageIds.push(pageId);});objs[1]='<< /Type /Pages /Kids ['+pageIds.map(id=>id+' 0 R').join(' ')+'] /Count '+pageIds.length+' >>';
     let pdf='%PDF-1.4\n';const offsets=[0];objs.forEach((body,idx)=>{offsets.push(pdf.length);pdf+=(idx+1)+' 0 obj\n'+body+'\nendobj\n';});const xrefStart=pdf.length;pdf+='xref\n0 '+(objs.length+1)+'\n0000000000 65535 f \n';for(let i=1;i<=objs.length;i++)pdf+=String(offsets[i]).padStart(10,'0')+' 00000 n \n';pdf+='trailer\n<< /Size '+(objs.length+1)+' /Root 1 0 R >>\nstartxref\n'+xrefStart+'\n%%EOF';
-    const blob=new Blob([pdf],{type:'application/pdf'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=($('staffId').value||'UG')+'-'+courseCodeFromLabel($('course').value)+'-claim.pdf';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),1000);
+    const blob=new Blob([pdf],{type:'application/pdf'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=(manual?'NEW-TUTOR':($('staffId').value||'UG'))+'-'+courseCodeFromLabel(manual?$('manualCourse').value:$('course').value)+'-claim.pdf';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
 function openPwModal(forced=false){const forcedMode=forced||sessionStorage.getItem('forcePasswordChange')==='1';$('pwCurrent').value=forcedMode?TEMP_PASSWORD_THAT_MUST_BE_CHANGED:'';$('pwCurrent').readOnly=forcedMode;$('pwNew').value='';$('pwConfirm').value='';$('pwError').style.display='none';$('pwSuccess').style.display='none';$('pwModalTitle').textContent=forcedMode?'Change Temporary Password':'Change Password';$('pwCloseBtn').style.display=forcedMode?'none':'';$('pwCancelBtn').style.display=forcedMode?'none':'';$('pwModalOverlay').classList.add('open');setTimeout(()=>forcedMode?$('pwNew').focus():$('pwCurrent').focus(),50);}
@@ -759,6 +873,7 @@ async function submitPwChange(){const current=$('pwCurrent').value,newPw=$('pwNe
 window.openPwModal=openPwModal;window.closePwModal=closePwModal;window.closePwModalOnBackdrop=closePwModalOnBackdrop;window.submitPwChange=submitPwChange;window.closePreview=closePreview;window.submitAndDownloadFromPreview=submitAndDownloadFromPreview;window.downloadPreviewPdf=downloadPreviewPdf;window.openDuplicateClaimFromNotice=openDuplicateClaimFromNotice;window.loadMyClaims=loadMyClaims;
 
 document.addEventListener('DOMContentLoaded',()=>{
+    configureTutorEntryMode();
     $('tutorSearchInput').addEventListener('focus',e=>renderTutorResults(e.target.value,true));
     $('tutorSearchInput').addEventListener('input',e=>{setSelectedTutor(null);renderTutorResults(e.target.value,true);});
     $('tutorSearchInput').addEventListener('keydown',e=>{if(e.key==='ArrowDown'){e.preventDefault();renderTutorResults(e.currentTarget.value,true);if(!$('tutorResults').disabled)$('tutorResults').focus();}});
