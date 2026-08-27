@@ -63,6 +63,9 @@
   }
   input:focus, select:focus { outline:none; border-color:#0056b3; box-shadow:0 0 0 3px rgba(0,86,179,.14); }
   .toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:12px; }
+  .claims-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid #e5e7eb; }
+  .claims-tabs button { background:#eef2f7; color:#334155; border:1px solid #cbd5e1; }
+  .claims-tabs button.active { background:#002147; color:#fff; border-color:#002147; }
   .count { font-size:13px; font-weight:700; color:#455468; }
   .table-wrap { overflow:auto; border:1px solid #e5e7eb; border-radius:12px; }
   table { width:100%; border-collapse:collapse; font-size:13px; }
@@ -173,8 +176,12 @@
     <div class="grid">
       <div>
         <div class="card">
-          <h2>Claims</h2>
-          <div class="subtitle">Search every undergraduate claim by facilitator, monitor, Staff ID, course, programme, centre, semester, mode, or claim ID. Download the filtered results as one PDF or every claim as a ZIP.</div>
+          <div class="claims-tabs" role="tablist" aria-label="Undergraduate claim type">
+            <button type="button" id="registeredClaimsTab" class="active" role="tab" aria-selected="true">Registered Tutor Claims</button>
+            <button type="button" id="manualClaimsTab" role="tab" aria-selected="false">New Tutor Claims</button>
+          </div>
+          <h2 id="claimsHeading">Registered Tutor Claims</h2>
+          <div class="subtitle" id="claimsSubtitle">Search registered undergraduate claims by facilitator, monitor, Staff ID, course, programme, centre, semester, mode, or claim ID. Download the filtered results as one PDF or every claim as a ZIP.</div>
           <div class="row">
             <div style="flex:2; min-width:260px;">
               <label for="searchInput">Search</label>
@@ -246,6 +253,7 @@
               <div><label for="editMonitorName">Monitor Name</label><input id="editMonitorName" type="text"></div>
               <div><label for="editStaffId">Staff ID</label><input id="editStaffId" type="text"></div>
               <div><label for="editTutorName">Tutor Name</label><input id="editTutorName" type="text"></div>
+              <div class="manual-edit-field hidden"><label for="editManualTutorId">Manual Tutor ID</label><input id="editManualTutorId" type="text" disabled></div>
               <div class="full"><label for="editCourse">Course</label><input id="editCourse" type="text" placeholder="CODE | Course title"></div>
               <div><label for="editProgram">Programme</label><input id="editProgram" type="text"></div>
               <div><label for="editStudyCentre">Study Centre</label><input id="editStudyCentre" type="text"></div>
@@ -254,6 +262,12 @@
               <div class="full"><label for="editF2fSessions">Face-to-face sessions</label><div class="edit-session-note">Example: 1 Jul 2026 | 8:00 AM | 10:00 AM | 35 | 2.00</div><textarea id="editF2fSessions"></textarea></div>
               <div class="full"><label for="editOnlineSessions">Online sessions</label><div class="edit-session-note">Example: 1 Jul 2026 | 7:00 PM | 9:00 PM | 42 | 2.00</div><textarea id="editOnlineSessions"></textarea></div>
               <div class="full"><label for="editRemarks">Remarks</label><textarea id="editRemarks"></textarea></div>
+              <div class="manual-edit-field hidden"><label for="editBankName">Bank Name</label><input id="editBankName" type="text"></div>
+              <div class="manual-edit-field hidden"><label for="editBankBranch">Bank Branch</label><input id="editBankBranch" type="text"></div>
+              <div class="manual-edit-field hidden"><label for="editAccountName">Account Name</label><input id="editAccountName" type="text"></div>
+              <div class="manual-edit-field hidden"><label for="editAccountNumber">Account Number</label><input id="editAccountNumber" type="text"></div>
+              <div class="manual-edit-field hidden"><label for="editGhanaCardNumber">Ghana Card Number</label><input id="editGhanaCardNumber" type="text"></div>
+              <div class="manual-edit-field hidden"><label for="editPhoneNumber">Phone Number</label><input id="editPhoneNumber" type="text"></div>
             </div>
             <div id="editTotalPreview" class="edit-total">Total hours: 0.00</div>
             <div class="edit-actions">
@@ -304,6 +318,12 @@
   var claims = [];
   var filtered = [];
   var selected = null;
+  var activeClaimType = 'registered';
+
+  function isManualClaimType() { return activeClaimType === 'manual'; }
+  function activeCollectionName() { return isManualClaimType() ? 'ug_manual_claims' : 'ug_claims'; }
+  function activeSheetName() { return isManualClaimType() ? 'Undergraduate Manual Tutor Claims' : 'Undergraduate Claims'; }
+  function activeTypeLabel() { return isManualClaimType() ? 'new-tutor' : 'registered tutor'; }
 
   var statusEl = document.getElementById('status');
   var loginCard = document.getElementById('loginCard');
@@ -362,6 +382,13 @@
 
   function clean(s) { return String(s == null ? '' : s).trim(); }
   function lower(s) { return clean(s).toLowerCase(); }
+  function maskValue(value, visible) {
+    var text = clean(value);
+    visible = visible == null ? 4 : visible;
+    if (!text) return '—';
+    if (text.length <= visible) return '••••';
+    return '•'.repeat(Math.min(8, text.length - visible)) + text.slice(-visible);
+  }
   function formatTs(value) {
     if (!value) return '';
     try {
@@ -438,7 +465,7 @@
   }
   function claimSearchText(item) {
     var d = item.data || {};
-    return [item.id, d.claimId, d.monitorStaffId, d.monitorName, d.staffId, d.tutorName, d.course, d.program, d.programme, d.studyCentre, d.modeOfDelivery, d.semester, d.totalHours, d.remarks, d.sheetSyncStatus, d.claimStatus]
+    return [item.id, d.claimId, d.monitorStaffId, d.monitorName, d.staffId, d.tutorName, d.course, d.program, d.programme, d.studyCentre, d.modeOfDelivery, d.semester, d.totalHours, d.remarks, d.sheetSyncStatus, d.claimStatus, d.bankName, d.phoneNumber]
       .map(clean).join(' ').toLowerCase();
   }
   function statusBadge(s) {
@@ -447,20 +474,44 @@
   }
 
   async function loadClaims() {
-    claimsBody.innerHTML = '<tr><td colspan="3" class="empty">Loading undergraduate claims from Firestore…</td></tr>';
+    var collectionName = activeCollectionName();
+    claimsBody.innerHTML = '<tr><td colspan="3" class="empty">Loading ' + escapeHTML(activeTypeLabel()) + ' claims from Firestore…</td></tr>';
     countLabel.textContent = 'Loading…';
     try {
-      var snap = await db.collection('ug_claims').get();
+      var snap = await db.collection(collectionName).get();
       claims = [];
       snap.forEach(function(doc){ claims.push({ id: doc.id, data: doc.data() || {} }); });
       claims.sort(compareClaimsOldestFirst);
       applyFilters();
-      setStatus('ready', 'Loaded all ' + claims.length + ' undergraduate claim(s).');
+      setStatus('ready', 'Loaded all ' + claims.length + ' ' + activeTypeLabel() + ' undergraduate claim(s).');
     } catch (e) {
       console.error(e);
       claimsBody.innerHTML = '<tr><td colspan="3" class="empty">Could not load claims.</td></tr>';
-      setStatus('fail', '<strong>Could not load claims:</strong> ' + escapeHTML(e.message || e) + '<br>Check Firestore rules for administrator read access to <code>ug_claims</code>.');
+      setStatus('fail', '<strong>Could not load claims:</strong> ' + escapeHTML(e.message || e) + '<br>Check Firestore rules for administrator read access to <code>' + escapeHTML(collectionName) + '</code>.');
     }
+  }
+
+  async function switchClaimType(type) {
+    activeClaimType = type === 'manual' ? 'manual' : 'registered';
+    claims = [];
+    filtered = [];
+    selected = null;
+    previewBox.textContent = 'Select a claim to preview it here before downloading the tutor-style PDF.';
+    printSelectedBtn.disabled = true;
+    editSelectedBtn.disabled = true;
+    copyClaimIdBtn.disabled = true;
+    document.getElementById('searchInput').value = '';
+    document.getElementById('syncFilter').value = '';
+    document.getElementById('registeredClaimsTab').classList.toggle('active', !isManualClaimType());
+    document.getElementById('manualClaimsTab').classList.toggle('active', isManualClaimType());
+    document.getElementById('registeredClaimsTab').setAttribute('aria-selected', String(!isManualClaimType()));
+    document.getElementById('manualClaimsTab').setAttribute('aria-selected', String(isManualClaimType()));
+    document.getElementById('claimsHeading').textContent = isManualClaimType() ? 'New Tutor Claims' : 'Registered Tutor Claims';
+    document.getElementById('claimsSubtitle').textContent = isManualClaimType()
+      ? 'Search new-tutor claims by tutor, monitor, claim ID, course, programme, centre, mode, semester, bank name, or phone number. Downloads and ZIPs stay separate from registered tutor claims.'
+      : 'Search registered undergraduate claims by facilitator, monitor, Staff ID, course, programme, centre, semester, mode, or claim ID. Download the filtered results as one PDF or every claim as a ZIP.';
+    closeEditPanel();
+    await loadClaims();
   }
 
   function applyFilters() {
@@ -487,14 +538,16 @@
       var d = item.data || {};
       var course = clean(d.course) || 'Untitled course';
       var tutor = clean(d.tutorName) || 'Unknown tutor';
-      var staff = clean(d.staffId) || 'No Staff ID';
+      var manual = isManualClaimType();
+      var staff = manual ? 'New Tutor / No Staff ID' : (clean(d.staffId) || 'No Staff ID');
       var meta = [d.program || d.programme, d.studyCentre, d.semester].filter(Boolean).join(' • ');
       var details = [
         '<span class="badge">' + escapeHTML(claimStatus(d)) + '</span>',
         statusBadge(sheetStatus(d)),
         d.totalHours ? '<span class="badge">' + escapeHTML(d.totalHours) + ' hrs</span>' : '',
         '<div class="claim-meta">' + escapeHTML(d.claimId || item.id) + '</div>',
-        '<div class="claim-meta">Submitted: ' + escapeHTML(formatTs(d.createdAt || d.submittedAt || d.updatedAt) || '—') + '</div>'
+        '<div class="claim-meta">Submitted: ' + escapeHTML(formatTs(d.createdAt || d.submittedAt || d.updatedAt) || '—') + '</div>',
+        manual ? '<div class="claim-meta">Bank: ' + escapeHTML(d.bankName || '—') + ' • Account: ' + escapeHTML(maskValue(d.accountNumber)) + ' • Phone: ' + escapeHTML(maskValue(d.phoneNumber)) + '</div>' : ''
       ].filter(Boolean).join('');
       return '<tr data-index="' + idx + '">' +
         '<td><div class="claim-title">' + escapeHTML(tutor) + ' — ' + escapeHTML(staff) + '</div><div class="claim-meta">' + escapeHTML(course) + '</div></td>' +
@@ -508,8 +561,9 @@
     var d = item.data || {};
     var course = splitCourseTitle(d.course);
     var sig = getSignatureSource(d);
+    var manual = isManualClaimType();
     previewBox.innerHTML =
-      '<div class="claim-title">' + escapeHTML(d.tutorName || '') + ' — ' + escapeHTML(d.staffId || '') + '</div>' +
+      '<div class="claim-title">' + escapeHTML(d.tutorName || '') + ' — ' + escapeHTML(manual ? 'New Tutor / No Staff ID' : (d.staffId || '')) + '</div>' +
       '<div class="claim-meta">' + escapeHTML(course.code + (course.title ? ' — ' + course.title : '')) + '</div>' +
       '<div style="margin-top:8px;">' +
         '<span class="badge">' + escapeHTML(d.semester || '') + '</span>' +
@@ -518,6 +572,7 @@
       '</div>' +
       '<div class="claim-meta" style="margin-top:8px;">' + escapeHTML(d.program || d.programme || '') + ' • ' + escapeHTML(d.studyCentre || '') + '</div>' +
       '<div class="claim-meta" style="margin-top:6px;">Monitor: ' + escapeHTML(d.monitorName || d.submittedByName || '—') + ' — ' + escapeHTML(d.monitorStaffId || '—') + '</div>' +
+      (manual ? '<div class="claim-meta" style="margin-top:6px;">Bank: ' + escapeHTML(d.bankName || '—') + ' • Account: ' + escapeHTML(maskValue(d.accountNumber)) + ' • Ghana Card: ' + escapeHTML(maskValue(d.ghanaCardNumber)) + ' • Phone: ' + escapeHTML(maskValue(d.phoneNumber)) + '</div>' : '') +
       (sig ? '<div style="margin-top:10px;"><img src="' + escapeHTML(sig) + '" alt="Signature" style="max-width:240px; max-height:90px; border:1px solid #e5e7eb; border-radius:8px; padding:6px; background:#fff;"></div>' : '<div class="muted" style="margin-top:10px;">No signature image found in claim.</div>');
   }
 
@@ -588,6 +643,15 @@
     return clean(value).toUpperCase().replace(/&/g, 'AND').replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'NA';
   }
   function buildAdminClaimKeyFromPatch(data) {
+    if (data.manualTutorId) {
+      return [
+        clean(data.manualTutorId).toUpperCase(),
+        normalizeClaimPart(courseCode(data.course)),
+        normalizeClaimPart(data.program || data.programme),
+        normalizeClaimPart(data.studyCentre),
+        normalizeClaimPart(data.semester)
+      ].join('__');
+    }
     return [
       normalizeClaimPart(data.staffId),
       normalizeClaimPart(courseCode(data.course)),
@@ -616,6 +680,7 @@
     setEditValue('editMonitorName', d.monitorName || d.submittedByName || '');
     setEditValue('editStaffId', d.staffId || '');
     setEditValue('editTutorName', d.tutorName || '');
+    setEditValue('editManualTutorId', d.manualTutorId || '');
     setEditValue('editCourse', d.course || '');
     setEditValue('editProgram', d.program || d.programme || '');
     setEditValue('editStudyCentre', d.studyCentre || '');
@@ -624,6 +689,18 @@
     setEditValue('editF2fSessions', sessionItemsToText(parseSessionItems(d, 'f2f')));
     setEditValue('editOnlineSessions', sessionItemsToText(parseSessionItems(d, 'on')));
     setEditValue('editRemarks', d.remarks || '');
+    setEditValue('editBankName', d.bankName || '');
+    setEditValue('editBankBranch', d.bankBranch || '');
+    setEditValue('editAccountName', d.accountName || '');
+    setEditValue('editAccountNumber', d.accountNumber || '');
+    setEditValue('editGhanaCardNumber', d.ghanaCardNumber || d.ghanaCard || '');
+    setEditValue('editPhoneNumber', d.phoneNumber || d.phone || '');
+    ['editManualTutorId','editBankName','editBankBranch','editAccountName','editAccountNumber','editGhanaCardNumber','editPhoneNumber'].forEach(function(id){
+      var input = document.getElementById(id);
+      var wrapper = input && input.closest ? input.closest('.manual-edit-field') : null;
+      if (wrapper) wrapper.classList.toggle('hidden', !isManualClaimType());
+    });
+    document.getElementById('editStaffId').disabled = isManualClaimType();
     updateEditTotalPreview();
     editEmpty.classList.add('hidden');
     editForm.classList.remove('hidden');
@@ -645,12 +722,14 @@
     var f2fHours = sessionTotalHours(totals.f2f).toFixed(2);
     var onlineHours = sessionTotalHours(totals.online).toFixed(2);
     var status = getEditValue('editClaimStatus') || 'Submitted';
+    var manual = isManualClaimType();
     var patch = {
       claimId: claimId,
       firestoreDocId: selected.id,
       monitorStaffId: getEditValue('editMonitorStaffId').toUpperCase(),
       monitorName: getEditValue('editMonitorName'),
-      staffId: getEditValue('editStaffId').toUpperCase(),
+      staffId: manual ? '' : getEditValue('editStaffId').toUpperCase(),
+      tutorStaffId: manual ? '' : getEditValue('editStaffId').toUpperCase(),
       tutorName: getEditValue('editTutorName'),
       course: getEditValue('editCourse'),
       program: program,
@@ -684,11 +763,25 @@
       adminEditedAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
+    if (manual) {
+      patch.manualTutor = true;
+      patch.tutorEntryMode = 'manual';
+      patch.manualTutorId = clean(selected.data.manualTutorId || getEditValue('editManualTutorId'));
+      patch.tutorType = 'New Tutor / No Staff ID';
+      patch.bankName = getEditValue('editBankName');
+      patch.bankBranch = getEditValue('editBankBranch');
+      patch.accountName = getEditValue('editAccountName');
+      patch.accountNumber = getEditValue('editAccountNumber').replace(/[\s-]/g, '');
+      patch.ghanaCardNumber = getEditValue('editGhanaCardNumber').toUpperCase();
+      patch.phoneNumber = getEditValue('editPhoneNumber');
+      patch.collectionId = 'ug_manual_claims';
+      patch.targetSheetName = 'Undergraduate Manual Tutor Claims';
+    }
     patch.claimKey = buildAdminClaimKeyFromPatch(patch);
     patch.uniqueClaimKey = patch.claimKey;
 
     setStatus('warn', 'Saving claim changes to Firestore…');
-    await db.collection('ug_claims').doc(selected.id).set(patch, { merge:true });
+    await db.collection(activeCollectionName()).doc(selected.id).set(patch, { merge:true });
 
     var localPatch = Object.assign({}, patch, { updatedAt: nowText, adminEditedAt: nowText });
     Object.assign(selected.data, localPatch);
@@ -806,6 +899,7 @@
     var d = item.data || {};
     var c = splitCourseTitle(d.course || d.courseTitle || '');
     return {
+      manual: isManualClaimType() || d.manualTutor === true || d.tutorEntryMode === 'manual',
       claimId: clean(d.claimId || item.id),
       monitorStaffId: clean(d.monitorStaffId),
       monitorName: clean(d.monitorName || d.submittedByName),
@@ -827,6 +921,7 @@
       accountName: clean(d.accountName),
       accountNumber: clean(d.accountNumber),
       ghanaCardNumber: clean(d.ghanaCardNumber || d.ghanaCard),
+      phoneNumber: clean(d.phoneNumber || d.phone),
       remarks: clean(d.remarks),
       signature: getSignatureSource(d),
       f2fRows: normalizeSessionRows(d, 'f2f'),
@@ -836,9 +931,7 @@
   }
 
   async function buildTutorStylePdf(items) {
-    // One-page compact claim summary.
-    // Bank details, Ghana Card and Semester are intentionally excluded.
-    // Each claim is rendered on exactly one A4 page. Multiple selected claims become one page per claim.
+    // Compact A4 claim summary with continuation pages when session rows exceed one page.
     var pageW = 595.28, pageH = 841.89;
     var margin = 30;
     var blue = [0,33,71], blue2 = [0,86,179], gold = [232,181,0], red = [212,54,42];
@@ -883,7 +976,7 @@
       cmds.push('q '+rgb(red)+' rg '+(pageW*0.82).toFixed(2)+' 752 '+(pageW*0.18).toFixed(2)+' 4 re f Q');
       putText('UNIVERSITY OF CAPE COAST', margin, 812, 14, 'F2', white, cmds);
       putText('College of Distance Education (CoDE)', margin, 794, 9, 'F1', [255,224,138], cmds);
-      putText('UNDERGRADUATE FACILITATOR CLAIM SUMMARY', margin, 773, 12, 'F2', white, cmds);
+      putText(data.manual ? 'UNDERGRADUATE NEW TUTOR CLAIM SUMMARY' : 'UNDERGRADUATE FACILITATOR CLAIM SUMMARY', margin, 773, 12, 'F2', white, cmds);
       var submitted = clean(data.submittedDate || '');
       putText(submitted ? ('Submitted: ' + submitted) : ('Generated: ' + data.printed), pageW - margin - 170, 773, 8, 'F1', [235,242,252], cmds);
       y = 732;
@@ -902,7 +995,7 @@
       labelValue('Monitor Staff ID', data.monitorStaffId, margin+w+gap, y, w, 38);
       y -= 46;
       labelValue('Name of Facilitator', data.tutorName, margin, y, w, 38);
-      labelValue('Staff ID', data.staffId, margin+w+gap, y, w, 38);
+      labelValue(data.manual ? 'Tutor Type' : 'Staff ID', data.manual ? 'NEW TUTOR / NO STAFF ID' : data.staffId, margin+w+gap, y, w, 38);
       y -= 46;
       labelValue('Course Code & Title', data.course, margin, y, pageW-margin*2, 42);
       y -= 50;
@@ -922,35 +1015,41 @@
       var rows = [];
       data.f2fRows.forEach(function(r){ rows.push({mode:'F2F', date:r.date, start:r.start, end:r.end, students:r.students, hrs:r.hrs}); });
       data.onRows.forEach(function(r){ rows.push({mode:'Online', date:r.date, start:r.start, end:r.end, students:r.students, hrs:r.hrs}); });
-      return rows.slice(0, 8);
+      return rows;
     }
     function sessionsTable(data) {
       var rows = combinedSessionRows(data);
       var x = margin, w = pageW - margin*2;
-      rect(x, y-22, w, 22, paleBlue, null);
-      current().push('q '+rgb(blue2)+' rg '+x.toFixed(2)+' '+(y-22).toFixed(2)+' 5 22 re f Q');
-      putText('TEACHING SESSIONS', x+12, y-14, 9, 'F2', blue2);
-      y -= 30;
       var col = [26, 54, 102, 84, 84, 88, 97]; // #, mode, date, start, end, students, hours
       var hHead = 20, hRow = 21;
-      rect(x, y-hHead, w, hHead, blue, null);
       var labels = ['#','Mode','Date','Start','End','Students','Hours'];
-      var cx = x;
-      labels.forEach(function(l,i){ putText(l, cx+4, y-13, 7.5, 'F2', white); cx += col[i]; });
-      y -= hHead;
-      if (!rows.length) {
-        rect(x, y-26, w, 26, [255,255,255], lightLine);
-        putText('No sessions recorded.', x+8, y-17, 8.5, 'F1', muted);
-        y -= 26;
-      } else {
-        rows.forEach(function(r, i){
+      var chunks = [];
+      if (!rows.length) chunks.push([]);
+      for (var start=0; start<rows.length; start+=8) chunks.push(rows.slice(start, start+8));
+      chunks.forEach(function(chunk, chunkIndex){
+        if (chunkIndex > 0) header(data);
+        rect(x, y-22, w, 22, paleBlue, null);
+        current().push('q '+rgb(blue2)+' rg '+x.toFixed(2)+' '+(y-22).toFixed(2)+' 5 22 re f Q');
+        putText(chunkIndex ? 'TEACHING SESSIONS - CONTINUED' : 'TEACHING SESSIONS', x+12, y-14, 9, 'F2', blue2);
+        y -= 30;
+        rect(x, y-hHead, w, hHead, blue, null);
+        var cx = x;
+        labels.forEach(function(l,i){ putText(l, cx+4, y-13, 7.5, 'F2', white); cx += col[i]; });
+        y -= hHead;
+        if (!chunk.length) {
+          rect(x, y-26, w, 26, [255,255,255], lightLine);
+          putText('No sessions recorded.', x+8, y-17, 8.5, 'F1', muted);
+          y -= 26;
+        }
+        chunk.forEach(function(r, localIndex){
+          var i = chunkIndex * 8 + localIndex;
           rect(x, y-hRow, w, hRow, i % 2 ? [255,255,255] : [248,250,253], lightLine);
           var vals = [String(i+1), r.mode, r.date, r.start, r.end, r.students, r.hrs];
           var xx = x;
           vals.forEach(function(v,j){ tableCell(v, xx, y, col[j], j>=5 ? 8.2 : 7.6, j>=5, textColor); xx += col[j]; });
           y -= hRow;
         });
-      }
+      });
       y -= 8;
       var totalW = pageW - margin*2;
       rect(margin, y-34, totalW, 34, paleGold, [230,210,150]);
@@ -961,6 +1060,25 @@
       if (smallTotals.length) putText(smallTotals.join('   |   '), margin+10, y-26, 8, 'F1', [93,75,0]);
       putText(data.grandTotal || '-', pageW - margin - 95, y-21, 13, 'F2', blue);
       y -= 44;
+    }
+    function bankBlock(data) {
+      if (!data.manual) return;
+      if (y < 250) header(data);
+      var gap = 8;
+      var w = (pageW - margin*2 - gap) / 2;
+      rect(margin, y-22, pageW-margin*2, 22, paleBlue, null);
+      current().push('q '+rgb(blue2)+' rg '+margin.toFixed(2)+' '+(y-22).toFixed(2)+' 5 22 re f Q');
+      putText('BANK AND CONTACT DETAILS', margin+12, y-14, 9, 'F2', blue2);
+      y -= 30;
+      labelValue('Bank Name', data.bankName, margin, y, w, 38);
+      labelValue('Bank Branch', data.bankBranch, margin+w+gap, y, w, 38);
+      y -= 46;
+      labelValue('Account Name', data.accountName, margin, y, w, 38);
+      labelValue('Account Number', data.accountNumber, margin+w+gap, y, w, 38);
+      y -= 46;
+      labelValue('Ghana Card Number', data.ghanaCardNumber, margin, y, w, 38);
+      labelValue('Phone Number', data.phoneNumber, margin+w+gap, y, w, 38);
+      y -= 48;
     }
     function remarksBlock(data) {
       var text = clean(data.remarks || '');
@@ -1007,6 +1125,7 @@
       header(data);
       twoColumnDetails(data);
       sessionsTable(data);
+      bankBlock(data);
       remarksBlock(data);
       await signatureFooter(data.signature);
     }
@@ -1070,8 +1189,8 @@
       var blob = new Blob([pdfBytes], { type: 'application/pdf' });
       var url = URL.createObjectURL(blob);
       var name = items.length === 1
-        ? safeFilePart((items[0].data || {}).staffId) + '-' + safeFilePart((items[0].data || {}).course).slice(0,50) + '-claim.pdf'
-        : 'visible-facilitator-claims.pdf';
+        ? (isManualClaimType() ? 'New-Tutor' : safeFilePart((items[0].data || {}).staffId)) + '-' + safeFilePart((items[0].data || {}).course).slice(0,50) + '-claim.pdf'
+        : (isManualClaimType() ? 'visible-new-tutor-claims.pdf' : 'visible-facilitator-claims.pdf');
       var a = document.createElement('a');
       a.href = url;
       a.download = name;
@@ -1110,7 +1229,7 @@
         var item = items[i];
         var d = item.data || {};
         var baseName = [
-          safeFilePart(d.staffId || 'staff'),
+          isManualClaimType() ? 'New-Tutor' : safeFilePart(d.staffId || 'staff'),
           safeFilePart(d.tutorName || 'tutor'),
           safeFilePart(d.course || 'course').slice(0, 45),
           safeFilePart(d.claimId || item.id || String(i + 1)).slice(0, 35)
@@ -1135,7 +1254,7 @@
       var url = URL.createObjectURL(blob);
       var a = document.createElement('a');
       a.href = url;
-      a.download = 'all-undergraduate-claim-pdfs.zip';
+      a.download = isManualClaimType() ? 'all-undergraduate-new-tutor-claim-pdfs.zip' : 'all-undergraduate-claim-pdfs.zip';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -1161,7 +1280,11 @@
       staffId: d.staffId || '',
       tutorName: d.tutorName || '',
       course: d.course || '',
-      sheetName: 'Undergraduate Claims'
+      sheetName: activeSheetName(),
+      targetSheetName: activeSheetName(),
+      collectionId: activeCollectionName(),
+      targetCollection: activeCollectionName(),
+      firestoreCollection: activeCollectionName()
     };
 
     var response = await fetch(SCRIPT_URL, {
@@ -1206,7 +1329,7 @@
       var sheetResult = await deleteClaimFromGoogleSheet(item);
 
       setStatus('warn', 'Deleting claim from Firestore…');
-      await db.collection('ug_claims').doc(item.id).delete();
+      await db.collection(activeCollectionName()).doc(item.id).delete();
 
       claims = claims.filter(function(x){ return x.id !== item.id; });
       filtered = filtered.filter(function(x){ return x.id !== item.id; });
@@ -1243,6 +1366,8 @@
     document.getElementById('adminPass').addEventListener('keydown', function(e){ if (e.key === 'Enter') document.getElementById('loginBtn').click(); });
     logoutBtn.addEventListener('click', function(){ auth.signOut(); });
     document.getElementById('loadBtn').addEventListener('click', loadClaims);
+    document.getElementById('registeredClaimsTab').addEventListener('click', function(){ return switchClaimType('registered'); });
+    document.getElementById('manualClaimsTab').addEventListener('click', function(){ return switchClaimType('manual'); });
     document.getElementById('searchInput').addEventListener('input', applyFilters);
     document.getElementById('blockFilter').addEventListener('change', applyFilters);
     document.getElementById('syncFilter').addEventListener('change', applyFilters);
