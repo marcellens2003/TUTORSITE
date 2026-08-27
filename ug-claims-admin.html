@@ -254,7 +254,7 @@
               <div><label for="editStaffId">Staff ID</label><input id="editStaffId" type="text"></div>
               <div><label for="editTutorName">Tutor Name</label><input id="editTutorName" type="text"></div>
               <div class="manual-edit-field hidden"><label for="editManualTutorId">Manual Tutor ID</label><input id="editManualTutorId" type="text" disabled></div>
-              <div class="full"><label for="editCourse">Course</label><input id="editCourse" type="text" placeholder="CODE | Course title"></div>
+              <div class="full"><label for="editCourse">Course</label><input id="editCourse" type="text" placeholder="CODE: Course title"></div>
               <div><label for="editProgram">Programme</label><input id="editProgram" type="text"></div>
               <div><label for="editStudyCentre">Study Centre</label><input id="editStudyCentre" type="text"></div>
               <div><label for="editMode">Mode of Delivery</label><input id="editMode" type="text" placeholder="Face-to-Face or Purely Online"></div>
@@ -441,14 +441,15 @@
   }
   function sheetStatus(d) { return lower(field(d, ['sheetSyncStatus'])) || 'pending'; }
   function claimStatus(d) { return clean(field(d, ['claimStatus','status'])) || 'Submitted'; }
-  function courseCode(course) { return clean(course).split('|')[0].trim().split(/\s+/)[0] || clean(course); }
+  function courseCode(course) { var raw=clean(course); var first=raw.split(/\s*[|:]\s*/)[0].trim(); return first.split(/\s+/)[0] || raw; }
   function splitCourseTitle(course) {
     var raw = clean(course);
     if (!raw) return { code:'', title:'' };
-    var parts = raw.split('|').map(function(x){ return clean(x); }).filter(Boolean);
-    if (parts.length >= 2) return { code:parts[0], title:parts.slice(1).join(' | ') };
+    var parts = raw.split(/\s*[|:]\s*/).map(function(x){ return clean(x); }).filter(Boolean);
+    if (parts.length >= 2) return { code:parts[0], title:parts.slice(1).join(': ') };
     var code = courseCode(raw);
-    return { code: code, title: raw.replace(code, '').trim() || raw };
+    var title = raw.replace(code, '').replace(/^\s*[-–—:]\s*/, '').trim();
+    return { code: code, title: title || raw };
   }
   function parseSessionItems(d, kind) {
     var arr = kind === 'f2f' ? d.f2fSessionItems : d.onSessionItems;
@@ -905,7 +906,7 @@
       monitorName: clean(d.monitorName || d.submittedByName),
       staffId: clean(d.staffId),
       tutorName: clean(d.tutorName),
-      course: clean(c.code + (c.title ? ' | ' + c.title : '')),
+      course: clean(c.code + (c.title ? ': ' + c.title : '')),
       program: clean(d.program || d.programme),
       studyCentre: clean(d.studyCentre),
       mode: clean(d.modeOfDelivery),
@@ -931,253 +932,107 @@
   }
 
   async function buildTutorStylePdf(items) {
-    // Compact A4 claim summary with continuation pages when session rows exceed one page.
-    var pageW = 595.28, pageH = 841.89;
-    var margin = 30;
-    var blue = [0,33,71], blue2 = [0,86,179], gold = [232,181,0], red = [212,54,42];
-    var lightLine = [218,226,238], soft = [248,250,253], paleBlue = [235,242,252], paleGold = [255,248,225];
-    var textColor = [25,25,25], muted = [95,95,95], white = [255,255,255];
-    var pages = [];
-    var imageList = [];
-    var imageByPage = {};
-    var y = 0;
+    // Uses the same visual system as the undergraduate tutor form PDF.
+    var pageW=595.28,pageH=841.89,margin=38,contentW=pageW-margin*2,footerTop=802;
+    var colors={navy:[9,45,79],gold:[236,172,33],ink:[26,32,38],muted:[92,103,115],line:[201,210,218],pale:[241,246,250],white:[255,255,255]};
+    var pages=[],imageList=[],imageByPage={},y=0;
 
-    function current() { return pages[pages.length - 1]; }
-    function putText(str, x, yy, size, font, color, target) {
-      (target || current()).push('BT /'+(font || 'F1')+' '+size+' Tf '+rgb(color || textColor)+' rg 1 0 0 1 '+x.toFixed(2)+' '+yy.toFixed(2)+' Tm ('+pdfEscape(str)+') Tj ET');
+    function current(){return pages[pages.length-1];}
+    function topToY(top,h){return pageH-top-h;}
+    function putTextTop(value,x,top,size,bold,color,align,boxWidth,target){
+      var cmds=target||current();var str=ascii(value||'');var tx=x;var width=str.length*size*(bold?0.54:0.50);
+      if(align==='center')tx=x+((boxWidth||0)-width)/2;
+      if(align==='right')tx=x+(boxWidth||0)-width;
+      cmds.push('BT '+rgb(color||colors.ink)+' rg /'+(bold?'F2':'F1')+' '+size+' Tf 1 0 0 1 '+tx.toFixed(2)+' '+(pageH-top-size).toFixed(2)+' Tm ('+pdfEscape(str)+') Tj ET');
     }
-    function rect(x, yb, w, h, fill, stroke) {
-      if (fill) current().push('q '+rgb(fill)+' rg '+x.toFixed(2)+' '+yb.toFixed(2)+' '+w.toFixed(2)+' '+h.toFixed(2)+' re f Q');
-      if (stroke) current().push('q '+rgb(stroke)+' RG 0.7 w '+x.toFixed(2)+' '+yb.toFixed(2)+' '+w.toFixed(2)+' '+h.toFixed(2)+' re S Q');
+    function rectTop(x,top,w,h,fill,stroke,target){
+      var cmds=target||current();var yb=topToY(top,h);
+      if(fill)cmds.push('q '+rgb(fill)+' rg '+x.toFixed(2)+' '+yb.toFixed(2)+' '+w.toFixed(2)+' '+h.toFixed(2)+' re f Q');
+      if(stroke)cmds.push('q '+rgb(stroke)+' RG 0.7 w '+x.toFixed(2)+' '+yb.toFixed(2)+' '+w.toFixed(2)+' '+h.toFixed(2)+' re S Q');
     }
-    function line(x1,y1,x2,y2,color,w) {
-      current().push('q '+rgb(color || lightLine)+' RG '+(w || 0.7)+' w '+x1.toFixed(2)+' '+y1.toFixed(2)+' m '+x2.toFixed(2)+' '+y2.toFixed(2)+' l S Q');
+    function ruleTop(x1,top1,x2,top2,color,width,target){
+      var cmds=target||current();cmds.push('q '+rgb(color||colors.line)+' RG '+(width||0.7)+' w '+x1.toFixed(2)+' '+(pageH-top1).toFixed(2)+' m '+x2.toFixed(2)+' '+(pageH-top2).toFixed(2)+' l S Q');
     }
-    function wrap(str, size, width) {
-      str = ascii(str);
-      if (!str) return ['-'];
-      var maxChars = Math.max(8, Math.floor(width / (size * 0.48)));
-      var words = str.split(' '), out = [], lineText = '';
-      words.forEach(function(w){
-        var candidate = lineText ? lineText + ' ' + w : w;
-        if (candidate.length > maxChars && lineText) { out.push(lineText); lineText = w; }
-        else lineText = candidate;
-      });
-      if (lineText) out.push(lineText);
-      return out;
+    function textWidth(value,size,bold){return ascii(value||'').length*size*(bold?0.54:0.50);}
+    function wrapText(value,size,width){
+      var words=ascii(value||'').split(' ').filter(Boolean);if(!words.length)return [''];var lines=[],line='';
+      words.forEach(function(word){var candidate=line?line+' '+word:word;if(line&&textWidth(candidate,size,false)>width){lines.push(line);line=word;}else line=candidate;});
+      if(line)lines.push(line);return lines;
     }
-    function header(data) {
-      var cmds = [];
-      pages.push(cmds);
-      cmds.push('q '+rgb(blue)+' rg 0 760 '+pageW+' 82 re f Q');
-      cmds.push('q '+rgb(gold)+' rg 0 756 '+pageW+' 4 re f Q');
-      cmds.push('q '+rgb(red)+' rg 0 752 '+(pageW*0.18).toFixed(2)+' 4 re f Q');
-      cmds.push('q '+rgb(gold)+' rg '+(pageW*0.18).toFixed(2)+' 752 '+(pageW*0.64).toFixed(2)+' 4 re f Q');
-      cmds.push('q '+rgb(red)+' rg '+(pageW*0.82).toFixed(2)+' 752 '+(pageW*0.18).toFixed(2)+' 4 re f Q');
-      putText('UNIVERSITY OF CAPE COAST', margin, 812, 14, 'F2', white, cmds);
-      putText('College of Distance Education (CoDE)', margin, 794, 9, 'F1', [255,224,138], cmds);
-      putText(data.manual ? 'UNDERGRADUATE NEW TUTOR CLAIM SUMMARY' : 'UNDERGRADUATE FACILITATOR CLAIM SUMMARY', margin, 773, 12, 'F2', white, cmds);
-      var submitted = clean(data.submittedDate || '');
-      putText(submitted ? ('Submitted: ' + submitted) : ('Generated: ' + data.printed), pageW - margin - 170, 773, 8, 'F1', [235,242,252], cmds);
-      y = 732;
-    }
-    function labelValue(label, value, x, yy, w, h) {
-      rect(x, yy-h, w, h, soft, lightLine);
-      putText(label.toUpperCase(), x+8, yy-12, 6.5, 'F2', muted);
-      var lines = wrap(value || '-', 8.2, w-16).slice(0, 2);
-      var ty = yy-25;
-      lines.forEach(function(l){ putText(l, x+8, ty, 8.2, 'F1', textColor); ty -= 9.5; });
-    }
-    function twoColumnDetails(data) {
-      var gap = 8;
-      var w = (pageW - margin*2 - gap) / 2;
-      labelValue('Monitor Name', data.monitorName, margin, y, w, 38);
-      labelValue('Monitor Staff ID', data.monitorStaffId, margin+w+gap, y, w, 38);
-      y -= 46;
-      labelValue('Name of Facilitator', data.tutorName, margin, y, w, 38);
-      labelValue(data.manual ? 'Tutor Type' : 'Staff ID', data.manual ? 'NEW TUTOR / NO STAFF ID' : data.staffId, margin+w+gap, y, w, 38);
-      y -= 46;
-      labelValue('Course Code & Title', data.course, margin, y, pageW-margin*2, 42);
-      y -= 50;
-      labelValue('Programme', data.program, margin, y, w, 38);
-      labelValue('Study Centre', data.studyCentre, margin+w+gap, y, w, 38);
-      y -= 46;
-      labelValue('Mode of Delivery', data.mode, margin, y, w, 34);
-      labelValue('Semester', data.semester, margin+w+gap, y, w, 34);
-      y -= 42;
-    }
-    function tableCell(txt, x, yy, w, size, bold, color) {
-      var lines = wrap(txt || '-', size, w-8).slice(0, 2);
-      var ty = yy - 14;
-      lines.forEach(function(l){ putText(l, x+4, ty, size, bold ? 'F2' : 'F1', color || textColor); ty -= 8; });
-    }
-    function combinedSessionRows(data) {
-      var rows = [];
-      data.f2fRows.forEach(function(r){ rows.push({mode:'F2F', date:r.date, start:r.start, end:r.end, students:r.students, hrs:r.hrs}); });
-      data.onRows.forEach(function(r){ rows.push({mode:'Online', date:r.date, start:r.start, end:r.end, students:r.students, hrs:r.hrs}); });
-      return rows;
-    }
-    function sessionsTable(data) {
-      var rows = combinedSessionRows(data);
-      var x = margin, w = pageW - margin*2;
-      var col = [26, 54, 102, 84, 84, 88, 97]; // #, mode, date, start, end, students, hours
-      var hHead = 20, hRow = 21;
-      var labels = ['#','Mode','Date','Start','End','Students','Hours'];
-      var chunks = [];
-      if (!rows.length) chunks.push([]);
-      for (var start=0; start<rows.length; start+=8) chunks.push(rows.slice(start, start+8));
-      chunks.forEach(function(chunk, chunkIndex){
-        if (chunkIndex > 0) header(data);
-        rect(x, y-22, w, 22, paleBlue, null);
-        current().push('q '+rgb(blue2)+' rg '+x.toFixed(2)+' '+(y-22).toFixed(2)+' 5 22 re f Q');
-        putText(chunkIndex ? 'TEACHING SESSIONS - CONTINUED' : 'TEACHING SESSIONS', x+12, y-14, 9, 'F2', blue2);
-        y -= 30;
-        rect(x, y-hHead, w, hHead, blue, null);
-        var cx = x;
-        labels.forEach(function(l,i){ putText(l, cx+4, y-13, 7.5, 'F2', white); cx += col[i]; });
-        y -= hHead;
-        if (!chunk.length) {
-          rect(x, y-26, w, 26, [255,255,255], lightLine);
-          putText('No sessions recorded.', x+8, y-17, 8.5, 'F1', muted);
-          y -= 26;
-        }
-        chunk.forEach(function(r, localIndex){
-          var i = chunkIndex * 8 + localIndex;
-          rect(x, y-hRow, w, hRow, i % 2 ? [255,255,255] : [248,250,253], lightLine);
-          var vals = [String(i+1), r.mode, r.date, r.start, r.end, r.students, r.hrs];
-          var xx = x;
-          vals.forEach(function(v,j){ tableCell(v, xx, y, col[j], j>=5 ? 8.2 : 7.6, j>=5, textColor); xx += col[j]; });
-          y -= hRow;
-        });
-      });
-      y -= 8;
-      var totalW = pageW - margin*2;
-      rect(margin, y-34, totalW, 34, paleGold, [230,210,150]);
-      putText('TOTAL TEACHING HOURS', margin+10, y-13, 7.5, 'F2', [93,75,0]);
-      var smallTotals = [];
-      if (Number(data.f2fTotal || 0)) smallTotals.push('F2F: ' + data.f2fTotal);
-      if (Number(data.onTotal || 0)) smallTotals.push('Online: ' + data.onTotal);
-      if (smallTotals.length) putText(smallTotals.join('   |   '), margin+10, y-26, 8, 'F1', [93,75,0]);
-      putText(data.grandTotal || '-', pageW - margin - 95, y-21, 13, 'F2', blue);
-      y -= 44;
-    }
-    function bankBlock(data) {
-      if (!data.manual) return;
-      if (y < 250) header(data);
-      var gap = 8;
-      var w = (pageW - margin*2 - gap) / 2;
-      rect(margin, y-22, pageW-margin*2, 22, paleBlue, null);
-      current().push('q '+rgb(blue2)+' rg '+margin.toFixed(2)+' '+(y-22).toFixed(2)+' 5 22 re f Q');
-      putText('BANK AND CONTACT DETAILS', margin+12, y-14, 9, 'F2', blue2);
-      y -= 30;
-      labelValue('Bank Name', data.bankName, margin, y, w, 38);
-      labelValue('Bank Branch', data.bankBranch, margin+w+gap, y, w, 38);
-      y -= 46;
-      labelValue('Account Name', data.accountName, margin, y, w, 38);
-      labelValue('Account Number', data.accountNumber, margin+w+gap, y, w, 38);
-      y -= 46;
-      labelValue('Ghana Card Number', data.ghanaCardNumber, margin, y, w, 38);
-      labelValue('Phone Number', data.phoneNumber, margin+w+gap, y, w, 38);
-      y -= 48;
-    }
-    function remarksBlock(data) {
-      var text = clean(data.remarks || '');
-      if (!text) return;
-      rect(margin, y-42, pageW-margin*2, 42, [255,255,255], lightLine);
-      putText('REMARKS', margin+8, y-12, 6.8, 'F2', muted);
-      var lines = wrap(text, 8, pageW-margin*2-16).slice(0, 2);
-      var ty = y-25;
-      lines.forEach(function(l){ putText(l, margin+8, ty, 8, 'F1', textColor); ty -= 9; });
-      y -= 50;
-    }
-    async function signatureFooter(sigSource) {
-      var sigY = 70;
-      line(margin, sigY+92, pageW-margin, sigY+92, lightLine, 0.7);
-      putText('FACILITATOR SIGNATURE', margin, sigY+73, 7, 'F2', muted);
-      rect(margin, sigY+7, 230, 58, [255,255,255], lightLine);
-      var isImageSource = /^data:image\//i.test(clean(sigSource)) || /^https?:\/\//i.test(clean(sigSource));
-      var sigImage = isImageSource ? await signatureToJpeg(sigSource) : null;
-      if (sigImage) {
-        var imgName = 'SigImg' + (imageList.length + 1);
-        var pageIndex = pages.length - 1;
-        imageList.push({ name: imgName, image: sigImage });
-        if (!imageByPage[pageIndex]) imageByPage[pageIndex] = [];
-        imageByPage[pageIndex].push(imgName);
-        var maxW = 210, maxH = 48;
-        var scale = Math.min(maxW / sigImage.width, maxH / sigImage.height);
-        var iw = sigImage.width * scale, ih = sigImage.height * scale;
-        current().push('q '+iw.toFixed(2)+' 0 0 '+ih.toFixed(2)+' '+(margin+10).toFixed(2)+' '+(sigY+12).toFixed(2)+' cm /'+imgName+' Do Q');
-      } else if (sigSource && !isImageSource) {
-        putText(clean(sigSource), margin+10, sigY+35, 11, 'F2', blue);
-      } else if (sigSource) {
-        putText('Signature saved, but could not be embedded.', margin+10, sigY+37, 8, 'F1', muted);
-      } else {
-        putText('No signature uploaded.', margin+10, sigY+37, 8, 'F1', muted);
+    function drawHeader(continued){
+      pages.push([]);
+      var h=continued?56:92;
+      rectTop(0,0,pageW,h,colors.navy,null);
+      rectTop(0,h,pageW,4,colors.gold,null);
+      if(continued){
+        putTextTop('UCC - UNDERGRADUATE FACILITATOR CLAIM SUMMARY',margin,18,11,true,colors.white);
+        putTextTop('Continued',margin,35,8,false,[209,223,235]);
+        y=76;
+      }else{
+        putTextTop('UNIVERSITY OF CAPE COAST',margin,18,17,true,colors.white);
+        putTextTop('College of Distance Education (CoDE)',margin,43,10,false,[217,230,240]);
+        putTextTop('UNDERGRADUATE FACILITATOR CLAIM SUMMARY',margin,62,12,true,colors.white);
+        putTextTop('Generated '+new Date().toLocaleString(),margin,104,8,false,colors.muted);
+        y=124;
       }
-      putText('This claim was generated from the CoDE Facilitator Claims System.', margin+260, sigY+50, 8, 'F1', muted);
-      putText('Generated: ' + new Date().toLocaleString(), margin+260, sigY+34, 8, 'F1', muted);
     }
-
-    for (var idx=0; idx<items.length; idx++) {
-      var raw = items[idx].data || {};
-      var data = pdfClaimData(items[idx]);
-      data.submittedDate = formatTs(raw.createdAt || raw.submittedAt || raw.timestamp || raw.updatedAt) || '';
-      header(data);
-      twoColumnDetails(data);
-      sessionsTable(data);
-      bankBlock(data);
-      remarksBlock(data);
-      await signatureFooter(data.signature);
+    function ensure(height){if(y+height>footerTop-14)drawHeader(true);}
+    function fieldLines(field,width){return wrapText((field&&field[1])||'-',9,width-20);}
+    function drawCard(title,rows){
+      var rowHeights=rows.map(function(row){var cellW=contentW/row.length;return Math.max.apply(Math,[34].concat(row.map(function(field){return 18+fieldLines(field,cellW).length*11;})));});
+      var height=25+rowHeights.reduce(function(a,b){return a+b;},0);ensure(height+10);
+      rectTop(margin,y,contentW,25,colors.navy,colors.navy);putTextTop(title,margin+12,y+7,10,true,colors.white);
+      var top=y+25;
+      rows.forEach(function(row,rowIndex){var rowH=rowHeights[rowIndex],cellW=contentW/row.length;rectTop(margin,top,contentW,rowH,colors.white,colors.line);row.forEach(function(field,index){var x=margin+index*cellW;if(index)ruleTop(x,top,x,top+rowH);putTextTop(String((field&&field[0])||'').toUpperCase(),x+10,top+7,6.8,true,colors.muted);fieldLines(field,cellW).forEach(function(line,lineIndex){putTextTop(line||'-',x+10,top+18+lineIndex*11,9,true,colors.ink);});});top+=rowH;});
+      y+=height+10;
     }
+    function activeRows(data){return data.mode==='Face-to-Face'?data.f2fRows:data.onRows;}
+    function drawSessions(data){
+      var rows=activeRows(data);if(!rows.length)rows=[{date:'No sessions recorded',start:'-',end:'-',students:'-',hrs:'-'}];
+      var widths=[34,110,88,88,84,contentW-404],headers=['#','DATE','START','END','STUDENTS','HOURS'];var index=0;
+      while(index<rows.length){
+        ensure(25+24+25+33+10);
+        rectTop(margin,y,contentW,25,colors.navy,colors.navy);putTextTop(data.mode==='Face-to-Face'?'FACE-TO-FACE SESSIONS':'ONLINE SESSIONS',margin+12,y+7,10,true,colors.white);
+        var top=y+25;rectTop(margin,top,contentW,24,colors.pale,colors.line);var x=margin;
+        headers.forEach(function(header,i){if(i)ruleTop(x,top,x,top+24);putTextTop(header,x+7,top+8,7,true,colors.muted);x+=widths[i];});top+=24;
+        while(index<rows.length && top+25+33<=(footerTop-14)){
+          var row=rows[index];rectTop(margin,top,contentW,25,colors.white,colors.line);
+          var values=[activeRows(data).length?String(index+1):'-',row.date||'-',row.start||'-',row.end||'-',row.students===''?'-':row.students,row.hrs==='-'?'-':(isNaN(Number(row.hrs))?String(row.hrs):Number(row.hrs).toFixed(2)+' hrs')];
+          x=margin;values.forEach(function(value,col){if(col)ruleTop(x,top,x,top+25);putTextTop(String(value),x+7,top+8,8.5,col>=4,colors.ink);x+=widths[col];});top+=25;index++;
+        }
+        if(index>=rows.length){rectTop(margin,top,contentW,33,colors.pale,colors.line);var totalLabel=data.mode==='Face-to-Face'?'Total Face-to-Face Hours':'Total Online Hours';var sectionTotal=data.mode==='Face-to-Face'?data.f2fTotal:data.onTotal;putTextTop(totalLabel,margin+12,top+10,8,true,colors.muted);putTextTop(Number(sectionTotal||0).toFixed(2)+' hours',margin+12,top+8,11,true,colors.navy,'right',contentW-24);top+=33;y=top+10;}else{y=top+8;drawHeader(true);}
+      }
+    }
+    function drawGrandTotal(data){ensure(48);rectTop(margin,y,contentW,40,colors.gold,colors.gold);putTextTop('GRAND TOTAL TEACHING HOURS',margin+14,y+13,9,true,colors.navy);putTextTop(Number(data.grandTotal||0).toFixed(2)+' HOURS',margin+14,y+10,14,true,colors.navy,'right',contentW-28);y+=50;}
+    async function drawSignature(data){
+      ensure(72);rectTop(margin,y,contentW,62,colors.white,colors.line);putTextTop('TUTOR SIGNATURE CONFIRMATION',margin+12,y+10,7,true,colors.muted);
+      var sig=clean(data.signature||'');var isImage=/^data:image\//i.test(sig)||/^https?:\/\//i.test(sig);var sigImage=isImage?await signatureToJpeg(sig):null;
+      if(sigImage){var imgName='SigImg'+(imageList.length+1),pageIndex=pages.length-1;imageList.push({name:imgName,image:sigImage});if(!imageByPage[pageIndex])imageByPage[pageIndex]=[];imageByPage[pageIndex].push(imgName);var maxW=180,maxH=27,scale=Math.min(maxW/sigImage.width,maxH/sigImage.height),iw=sigImage.width*scale,ih=sigImage.height*scale;current().push('q '+iw.toFixed(2)+' 0 0 '+ih.toFixed(2)+' '+(margin+12).toFixed(2)+' '+(pageH-(y+45)).toFixed(2)+' cm /'+imgName+' Do Q');}
+      else putTextTop(sig||'Not provided',margin+12,y+27,12,true,colors.navy);
+      ruleTop(margin+12,y+48,margin+contentW-12,y+48,colors.line,0.8);putTextTop('Tutor/facilitator full name or initials',margin+12,y+51,7,false,colors.muted);y+=72;
+    }
+    function addFooter(){pages.forEach(function(cmds,index){ruleTop(margin,pageH-38,pageW-margin,pageH-38,colors.line,0.6,cmds);putTextTop('College of Distance Education - University of Cape Coast',margin,pageH-27,7,false,colors.muted,'left',0,cmds);putTextTop('Page '+(index+1)+' of '+pages.length,pageW-margin-58,pageH-27,7,false,colors.muted,'left',0,cmds);});}
 
-    pages.forEach(function(cmds, i){
-      line(margin, 36, pageW-margin, 36, lightLine, 0.7);
-      putText('CoDE Undergraduate Facilitator Claim Summary', margin, 22, 8, 'F1', muted, cmds);
-      putText('Page '+(i+1)+' of '+pages.length, pageW-margin-55, 22, 8, 'F1', muted, cmds);
-    });
+    for(var idx=0;idx<items.length;idx++){
+      var data=pdfClaimData(items[idx]);
+      drawHeader(false);
+      drawCard('MONITOR DETAILS',[[['Monitor Staff ID',data.monitorStaffId],['Monitor Name',data.monitorName]]]);
+      drawCard('FACILITATOR DETAILS',[[['Facilitator Staff ID',data.manual?'N/A - NEW TUTOR':data.staffId],['Facilitator Name',data.tutorName]]]);
+      drawCard('COURSE DETAILS',[[['Course Code and Title',data.course]],[['Programme',data.program],['Study Centre',data.studyCentre]],[['Mode of Delivery',data.mode],['Semester',data.semester]]]);
+      drawSessions(data);
+      drawGrandTotal(data);
+      if(data.manual)drawCard('BANK AND CONTACT DETAILS',[[['Bank Name',data.bankName],['Bank Branch',data.bankBranch]],[['Account Name',data.accountName],['Account Number',data.accountNumber]],[['Ghana Card Number',data.ghanaCardNumber],['Phone Number',data.phoneNumber]]]);
+      if(data.remarks)drawCard('REMARKS',[[['Additional Remarks',data.remarks]]]);
+      await drawSignature(data);
+    }
+    addFooter();
 
-    var objects = [];
-    function addObj(parts) { objects.push(Array.isArray(parts) ? parts : [strBytes(parts)]); return objects.length; }
-    addObj('<< /Type /Catalog /Pages 2 0 R >>');
-    addObj('');
-    addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
-    addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
-    var imageObjIds = {};
-    imageList.forEach(function(entry){
-      imageObjIds[entry.name] = addObj([
-        strBytes('<< /Type /XObject /Subtype /Image /Width '+Math.round(entry.image.width)+' /Height '+Math.round(entry.image.height)+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+entry.image.bytes.length+' >>\nstream\n'),
-        entry.image.bytes,
-        strBytes('\nendstream')
-      ]);
-    });
-    var pageObjIds = [];
-    pages.forEach(function(cmds, pageIdx){
-      var stream = cmds.join('\n');
-      var contentId = addObj('<< /Length '+stream.length+' >>\nstream\n'+stream+'\nendstream');
-      var names = imageByPage[pageIdx] || [];
-      var xObj = '';
-      if (names.length) xObj = ' /XObject << ' + names.map(function(n){ return '/' + n + ' ' + imageObjIds[n] + ' 0 R'; }).join(' ') + ' >>';
-      var pageId = addObj('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+pageW+' '+pageH+'] /Resources << /Font << /F1 3 0 R /F2 4 0 R >>'+xObj+' >> /Contents '+contentId+' 0 R >>');
-      pageObjIds.push(pageId);
-    });
-    objects[1] = [strBytes('<< /Type /Pages /Kids ['+pageObjIds.map(function(id){ return id+' 0 R'; }).join(' ')+'] /Count '+pageObjIds.length+' >>')];
-    var parts = [strBytes('%PDF-1.4\n')];
-    var offset = parts[0].length;
-    var offsets = [0];
-    objects.forEach(function(bodyParts, idx){
-      offsets.push(offset);
-      var head = strBytes((idx+1)+' 0 obj\n');
-      var body = concatParts(bodyParts);
-      var tail = strBytes('\nendobj\n');
-      parts.push(head, body, tail);
-      offset += head.length + body.length + tail.length;
-    });
-    var xrefStart = offset;
-    var xref = 'xref\n0 '+(objects.length+1)+'\n0000000000 65535 f \n';
-    for (var i=1; i<=objects.length; i++) xref += String(offsets[i]).padStart(10,'0')+' 00000 n \n';
-    xref += 'trailer\n<< /Size '+(objects.length+1)+' /Root 1 0 R >>\nstartxref\n'+xrefStart+'\n%%EOF';
-    parts.push(strBytes(xref));
-    return concatParts(parts);
+    var objects=[];function addObj(parts){objects.push(Array.isArray(parts)?parts:[strBytes(parts)]);return objects.length;}
+    addObj('<< /Type /Catalog /Pages 2 0 R >>');addObj('');addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
+    var imageObjIds={};imageList.forEach(function(entry){imageObjIds[entry.name]=addObj([strBytes('<< /Type /XObject /Subtype /Image /Width '+Math.round(entry.image.width)+' /Height '+Math.round(entry.image.height)+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+entry.image.bytes.length+' >>\nstream\n'),entry.image.bytes,strBytes('\nendstream')]);});
+    var pageObjIds=[];pages.forEach(function(cmds,pageIdx){var stream=cmds.join('\n');var contentId=addObj('<< /Length '+stream.length+' >>\nstream\n'+stream+'\nendstream');var names=imageByPage[pageIdx]||[],xObj='';if(names.length)xObj=' /XObject << '+names.map(function(n){return '/'+n+' '+imageObjIds[n]+' 0 R';}).join(' ')+' >>';pageObjIds.push(addObj('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+pageW+' '+pageH+'] /Resources << /Font << /F1 3 0 R /F2 4 0 R >>'+xObj+' >> /Contents '+contentId+' 0 R >>'));});
+    objects[1]=[strBytes('<< /Type /Pages /Kids ['+pageObjIds.map(function(id){return id+' 0 R';}).join(' ')+'] /Count '+pageObjIds.length+' >>')];
+    var parts=[strBytes('%PDF-1.4\n')],offset=parts[0].length,offsets=[0];objects.forEach(function(bodyParts,objIdx){offsets.push(offset);var head=strBytes((objIdx+1)+' 0 obj\n'),body=concatParts(bodyParts),tail=strBytes('\nendobj\n');parts.push(head,body,tail);offset+=head.length+body.length+tail.length;});var xrefStart=offset,xref='xref\n0 '+(objects.length+1)+'\n0000000000 65535 f \n';for(var i=1;i<=objects.length;i++)xref+=String(offsets[i]).padStart(10,'0')+' 00000 n \n';xref+='trailer\n<< /Size '+(objects.length+1)+' /Root 1 0 R >>\nstartxref\n'+xrefStart+'\n%%EOF';parts.push(strBytes(xref));return concatParts(parts);
   }
 
   async function printClaims(items) {
