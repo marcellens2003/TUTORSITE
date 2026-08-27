@@ -312,7 +312,7 @@
 
   // Apps Script web app used to delete the matching Google Sheet row.
   // This should be the same deployed /exec URL used by tutor-report.html.
-  var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyJk2xPi1GjW858JJZEKh3J783facWjEKzyIFvQMapeOLZPf6cM0mgVlrv-R0qf0M6G/exec';
+  var SCRIPT_URL = 'https://script.google.com/a/macros/stu.ucc.edu.gh/s/AKfycbygYhuZpqeb4rsTU33pP23_jcSNzrO-t_Q5T-uNc_T3egbqVhg2tQEK395cdKxq17qz/exec';
 
   var auth, db;
   var claims = [];
@@ -1044,7 +1044,7 @@
       var blob = new Blob([pdfBytes], { type: 'application/pdf' });
       var url = URL.createObjectURL(blob);
       var name = items.length === 1
-        ? (isManualClaimType() ? 'New-Tutor' : safeFilePart((items[0].data || {}).staffId)) + '-' + safeFilePart((items[0].data || {}).course).slice(0,50) + '-claim.pdf'
+        ? safeFilePart((items[0].data || {}).tutorName || 'Tutor') + '-' + (isManualClaimType() ? 'New-Tutor' : safeFilePart((items[0].data || {}).staffId || 'UG')) + '-' + safeFilePart((items[0].data || {}).course).slice(0,50) + '-claim.pdf'
         : (isManualClaimType() ? 'visible-new-tutor-claims.pdf' : 'visible-facilitator-claims.pdf');
       var a = document.createElement('a');
       a.href = url;
