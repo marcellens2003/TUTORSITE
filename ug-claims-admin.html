@@ -97,8 +97,6 @@
   .edit-total { font-weight:800; color:#002147; background:#eef4ff; border:1px solid #cbdaf4; padding:8px 10px; border-radius:8px; margin-top:8px; }
   @media (max-width: 720px) { .edit-grid { grid-template-columns:1fr; } .edit-card { position:static; } }
 
-
-  /* Printable claim design */
   #printArea { display:none; }
   .pdfPage { width: 210mm; min-height: 297mm; padding: 13mm 13mm 12mm; background:#fff; color:#111827; font-family: Arial, sans-serif; page-break-after: always; }
   .pdfHeader { border:2px solid #002147; border-bottom:0; padding:10px 12px; display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
@@ -310,8 +308,6 @@
     appId: "1:210063574932:web:8ccd563312321dcd2af181"
   };
 
-  // Apps Script web app used to delete the matching Google Sheet row.
-  // This should be the same deployed /exec URL used by tutor-report.html.
   var SCRIPT_URL = 'https://script.google.com/a/macros/stu.ucc.edu.gh/s/AKfycbygYhuZpqeb4rsTU33pP23_jcSNzrO-t_Q5T-uNc_T3egbqVhg2tQEK395cdKxq17qz/exec';
 
   var auth, db;
@@ -406,8 +402,6 @@
   }
   function claimCreatedMillis(item) {
     var d = (item && item.data) || {};
-    // Use the original submission time for ordering so edited claims do not jump
-    // to the top/bottom. New submissions are placed after older submissions.
     return tsMillis(d.createdAt || d.submittedAt || d.timestamp || d.Timestamp || d.created || d.updatedAt);
   }
   function compareClaimsOldestFirst(a, b) {
@@ -425,7 +419,6 @@
     }
     return '';
   }
-
   function getSignatureSource(d) {
     var names = [
       'facilitatorSignature', 'facilitatorSignatureUrl', 'signature', 'signatureUrl',
@@ -434,7 +427,6 @@
     ];
     var sig = clean(field(d, names));
     if (!sig) return '';
-    // Support values copied from Google Sheets formulas like =IMAGE("https://...")
     var formulaMatch = sig.match(/=IMAGE\(["']([^"']+)["']/i);
     if (formulaMatch) sig = formulaMatch[1];
     return sig;
@@ -517,7 +509,6 @@
 
   function applyFilters() {
     var q = lower(document.getElementById('searchInput').value);
-    var block = "";
     var sync = lower(document.getElementById('syncFilter').value);
     filtered = claims.filter(function(item){
       var d = item.data || {};
@@ -584,7 +575,6 @@
     editSelectedBtn.disabled = false;
     copyClaimIdBtn.disabled = false;
   }
-
 
   function setEditValue(id, value) {
     var el = document.getElementById(id);
@@ -714,9 +704,7 @@
   async function saveEditedClaim() {
     if (!selected || !selected.id) throw new Error('No claim selected.');
     var totals = updateEditTotalPreview();
-    if (totals.total > 24) {
-      throw new Error('Total hours exceed 24. Please correct the sessions before saving.');
-    }
+    if (totals.total > 24) throw new Error('Total hours exceed 24. Please correct the sessions before saving.');
     var program = getEditValue('editProgram');
     var claimId = selected.data.claimId || selected.id;
     var nowText = new Date().toISOString();
@@ -794,30 +782,12 @@
     setStatus('ready', 'Claim updated. Sheet status is now pending, so the Apps Script sync will update the Google Sheet row by Claim ID.');
   }
 
-  function pdfCell(label, value) {
-    return '<div class="pdfCell"><span class="pdfLabel">' + escapeHTML(label) + '</span><div class="pdfValue">' + escapeHTML(value || '—') + '</div></div>';
-  }
-  function sessionRows(items) {
-    if (!items.length) return '<tr><td colspan="5" style="text-align:center;color:#6b7280;">No sessions recorded</td></tr>';
-    return items.map(function(it, i){
-      return '<tr><td>' + (i+1) + '</td><td>' + escapeHTML(it.date || '—') + '</td><td>' + escapeHTML(it.startDisplay || it.start || '—') + '</td><td>' + escapeHTML(it.endDisplay || it.end || '—') + '</td><td>' + escapeHTML(it.hoursLabel || it.hours || '—') + '</td></tr>';
-    }).join('');
-  }
-  // ===== Tutor-style PDF generator =====
-  // This uses the same manual PDF approach as the tutor form so the output
-  // matches the tutor PDF better than the browser print layout.
   function safeFilePart(value) {
     return String(value || '').trim().replace(/[^a-z0-9_-]+/gi, '-').replace(/^-+|-+$/g, '') || 'claim';
   }
-  function ascii(value) {
-    return clean(value).normalize('NFKD').replace(/[^\x20-\x7E]/g, '');
-  }
-  function pdfEscape(value) {
-    return ascii(value).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
-  }
-  function rgb(c) {
-    return (c[0]/255).toFixed(3)+' '+(c[1]/255).toFixed(3)+' '+(c[2]/255).toFixed(3);
-  }
+  function ascii(value) { return clean(value).normalize('NFKD').replace(/[^\x20-\x7E]/g, ''); }
+  function pdfEscape(value) { return ascii(value).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)'); }
+  function rgb(c) { return (c[0]/255).toFixed(3)+' '+(c[1]/255).toFixed(3)+' '+(c[2]/255).toFixed(3); }
   function strBytes(s) {
     var a = new Uint8Array(s.length);
     for (var i=0;i<s.length;i++) a[i]=s.charCodeAt(i)&255;
@@ -851,14 +821,8 @@
     var m = sig.match(/^data:image\/(jpeg|jpg);base64,(.+)$/i);
     if (m) {
       var img1 = await loadImage(sig).catch(function(){ return null; });
-      return {
-        bytes: base64ToBytes(m[2]),
-        width: (img1 && img1.naturalWidth) || 500,
-        height: (img1 && img1.naturalHeight) || 180
-      };
+      return { bytes: base64ToBytes(m[2]), width: (img1 && img1.naturalWidth) || 500, height: (img1 && img1.naturalHeight) || 180 };
     }
-    // Convert PNG/data URL or accessible URL to JPEG. Google Drive URLs may fail
-    // because of browser CORS; current Firestore submissions normally store JPEG data URLs.
     try {
       var img = await loadImage(sig);
       var canvas = document.createElement('canvas');
@@ -911,12 +875,9 @@
       studyCentre: clean(d.studyCentre),
       mode: clean(d.modeOfDelivery),
       semester: clean(d.semester),
-      block: '',
       f2fTotal: clean(d.f2fHours || '0'),
       onTotal: clean(d.onHours || d.onlineHours || '0'),
       grandTotal: clean(d.totalHours || '0'),
-      travelFrom: clean(d.travelFrom),
-      travelTo: clean(d.travelTo),
       bankName: clean(d.bankName),
       bankBranch: clean(d.bankBranch),
       accountName: clean(d.accountName),
@@ -926,13 +887,11 @@
       remarks: clean(d.remarks),
       signature: getSignatureSource(d),
       f2fRows: normalizeSessionRows(d, 'f2f'),
-      onRows: normalizeSessionRows(d, 'on'),
-      printed: new Date().toLocaleString()
+      onRows: normalizeSessionRows(d, 'on')
     };
   }
 
   async function buildTutorStylePdf(items) {
-    // Uses the same visual system as the undergraduate tutor form PDF.
     var pageW=595.28,pageH=841.89,margin=38,contentW=pageW-margin*2,footerTop=802;
     var colors={navy:[9,45,79],gold:[236,172,33],ink:[26,32,38],muted:[92,103,115],line:[201,210,218],pale:[241,246,250],white:[255,255,255]};
     var pages=[],imageList=[],imageByPage={},y=0;
@@ -1037,7 +996,6 @@
 
   async function printClaims(items) {
     if (!items || !items.length) { alert('No claims to print.'); return; }
-    var old = statusEl.innerHTML;
     setStatus('ready', 'Preparing tutor-style PDF…');
     try {
       var pdfBytes = await buildTutorStylePdf(items);
@@ -1061,18 +1019,14 @@
     }
   }
 
-
   async function downloadClaimsZip(items) {
     if (!items || !items.length) { alert('No claims available to zip.'); return; }
     if (!window.JSZip) {
       alert('ZIP library could not load. Check your internet connection and reload the page.');
       return;
     }
-
     var confirmed = true;
-    if (items.length > 100) {
-      confirmed = confirm('This will generate ' + items.length + ' separate PDF files and may take a while. Continue?');
-    }
+    if (items.length > 100) confirmed = confirm('This will generate ' + items.length + ' separate PDF files and may take a while. Continue?');
     if (!confirmed) return;
 
     var zip = new JSZip();
@@ -1142,22 +1096,23 @@
       firestoreCollection: activeCollectionName()
     };
 
-    var response = await fetch(SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: buildAdminPostBody(payload)
+    var formData = new FormData();
+    Object.keys(payload).forEach(function(key) {
+      formData.append(key, String(payload[key] == null ? '' : payload[key]));
     });
 
-    if (!response.ok) throw new Error('Apps Script returned HTTP ' + response.status);
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: formData
+    });
 
-    var result;
-    try { result = await response.json(); }
-    catch (err) { throw new Error('Could not read Apps Script response. Check the deployed web app URL.'); }
-
-    if (!(result && result.success)) {
-      throw new Error((result && (result.error || result.message)) || 'Google Sheet delete failed.');
-    }
-    return result;
+    return {
+      success: true,
+      attempted: true,
+      opaque: true,
+      message: 'Google Sheet delete request sent to Apps Script.'
+    };
   }
 
   async function deleteClaim(item) {
@@ -1180,8 +1135,8 @@
     }
 
     try {
-      setStatus('warn', 'Deleting matching Google Sheet row…');
-      var sheetResult = await deleteClaimFromGoogleSheet(item);
+      setStatus('warn', 'Sending Google Sheet delete request…');
+      await deleteClaimFromGoogleSheet(item);
 
       setStatus('warn', 'Deleting claim from Firestore…');
       await db.collection(activeCollectionName()).doc(item.id).delete();
@@ -1198,17 +1153,16 @@
       }
       renderClaims();
 
-      var deletedRows = Number(sheetResult.deletedRows || (sheetResult.deleted ? 1 : 0));
-      var extra = deletedRows > 0 ? (' Google Sheet rows deleted: ' + deletedRows + '.') : ' No matching Google Sheet row was found, but the Firestore claim was deleted.';
-      setStatus('ready', 'Claim deleted successfully.' + extra);
+      setStatus(
+        'ready',
+        'Claim deleted from Firestore. The matching Google Sheet delete request was also sent to Apps Script by Claim ID.'
+      );
     } catch (e) {
       console.error(e);
-      setStatus('fail', '<strong>Delete failed:</strong> ' + escapeHTML(e.message || e) + '<br>Nothing was removed from Firestore if the Google Sheet deletion failed first.');
+      setStatus('fail', '<strong>Delete failed:</strong> ' + escapeHTML(e.message || e) + '<br>The claim may still remain in Firestore if the failure happened before the Firestore delete step.');
       alert('Delete failed: ' + (e.message || e));
     }
   }
-
-
 
   function setupEvents() {
     document.getElementById('loginBtn').addEventListener('click', async function(){
@@ -1297,6 +1251,7 @@
           selected = null;
           previewBox.textContent = 'Select a claim to preview it here before downloading the tutor-style PDF.';
           printSelectedBtn.disabled = true;
+          editSelectedBtn.disabled = true;
           copyClaimIdBtn.disabled = true;
           setStatus('ready', 'Firebase loaded. Sign in to print claim PDFs.');
         }
