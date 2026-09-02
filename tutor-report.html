@@ -391,6 +391,14 @@
             transform: translateY(-2px); box-shadow:0 4px 12px rgba(0,86,179,0.3);
         }
 
+        #clearFormBtn {
+            margin-top: 10px;
+            background: #6c757d;
+        }
+        #clearFormBtn:hover {
+            background: #545b62;
+        }
+
         .loading, .error-message, .success-message {
             display: none; text-align:center; padding:12px; border-radius:6px; margin:10px 0;
         }
@@ -1172,6 +1180,7 @@
         </div>
 
         <button type="submit" id="submitBtn">Submit Claim Summary</button>
+        <button type="button" id="clearFormBtn">Clear Form</button>
     </form>
 </div>
 
@@ -2044,6 +2053,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (retryPendingSyncBtn) retryPendingSyncBtn.addEventListener('click', loadMyClaims);
     const newClaimBtn = document.getElementById('newClaimBtn');
     if (newClaimBtn) newClaimBtn.addEventListener('click', function() { clearEditMode(); resetForm(); });
+    const clearFormBtn = document.getElementById('clearFormBtn');
+    if (clearFormBtn) clearFormBtn.addEventListener('click', clearTutorForm);
     const cancelEditBtn = document.getElementById('cancelEditBtn');
     if (cancelEditBtn) cancelEditBtn.addEventListener('click', function() { clearEditMode(); resetForm(); });
 
@@ -4047,6 +4058,30 @@ function showPwError(msg) {
     const el = document.getElementById('pwError');
     el.textContent = msg;
     el.style.display = 'block';
+}
+
+function clearTutorForm() {
+    const hasAnything = (() => {
+        const form = document.getElementById('reportForm');
+        if (!form) return false;
+        const fields = Array.from(form.querySelectorAll('input, select, textarea'));
+        return fields.some(el => {
+            if (el.id === 'staffId' || el.id === 'facilitatorName') return false;
+            if (el.type === 'radio' || el.type === 'checkbox') return el.checked;
+            if (el.type === 'file') return !!el.value;
+            return String(el.value || '').trim() !== '';
+        }) || document.querySelectorAll('#f2fRows tr, #onRows tr').length > 0;
+    })();
+
+    if (hasAnything) {
+        const ok = window.confirm('Clear this form? All unsaved entries on this form, including the saved draft on this device, will be erased.');
+        if (!ok) return;
+    }
+
+    clearEditMode();
+    resetForm();
+    showSuccessMessage('Form cleared.');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function resetForm() {
