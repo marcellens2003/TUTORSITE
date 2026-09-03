@@ -892,8 +892,8 @@
   }
 
   async function buildTutorStylePdf(items) {
-    var pageW=595.28,pageH=841.89,margin=38,contentW=pageW-margin*2,footerTop=802;
-    var colors={navy:[9,45,79],gold:[236,172,33],ink:[26,32,38],muted:[92,103,115],line:[201,210,218],pale:[241,246,250],white:[255,255,255]};
+    var pageW=595.28,pageH=841.89,margin=38,contentW=pageW-margin*2,footerY=816;
+    var colors={navy:[23,58,94],gold:[201,154,18],ink:[27,31,35],muted:[103,113,125],line:[201,209,217],white:[255,255,255]};
     var pages=[],imageList=[],imageByPage={},y=0;
 
     function current(){return pages[pages.length-1];}
@@ -904,85 +904,167 @@
       if(align==='right')tx=x+(boxWidth||0)-width;
       cmds.push('BT '+rgb(color||colors.ink)+' rg /'+(bold?'F2':'F1')+' '+size+' Tf 1 0 0 1 '+tx.toFixed(2)+' '+(pageH-top-size).toFixed(2)+' Tm ('+pdfEscape(str)+') Tj ET');
     }
-    function rectTop(x,top,w,h,fill,stroke,target){
+    function rectTop(x,top,w,h,fill,stroke,target,lineWidth){
       var cmds=target||current();var yb=topToY(top,h);
       if(fill)cmds.push('q '+rgb(fill)+' rg '+x.toFixed(2)+' '+yb.toFixed(2)+' '+w.toFixed(2)+' '+h.toFixed(2)+' re f Q');
-      if(stroke)cmds.push('q '+rgb(stroke)+' RG 0.7 w '+x.toFixed(2)+' '+yb.toFixed(2)+' '+w.toFixed(2)+' '+h.toFixed(2)+' re S Q');
+      if(stroke)cmds.push('q '+rgb(stroke)+' RG '+(lineWidth||0.55)+' w '+x.toFixed(2)+' '+yb.toFixed(2)+' '+w.toFixed(2)+' '+h.toFixed(2)+' re S Q');
+    }
+    function roundRectTop(x,top,w,h,r,fill,stroke,target,lineWidth){
+      var cmds=target||current();var yb=topToY(top,h),k=0.5522847498,rr=Math.min(r,h/2,w/2),x0=x,y0=yb,x1=x+w,y1=yb+h;
+      if(fill)cmds.push('q '+rgb(fill)+' rg');
+      else cmds.push('q');
+      if(stroke)cmds.push(rgb(stroke)+' RG '+(lineWidth||0.8)+' w');
+      cmds.push(
+        (x0+rr).toFixed(2)+' '+y0.toFixed(2)+' m '+
+        (x1-rr).toFixed(2)+' '+y0.toFixed(2)+' l '+
+        (x1-rr+k*rr).toFixed(2)+' '+y0.toFixed(2)+' '+x1.toFixed(2)+' '+(y0+rr-k*rr).toFixed(2)+' '+x1.toFixed(2)+' '+(y0+rr).toFixed(2)+' c '+
+        x1.toFixed(2)+' '+(y1-rr).toFixed(2)+' l '+
+        x1.toFixed(2)+' '+(y1-rr+k*rr).toFixed(2)+' '+(x1-rr+k*rr).toFixed(2)+' '+y1.toFixed(2)+' '+(x1-rr).toFixed(2)+' '+y1.toFixed(2)+' c '+
+        (x0+rr).toFixed(2)+' '+y1.toFixed(2)+' l '+
+        (x0+rr-k*rr).toFixed(2)+' '+y1.toFixed(2)+' '+x0.toFixed(2)+' '+(y1-rr+k*rr).toFixed(2)+' '+x0.toFixed(2)+' '+(y1-rr).toFixed(2)+' c '+
+        x0.toFixed(2)+' '+(y0+rr).toFixed(2)+' l '+
+        x0.toFixed(2)+' '+(y0+rr-k*rr).toFixed(2)+' '+(x0+rr-k*rr).toFixed(2)+' '+y0.toFixed(2)+' '+(x0+rr).toFixed(2)+' '+y0.toFixed(2)+' c '+
+        (fill&&stroke?'B':fill?'f':'S')+' Q'
+      );
     }
     function ruleTop(x1,top1,x2,top2,color,width,target){
-      var cmds=target||current();cmds.push('q '+rgb(color||colors.line)+' RG '+(width||0.7)+' w '+x1.toFixed(2)+' '+(pageH-top1).toFixed(2)+' m '+x2.toFixed(2)+' '+(pageH-top2).toFixed(2)+' l S Q');
+      var cmds=target||current();cmds.push('q '+rgb(color||colors.line)+' RG '+(width||0.6)+' w '+x1.toFixed(2)+' '+(pageH-top1).toFixed(2)+' m '+x2.toFixed(2)+' '+(pageH-top2).toFixed(2)+' l S Q');
     }
     function textWidth(value,size,bold){return ascii(value||'').length*size*(bold?0.54:0.50);}
-    function wrapText(value,size,width){
+    function wrapText(value,size,width,bold){
       var words=ascii(value||'').split(' ').filter(Boolean);if(!words.length)return [''];var lines=[],line='';
-      words.forEach(function(word){var candidate=line?line+' '+word:word;if(line&&textWidth(candidate,size,false)>width){lines.push(line);line=word;}else line=candidate;});
+      words.forEach(function(word){var candidate=line?line+' '+word:word;if(line&&textWidth(candidate,size,!!bold)>width){lines.push(line);line=word;}else line=candidate;});
       if(line)lines.push(line);return lines;
     }
-    function drawHeader(continued){
-      pages.push([]);
-      var h=continued?56:92;
-      rectTop(0,0,pageW,h,colors.navy,null);
-      rectTop(0,h,pageW,4,colors.gold,null);
-      if(continued){
-        putTextTop('UCC - UNDERGRADUATE FACILITATOR CLAIM SUMMARY',margin,18,11,true,colors.white);
-        putTextTop('Continued',margin,35,8,false,[209,223,235]);
-        y=76;
-      }else{
-        putTextTop('UNIVERSITY OF CAPE COAST',margin,18,17,true,colors.white);
-        putTextTop('College of Distance Education (CoDE)',margin,43,10,false,[217,230,240]);
-        putTextTop('UNDERGRADUATE FACILITATOR CLAIM SUMMARY',margin,62,12,true,colors.white);
-        putTextTop('Generated '+new Date().toLocaleString(),margin,104,8,false,colors.muted);
-        y=124;
-      }
+    function fitFont(value,maxWidth,start,min,bold){
+      var size=start;while(size>min&&textWidth(value,size,!!bold)>maxWidth)size-=0.25;return size;
     }
-    function ensure(height){if(y+height>footerTop-14)drawHeader(true);}
-    function fieldLines(field,width){return wrapText((field&&field[1])||'-',9,width-20);}
-    function drawCard(title,rows){
-      var rowHeights=rows.map(function(row){var cellW=contentW/row.length;return Math.max.apply(Math,[34].concat(row.map(function(field){return 18+fieldLines(field,cellW).length*11;})));});
-      var height=25+rowHeights.reduce(function(a,b){return a+b;},0);ensure(height+10);
-      rectTop(margin,y,contentW,25,colors.navy,colors.navy);putTextTop(title,margin+12,y+7,10,true,colors.white);
-      var top=y+25;
-      rows.forEach(function(row,rowIndex){var rowH=rowHeights[rowIndex],cellW=contentW/row.length;rectTop(margin,top,contentW,rowH,colors.white,colors.line);row.forEach(function(field,index){var x=margin+index*cellW;if(index)ruleTop(x,top,x,top+rowH);putTextTop(String((field&&field[0])||'').toUpperCase(),x+10,top+7,6.8,true,colors.muted);fieldLines(field,cellW).forEach(function(line,lineIndex){putTextTop(line||'-',x+10,top+18+lineIndex*11,9,true,colors.ink);});});top+=rowH;});
-      y+=height+10;
+    function sectionHeading(text){
+      putTextTop(text,margin,y,8.6,true,colors.navy);
+      ruleTop(margin,y+15,pageW-margin,y+15,colors.navy,0.8);
+      y+=23;
+    }
+    function drawCell(x,top,w,h,label,value,valueSize){
+      rectTop(x,top,w,h,colors.white,colors.line);
+      putTextTop(String(label||'').toUpperCase(),x+8,top+7,5.8,true,colors.muted);
+      var val=ascii(value||'-');var sz=fitFont(val,w-16,valueSize||8.7,6.3,true);
+      putTextTop(val,x+8,top+h-14,sz,true,colors.ink);
+    }
+    function drawTopDetails(data){
+      var half=contentW/2;
+      drawCell(margin,y,half,36,'Monitor Staff ID',data.monitorStaffId,8.8);
+      drawCell(margin+half,y,half,36,'Monitor Name',data.monitorName,8.8);y+=36;
+      drawCell(margin,y,half,36,'Facilitator Staff ID',data.manual?'N/A - NEW TUTOR':data.staffId,8.8);
+      drawCell(margin+half,y,half,36,'Facilitator Name',data.tutorName,8.8);y+=36;
+      drawCell(margin,y,contentW,38,'Course Code and Title',data.course,8.8);y+=38;
+      var q=contentW/4;
+      drawCell(margin,y,q,34,'Programme',data.program,8.3);
+      drawCell(margin+q,y,q,34,'Study Centre',data.studyCentre,8.3);
+      drawCell(margin+2*q,y,q,34,'Mode',data.mode,8.3);
+      drawCell(margin+3*q,y,q,34,'Semester',data.semester,8.3);y+=44;
     }
     function activeRows(data){return data.mode==='Face-to-Face'?data.f2fRows:data.onRows;}
+    function sessionMetrics(count,manual,hasRemarks){
+      var fixedAfter=10+32+10+(manual?97:0)+(hasRemarks?72:72)+38;
+      var available=Math.max(150,footerY-y-fixedAfter-43);
+      var rowH=Math.min(20,Math.max(11.5,available/Math.max(count,1)));
+      var dateTimeSize=rowH>=17?8.8:rowH>=14?7.6:6.8;
+      var numberSize=rowH>=17?8.6:rowH>=14?7.5:6.7;
+      return {rowH:rowH,dateTimeSize:dateTimeSize,numberSize:numberSize};
+    }
     function drawSessions(data){
       var rows=activeRows(data);if(!rows.length)rows=[{date:'No sessions recorded',start:'-',end:'-',students:'-',hrs:'-'}];
-      var widths=[34,110,88,88,84,contentW-404],headers=['#','DATE','START','END','STUDENTS','HOURS'];var index=0;
-      while(index<rows.length){
-        ensure(25+24+25+33+10);
-        rectTop(margin,y,contentW,25,colors.navy,colors.navy);putTextTop(data.mode==='Face-to-Face'?'FACE-TO-FACE SESSIONS':'ONLINE SESSIONS',margin+12,y+7,10,true,colors.white);
-        var top=y+25;rectTop(margin,top,contentW,24,colors.pale,colors.line);var x=margin;
-        headers.forEach(function(header,i){if(i)ruleTop(x,top,x,top+24);putTextTop(header,x+7,top+8,7,true,colors.muted);x+=widths[i];});top+=24;
-        while(index<rows.length && top+25+33<=(footerTop-14)){
-          var row=rows[index];rectTop(margin,top,contentW,25,colors.white,colors.line);
-          var values=[activeRows(data).length?String(index+1):'-',row.date||'-',row.start||'-',row.end||'-',row.students===''?'-':row.students,row.hrs==='-'?'-':(isNaN(Number(row.hrs))?String(row.hrs):Number(row.hrs).toFixed(2)+' hrs')];
-          x=margin;values.forEach(function(value,col){if(col)ruleTop(x,top,x,top+25);putTextTop(String(value),x+7,top+8,8.5,col>=4,colors.ink);x+=widths[col];});top+=25;index++;
-        }
-        if(index>=rows.length){rectTop(margin,top,contentW,33,colors.pale,colors.line);var totalLabel=data.mode==='Face-to-Face'?'Total Face-to-Face Hours':'Total Online Hours';var sectionTotal=data.mode==='Face-to-Face'?data.f2fTotal:data.onTotal;putTextTop(totalLabel,margin+12,top+10,8,true,colors.muted);putTextTop(Number(sectionTotal||0).toFixed(2)+' hours',margin+12,top+8,11,true,colors.navy,'right',contentW-24);top+=33;y=top+10;}else{y=top+8;drawHeader(true);}
+      sectionHeading(data.mode==='Face-to-Face'?'FACE-TO-FACE SESSIONS':'ONLINE SESSIONS');
+      var widths=[34,126,94,94,88,contentW-436],headers=['#','DATE','START','END','STUDENTS','HOURS'];
+      var metrics=sessionMetrics(rows.length,data.manual,!!data.remarks),headerH=20,totalH=24;
+      rectTop(margin,y,contentW,headerH,colors.white,colors.line);var x=margin;
+      headers.forEach(function(header,i){if(i)ruleTop(x,y,x,y+headerH,colors.line,0.45);putTextTop(header,x+6,y+6,6.3,true,colors.navy);x+=widths[i];});
+      y+=headerH;
+      rows.forEach(function(row,index){
+        rectTop(margin,y,contentW,metrics.rowH,colors.white,colors.line);x=margin;
+        var hrs=row.hrs==='-'?'-':(isNaN(Number(row.hrs))?String(row.hrs):Number(row.hrs).toFixed(2));
+        var values=[activeRows(data).length?String(index+1):'-',row.date||'-',row.start||'-',row.end||'-',row.students===''?'-':row.students,hrs];
+        values.forEach(function(value,col){
+          if(col)ruleTop(x,y,x,y+metrics.rowH,colors.line,0.4);
+          var size=col===0?Math.min(7.2,metrics.dateTimeSize):(col>=1&&col<=3?metrics.dateTimeSize:metrics.numberSize);
+          putTextTop(String(value),x+6,y+Math.max(3.5,(metrics.rowH-size)/2-0.4),size,col>=1,colors.ink);
+          x+=widths[col];
+        });
+        y+=metrics.rowH;
+      });
+      rectTop(margin,y,contentW,totalH,colors.white,colors.line);
+      var totalLabel=data.mode==='Face-to-Face'?'Total Face-to-Face Hours':'Total Online Hours';
+      var sectionTotal=data.mode==='Face-to-Face'?data.f2fTotal:data.onTotal;
+      putTextTop(totalLabel,margin+10,y+8,7.2,true,colors.muted);
+      putTextTop(Number(sectionTotal||0).toFixed(2)+' hours',margin+10,y+7,9,true,colors.navy,'right',contentW-20);
+      y+=totalH+10;
+    }
+    function drawGrandTotal(data){
+      roundRectTop(margin,y,contentW,32,4,colors.white,colors.gold,null,1.0);
+      putTextTop('GRAND TOTAL TEACHING HOURS',margin+12,y+11,8.8,true,colors.navy);
+      putTextTop(Number(data.grandTotal||0).toFixed(2)+' HOURS',margin+12,y+9,12,true,colors.navy,'right',contentW-24);
+      y+=42;
+    }
+    function drawBankDetails(data){
+      sectionHeading('BANK AND CONTACT DETAILS');
+      var half=contentW/2,rowH=27;
+      drawCell(margin,y,half,rowH,'Bank Name',data.bankName,7.8);drawCell(margin+half,y,half,rowH,'Bank Branch',data.bankBranch,7.8);y+=rowH;
+      drawCell(margin,y,half,rowH,'Account Name',data.accountName,7.8);drawCell(margin+half,y,half,rowH,'Account Number',data.accountNumber,7.8);y+=rowH;
+      drawCell(margin,y,half,rowH,'Ghana Card Number',data.ghanaCardNumber,7.8);drawCell(margin+half,y,half,rowH,'Phone Number',data.phoneNumber,7.8);y+=rowH+10;
+    }
+    async function drawBottom(data){
+      var gap=10,leftW=data.remarks?contentW*0.64:contentW*0.54,rightW=contentW-leftW-gap,boxH=58;
+      if(data.remarks){
+        putTextTop('REMARKS',margin,y,7.6,true,colors.navy);ruleTop(margin,y+14,margin+leftW,y+14,colors.navy,0.7);
+        putTextTop('TUTOR SIGNATURE CONFIRMATION',margin+leftW+gap,y,7.6,true,colors.navy);ruleTop(margin+leftW+gap,y+14,pageW-margin,y+14,colors.navy,0.7);
+        y+=20;
+        rectTop(margin,y,leftW,boxH,colors.white,colors.line);rectTop(margin+leftW+gap,y,rightW,boxH,colors.white,colors.line);
+        putTextTop('ADDITIONAL REMARKS',margin+8,y+8,5.6,true,colors.muted);
+        var remLines=wrapText(data.remarks,6.6,leftW-16,true).slice(0,4);
+        remLines.forEach(function(line,i){putTextTop(line,margin+8,y+22+i*9,6.6,true,colors.ink);});
+      }else{
+        putTextTop('TUTOR SIGNATURE CONFIRMATION',margin,y,7.6,true,colors.navy);ruleTop(margin,y+14,pageW-margin,y+14,colors.navy,0.7);
+        y+=20;leftW=0;rightW=contentW;gap=0;
+        rectTop(margin,y,contentW,boxH,colors.white,colors.line);
       }
-    }
-    function drawGrandTotal(data){ensure(48);rectTop(margin,y,contentW,40,colors.gold,colors.gold);putTextTop('GRAND TOTAL TEACHING HOURS',margin+14,y+13,9,true,colors.navy);putTextTop(Number(data.grandTotal||0).toFixed(2)+' HOURS',margin+14,y+10,14,true,colors.navy,'right',contentW-28);y+=50;}
-    async function drawSignature(data){
-      ensure(72);rectTop(margin,y,contentW,62,colors.white,colors.line);putTextTop('TUTOR SIGNATURE CONFIRMATION',margin+12,y+10,7,true,colors.muted);
+      var sx=data.remarks?margin+leftW+gap:margin;
+      var sw=data.remarks?rightW:contentW;
       var sig=clean(data.signature||'');var isImage=/^data:image\//i.test(sig)||/^https?:\/\//i.test(sig);var sigImage=isImage?await signatureToJpeg(sig):null;
-      if(sigImage){var imgName='SigImg'+(imageList.length+1),pageIndex=pages.length-1;imageList.push({name:imgName,image:sigImage});if(!imageByPage[pageIndex])imageByPage[pageIndex]=[];imageByPage[pageIndex].push(imgName);var maxW=180,maxH=27,scale=Math.min(maxW/sigImage.width,maxH/sigImage.height),iw=sigImage.width*scale,ih=sigImage.height*scale;current().push('q '+iw.toFixed(2)+' 0 0 '+ih.toFixed(2)+' '+(margin+12).toFixed(2)+' '+(pageH-(y+45)).toFixed(2)+' cm /'+imgName+' Do Q');}
-      else putTextTop(sig||'Not provided',margin+12,y+27,12,true,colors.navy);
-      ruleTop(margin+12,y+48,margin+contentW-12,y+48,colors.line,0.8);putTextTop('Tutor/facilitator full name or initials',margin+12,y+51,7,false,colors.muted);y+=72;
+      if(sigImage){
+        var imgName='SigImg'+(imageList.length+1),pageIndex=pages.length-1;imageList.push({name:imgName,image:sigImage});if(!imageByPage[pageIndex])imageByPage[pageIndex]=[];imageByPage[pageIndex].push(imgName);
+        var maxW=Math.min(sw-22,155),maxH=24,scale=Math.min(maxW/sigImage.width,maxH/sigImage.height),iw=sigImage.width*scale,ih=sigImage.height*scale;
+        current().push('q '+iw.toFixed(2)+' 0 0 '+ih.toFixed(2)+' '+(sx+10).toFixed(2)+' '+(pageH-(y+36)).toFixed(2)+' cm /'+imgName+' Do Q');
+      }else{
+        putTextTop(sig||'Not provided',sx+10,y+25,10.5,true,colors.navy);
+      }
+      putTextTop('Tutor/facilitator full name or initials',sx+10,y+45,5.8,false,colors.muted);
+      y+=boxH+6;
     }
-    function addFooter(){pages.forEach(function(cmds,index){ruleTop(margin,pageH-38,pageW-margin,pageH-38,colors.line,0.6,cmds);putTextTop('College of Distance Education - University of Cape Coast',margin,pageH-27,7,false,colors.muted,'left',0,cmds);putTextTop('Page '+(index+1)+' of '+pages.length,pageW-margin-58,pageH-27,7,false,colors.muted,'left',0,cmds);});}
+    function drawHeader(){
+      pages.push([]);y=24;
+      putTextTop('UNIVERSITY OF CAPE COAST',margin,y,17,true,colors.navy);y+=24;
+      putTextTop('College of Distance Education (CoDE)',margin,y,9,false,colors.navy);y+=19;
+      putTextTop('UNDERGRADUATE FACILITATOR CLAIM SUMMARY',margin,y,11.5,true,colors.navy);
+      putTextTop('Generated '+new Date().toLocaleString(),margin,y+1,7,false,colors.muted,'right',contentW);
+      y+=25;ruleTop(margin,y,pageW-margin,y,colors.gold,1.1);y+=14;
+    }
+    function addFooter(){
+      var total=pages.length;
+      pages.forEach(function(cmds,index){
+        ruleTop(margin,pageH-38,pageW-margin,pageH-38,colors.line,0.55,cmds);
+        putTextTop('College of Distance Education - University of Cape Coast',margin,pageH-27,6,false,colors.muted,'left',0,cmds);
+        putTextTop('Page '+(index+1)+' of '+total,pageW-margin-62,pageH-27,6,false,colors.muted,'left',0,cmds);
+      });
+    }
 
     for(var idx=0;idx<items.length;idx++){
       var data=pdfClaimData(items[idx]);
-      drawHeader(false);
-      drawCard('MONITOR DETAILS',[[['Monitor Staff ID',data.monitorStaffId],['Monitor Name',data.monitorName]]]);
-      drawCard('FACILITATOR DETAILS',[[['Facilitator Staff ID',data.manual?'N/A - NEW TUTOR':data.staffId],['Facilitator Name',data.tutorName]]]);
-      drawCard('COURSE DETAILS',[[['Course Code and Title',data.course]],[['Programme',data.program],['Study Centre',data.studyCentre]],[['Mode of Delivery',data.mode],['Semester',data.semester]]]);
+      drawHeader();
+      drawTopDetails(data);
       drawSessions(data);
       drawGrandTotal(data);
-      if(data.manual)drawCard('BANK AND CONTACT DETAILS',[[['Bank Name',data.bankName],['Bank Branch',data.bankBranch]],[['Account Name',data.accountName],['Account Number',data.accountNumber]],[['Ghana Card Number',data.ghanaCardNumber],['Phone Number',data.phoneNumber]]]);
-      if(data.remarks)drawCard('REMARKS',[[['Additional Remarks',data.remarks]]]);
-      await drawSignature(data);
+      if(data.manual)drawBankDetails(data);
+      await drawBottom(data);
     }
     addFooter();
 
