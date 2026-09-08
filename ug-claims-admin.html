@@ -473,7 +473,11 @@
     try {
       var snap = await db.collection(collectionName).get();
       claims = [];
-      snap.forEach(function(doc){ claims.push({ id: doc.id, data: doc.data() || {} }); });
+      snap.forEach(function(doc){
+        var data = doc.data() || {};
+        if (lower(data.deleteStatus) === 'pending' || lower(data.deleteStatus) === 'processing') return;
+        claims.push({ id: doc.id, data: data });
+      });
       claims.sort(compareClaimsOldestFirst);
       applyFilters();
       setStatus('ready', 'Loaded all ' + claims.length + ' ' + activeTypeLabel() + ' undergraduate claim(s).');
@@ -1158,45 +1162,6 @@
     }
   }
 
-  function buildAdminPostBody(data) {
-    return new URLSearchParams(data).toString();
-  }
-
-  async function deleteClaimFromGoogleSheet(item) {
-    var d = item.data || {};
-    var payload = {
-      action: 'deleteClaimFromSheet',
-      claimId: d.claimId || item.id || '',
-      firestoreDocId: item.id || '',
-      staffId: d.staffId || '',
-      tutorName: d.tutorName || '',
-      course: d.course || '',
-      sheetName: activeSheetName(),
-      targetSheetName: activeSheetName(),
-      collectionId: activeCollectionName(),
-      targetCollection: activeCollectionName(),
-      firestoreCollection: activeCollectionName()
-    };
-
-    var formData = new FormData();
-    Object.keys(payload).forEach(function(key) {
-      formData.append(key, String(payload[key] == null ? '' : payload[key]));
-    });
-
-    await fetch(SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      body: formData
-    });
-
-    return {
-      success: true,
-      attempted: true,
-      opaque: true,
-      message: 'Google Sheet delete request sent to Apps Script.'
-    };
-  }
-
   async function deleteClaim(item) {
     if (!item || !item.id) return;
     var d = item.data || {};
@@ -1206,7 +1171,7 @@
     var firstConfirm = confirm(
       'Delete this claim from Firestore AND Google Sheet?\n\n' +
       label + '\nClaim ID: ' + claimId + '\n\n' +
-      'This removes it from the admin dashboard, from the tutor\'s submitted claims list, and from the Google Sheet row matched by Claim ID.'
+      'The claim will be queued for safe deletion. The Apps Script sync will remove the matching Google Sheet row first, then remove the Firestore claim.'
     );
     if (!firstConfirm) return;
 
@@ -1217,11 +1182,16 @@
     }
 
     try {
-      setStatus('warn', 'Sending Google Sheet delete request…');
-      await deleteClaimFromGoogleSheet(item);
-
-      setStatus('warn', 'Deleting claim from Firestore…');
-      await db.collection(activeCollectionName()).doc(item.id).delete();
+      setStatus('warn', 'Queuing claim for safe deletion…');
+      await db.collection(activeCollectionName()).doc(item.id).update({
+        deleteStatus: 'pending',
+        deleteError: '',
+        deleteRequestedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        deleteRequestedByUid: auth.currentUser ? auth.currentUser.uid : '',
+        deleteRequestedByEmail: auth.currentUser ? (auth.currentUser.email || '') : '',
+        deleteRequestedClaimId: claimId,
+        deleteRequestedCollection: activeCollectionName()
+      });
 
       claims = claims.filter(function(x){ return x.id !== item.id; });
       filtered = filtered.filter(function(x){ return x.id !== item.id; });
@@ -1237,12 +1207,12 @@
 
       setStatus(
         'ready',
-        'Claim deleted from Firestore. The matching Google Sheet delete request was also sent to Apps Script by Claim ID.'
+        'Claim queued for safe deletion. The next Apps Script sync will delete the matching Google Sheet row first and then remove the Firestore claim.'
       );
     } catch (e) {
       console.error(e);
-      setStatus('fail', '<strong>Delete failed:</strong> ' + escapeHTML(e.message || e) + '<br>The claim may still remain in Firestore if the failure happened before the Firestore delete step.');
-      alert('Delete failed: ' + (e.message || e));
+      setStatus('fail', '<strong>Delete queue failed:</strong> ' + escapeHTML(e.message || e) + '<br>The claim has not been removed from Firestore.');
+      alert('Delete queue failed: ' + (e.message || e));
     }
   }
 
