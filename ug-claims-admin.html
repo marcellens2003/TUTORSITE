@@ -95,6 +95,25 @@
   .edit-session-note { color:#667085; font-size:12px; line-height:1.45; margin:4px 0 8px; }
   .edit-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
   .edit-total { font-weight:800; color:#002147; background:#eef4ff; border:1px solid #cbdaf4; padding:8px 10px; border-radius:8px; margin-top:8px; }
+  .edit-session-section { margin-top:4px; padding:14px; border:1px solid #dbe4ee; border-radius:12px; background:#f8fbff; }
+  .edit-session-toolbar { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-bottom:10px; }
+  .edit-session-toolbar strong { color:#002147; font-size:14px; }
+  .edit-session-toolbar .session-help { color:#667085; font-size:11px; font-weight:500; }
+  .edit-session-list { display:flex; flex-direction:column; gap:9px; }
+  .edit-session-empty { padding:12px; border:1px dashed #cbd5e1; border-radius:9px; background:#fff; color:#667085; font-size:12px; }
+  .edit-session-row { display:grid; grid-template-columns:1.35fr 1fr 1fr .85fr .68fr auto; gap:8px; align-items:end; padding:10px; border:1px solid #d7e0ea; border-radius:10px; background:#fff; box-shadow:0 2px 7px rgba(15,23,42,.04); }
+  .edit-session-row label { margin:0 0 4px; font-size:10px; color:#64748b; text-transform:uppercase; letter-spacing:.35px; }
+  .edit-session-row input { padding:8px 9px; font-size:13px; }
+  .edit-date-control { display:flex; gap:5px; align-items:center; }
+  .edit-date-control .session-date-text { min-width:0; }
+  .edit-date-control .session-date-picker { width:42px; min-width:42px; padding:7px 4px; color:transparent; cursor:pointer; }
+  .session-hours-output { min-height:35px; display:flex; align-items:center; justify-content:center; border:1px solid #cbd5e1; border-radius:8px; background:#f8fafc; color:#002147; font-size:13px; font-weight:800; }
+  .session-remove-btn { min-height:35px; padding:7px 9px; white-space:nowrap; }
+  .edit-session-row.invalid { border-color:#dc3545; box-shadow:0 0 0 2px rgba(220,53,69,.08); }
+  .edit-session-error { display:none; grid-column:1 / -1; color:#9f1d2d; font-size:11px; line-height:1.35; margin-top:-2px; }
+  .edit-session-row.invalid .edit-session-error { display:block; }
+  @media (max-width: 1100px) { .edit-session-row { grid-template-columns:1.25fr 1fr 1fr; } .session-action-field { grid-column:3; } }
+  @media (max-width: 620px) { .edit-session-row { grid-template-columns:1fr 1fr; } .session-date-field { grid-column:1 / -1; } .session-action-field { grid-column:auto; } }
   @media (max-width: 720px) { .edit-grid { grid-template-columns:1fr; } .edit-card { position:static; } }
 
   #printArea { display:none; }
@@ -242,7 +261,7 @@
           <div class="subtitle">Edit a submitted claim. Saving will update Firestore first, then mark the claim for Google Sheet re-sync.</div>
           <div id="editEmpty" class="preview-box muted">Select a claim, then click <strong>Edit selected claim</strong> or the row <strong>Edit</strong> button.</div>
           <form id="editForm" class="hidden">
-            <div class="edit-hint">Session rows use this format: <strong>Date | Start | End | Students | Hours</strong>. Put one session per line.</div>
+            <div class="edit-hint">Edit sessions using the fields below. Dates use <strong>DD/MM/YYYY</strong>; hours recalculate automatically when Start or End changes.</div>
             <div class="edit-grid">
               <div class="full"><label for="editClaimId">Claim ID</label><input id="editClaimId" type="text" disabled></div>
               <div><label for="editClaimStatus">Claim status</label><select id="editClaimStatus"><option>Submitted</option><option>Returned for Correction</option><option>Approved</option><option>Paid</option><option>Locked</option></select></div>
@@ -255,10 +274,22 @@
               <div class="full"><label for="editCourse">Course</label><input id="editCourse" type="text" placeholder="CODE: Course title"></div>
               <div><label for="editProgram">Programme</label><input id="editProgram" type="text"></div>
               <div><label for="editStudyCentre">Study Centre</label><input id="editStudyCentre" type="text"></div>
-              <div><label for="editMode">Mode of Delivery</label><input id="editMode" type="text" placeholder="Face-to-Face or Purely Online"></div>
+              <div><label for="editMode">Mode of Delivery</label><input id="editMode" type="text" list="editModeOptions" placeholder="Face-to-Face or Purely Online"><datalist id="editModeOptions"><option value="Face-to-Face"><option value="Purely Online"><option value="Face-to-Face and Purely Online"></datalist></div>
               <div><label for="editSemester">Semester</label><input id="editSemester" type="text"></div>
-              <div class="full"><label for="editF2fSessions">Face-to-face sessions</label><div class="edit-session-note">Example: 1 Jul 2026 | 8:00 AM | 10:00 AM | 35 | 2.00</div><textarea id="editF2fSessions"></textarea></div>
-              <div class="full"><label for="editOnlineSessions">Online sessions</label><div class="edit-session-note">Example: 1 Jul 2026 | 7:00 PM | 9:00 PM | 42 | 2.00</div><textarea id="editOnlineSessions"></textarea></div>
+              <div class="full edit-session-section" id="editF2fSection">
+                <div class="edit-session-toolbar">
+                  <div><strong>Face-to-Face sessions</strong><div class="session-help">Edit each date, time and student count separately.</div></div>
+                  <button type="button" class="small" id="addF2fSessionBtn">+ Add Session</button>
+                </div>
+                <div id="editF2fSessionList" class="edit-session-list"></div>
+              </div>
+              <div class="full edit-session-section" id="editOnlineSection">
+                <div class="edit-session-toolbar">
+                  <div><strong>Online sessions</strong><div class="session-help">Edit each date, time and student count separately.</div></div>
+                  <button type="button" class="small" id="addOnlineSessionBtn">+ Add Session</button>
+                </div>
+                <div id="editOnlineSessionList" class="edit-session-list"></div>
+              </div>
               <div class="full"><label for="editRemarks">Remarks</label><textarea id="editRemarks"></textarea></div>
               <div class="manual-edit-field hidden"><label for="editBankName">Bank Name</label><input id="editBankName" type="text"></div>
               <div class="manual-edit-field hidden"><label for="editBankBranch">Bank Branch</label><input id="editBankBranch" type="text"></div>
@@ -601,32 +632,173 @@
       ].join(' | ');
     }).join('\n');
   }
-  function parseEditSessionText(text) {
-    text = String(text || '').trim();
-    if (!text) return [];
-    return text.split(/\r?\n/).map(function(line){
-      line = clean(line);
-      if (!line) return null;
-      var parts = line.indexOf('|') >= 0 ? line.split('|') : (line.indexOf('\t') >= 0 ? line.split('\t') : line.split(','));
-      parts = parts.map(clean);
-      var hasStudentColumn = parts.length >= 5;
-      var studentsRaw = hasStudentColumn ? parts[3] : '';
-      var studentsNum = parseInt(String(studentsRaw).replace(/[^0-9\-]/g, ''), 10);
-      var hoursRaw = hasStudentColumn ? (parts[4] || '') : (parts[3] || '');
-      var hoursNum = parseFloat(String(hoursRaw).replace(/[^0-9.\-]/g, ''));
-      if (isNaN(hoursNum)) hoursNum = 0;
-      return {
-        date: parts[0] || '',
-        start: parts[1] || '',
-        startDisplay: parts[1] || '',
-        end: parts[2] || '',
-        endDisplay: parts[2] || '',
-        studentCount: isNaN(studentsNum) ? '' : studentsNum,
-        numberOfStudents: isNaN(studentsNum) ? '' : studentsNum,
-        hours: hoursNum,
-        hoursLabel: hoursNum ? hoursNum.toFixed(2) : (hoursRaw || '')
-      };
-    }).filter(Boolean);
+  function editDateToDisplay(value) {
+    value = clean(value);
+    if (!value) return '';
+    var iso = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (iso) return iso[3] + '/' + iso[2] + '/' + iso[1];
+    var friendly = value.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+    if (friendly) return String(friendly[1]).padStart(2,'0') + '/' + String(friendly[2]).padStart(2,'0') + '/' + friendly[3];
+    var d = new Date(value);
+    if (!isNaN(d.getTime())) return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear();
+    return value;
+  }
+  function editDateToIso(value) {
+    value = clean(value);
+    if (!value) return '';
+    var iso = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (iso) return value;
+    var m = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!m) return '';
+    var day = Number(m[1]), month = Number(m[2]), year = Number(m[3]);
+    var d = new Date(year, month - 1, day);
+    if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) return '';
+    return String(year).padStart(4,'0') + '-' + String(month).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+  }
+  function formatEditDateTyping(value) {
+    var digits = String(value || '').replace(/\D/g, '').slice(0, 8);
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 4) return digits.slice(0,2) + '/' + digits.slice(2);
+    return digits.slice(0,2) + '/' + digits.slice(2,4) + '/' + digits.slice(4);
+  }
+  function editTimeTo24(value) {
+    value = clean(value);
+    if (!value) return '';
+    var twentyFour = value.match(/^(\d{1,2}):(\d{2})$/);
+    if (twentyFour) {
+      var h24 = Number(twentyFour[1]), m24 = Number(twentyFour[2]);
+      if (h24 >= 0 && h24 <= 23 && m24 >= 0 && m24 <= 59) return String(h24).padStart(2,'0') + ':' + String(m24).padStart(2,'0');
+    }
+    var ampm = value.match(/^(\d{1,2})(?::(\d{2}))?\s*([AP])\.?M\.?$/i);
+    if (!ampm) return '';
+    var hour = Number(ampm[1]), minute = Number(ampm[2] || 0), suffix = ampm[3].toUpperCase();
+    if (hour < 1 || hour > 12 || minute < 0 || minute > 59) return '';
+    if (suffix === 'A' && hour === 12) hour = 0;
+    if (suffix === 'P' && hour !== 12) hour += 12;
+    return String(hour).padStart(2,'0') + ':' + String(minute).padStart(2,'0');
+  }
+  function editTimeToDisplay(value) {
+    var time = editTimeTo24(value);
+    if (!time) return clean(value);
+    var p = time.split(':'), hour = Number(p[0]), minute = p[1];
+    var suffix = hour >= 12 ? 'PM' : 'AM';
+    var displayHour = hour % 12 || 12;
+    return displayHour + ':' + minute + ' ' + suffix;
+  }
+  function calculateEditSessionHours(start, end) {
+    var s = editTimeTo24(start), e = editTimeTo24(end);
+    if (!s || !e) return 0;
+    var sp = s.split(':').map(Number), ep = e.split(':').map(Number);
+    var minutes = (ep[0] * 60 + ep[1]) - (sp[0] * 60 + sp[1]);
+    return minutes > 0 ? minutes / 60 : 0;
+  }
+  function normalizeEditSessionItem(item) {
+    item = item || {};
+    var students = item.studentCount !== undefined ? item.studentCount : (item.numberOfStudents !== undefined ? item.numberOfStudents : item.students);
+    var start = editTimeTo24(item.start || item.startTime || item.startDisplay || item.Start);
+    var end = editTimeTo24(item.end || item.endTime || item.endDisplay || item.End);
+    return {
+      dateDisplay: editDateToDisplay(item.date || item.sessionDate || item.Date),
+      start: start,
+      end: end,
+      students: students === undefined || students === null ? '' : String(students),
+      hours: calculateEditSessionHours(start, end)
+    };
+  }
+  function sessionRowHtml(kind, item, index) {
+    var row = normalizeEditSessionItem(item);
+    var prefix = kind === 'f2f' ? 'Face-to-Face' : 'Online';
+    var isoForPicker = editDateToIso(row.dateDisplay);
+    return '<div class="edit-session-row" data-kind="' + kind + '" data-index="' + index + '">' +
+      '<div class="session-date-field"><label>Date</label><div class="edit-date-control">' +
+        '<input class="session-date-text" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/YYYY" value="' + escapeHTML(row.dateDisplay) + '" aria-label="' + prefix + ' session date">' +
+        '<input class="session-date-picker" type="date" value="' + escapeHTML(isoForPicker) + '" title="Choose date" aria-label="Choose ' + prefix + ' session date">' +
+      '</div></div>' +
+      '<div><label>Start</label><input class="session-start-input" type="time" value="' + escapeHTML(row.start) + '" aria-label="' + prefix + ' start time"></div>' +
+      '<div><label>End</label><input class="session-end-input" type="time" value="' + escapeHTML(row.end) + '" aria-label="' + prefix + ' end time"></div>' +
+      '<div><label>Students</label><input class="session-students-input" type="number" min="0" step="1" inputmode="numeric" value="' + escapeHTML(row.students) + '" aria-label="' + prefix + ' student count"></div>' +
+      '<div><label>Hours</label><div class="session-hours-output">' + row.hours.toFixed(2) + '</div></div>' +
+      '<div class="session-action-field"><label>&nbsp;</label><button type="button" class="small danger session-remove-btn">Remove</button></div>' +
+      '<div class="edit-session-error">Please enter a valid date, start time, end time and student count. End time must be after start time.</div>' +
+    '</div>';
+  }
+  function renderEditSessionRows(kind, items) {
+    var list = document.getElementById(kind === 'f2f' ? 'editF2fSessionList' : 'editOnlineSessionList');
+    if (!list) return;
+    items = Array.isArray(items) ? items : [];
+    if (!items.length) {
+      list.innerHTML = '<div class="edit-session-empty">No sessions recorded. Use <strong>+ Add Session</strong> to add one.</div>';
+      return;
+    }
+    list.innerHTML = items.map(function(item, index){ return sessionRowHtml(kind, item, index); }).join('');
+  }
+  function sessionRowHasValues(row) {
+    if (!row) return false;
+    return [
+      row.querySelector('.session-date-text'), row.querySelector('.session-start-input'),
+      row.querySelector('.session-end-input'), row.querySelector('.session-students-input')
+    ].some(function(el){ return el && clean(el.value); });
+  }
+  function hasEditSessionValues(kind) {
+    var list = document.getElementById(kind === 'f2f' ? 'editF2fSessionList' : 'editOnlineSessionList');
+    if (!list) return false;
+    return Array.prototype.some.call(list.querySelectorAll('.edit-session-row'), sessionRowHasValues);
+  }
+  function refreshEditSessionVisibility() {
+    var mode = lower(getEditValue('editMode'));
+    var f2fSection = document.getElementById('editF2fSection');
+    var onlineSection = document.getElementById('editOnlineSection');
+    if (!f2fSection || !onlineSection) return;
+    var hasF2f = hasEditSessionValues('f2f');
+    var hasOnline = hasEditSessionValues('online');
+    var onlineOnly = mode.indexOf('online') >= 0 && mode.indexOf('face') < 0;
+    var faceOnly = mode.indexOf('face') >= 0 && mode.indexOf('online') < 0;
+    f2fSection.classList.toggle('hidden', onlineOnly && !hasF2f);
+    onlineSection.classList.toggle('hidden', faceOnly && !hasOnline);
+  }
+  function updateSessionRowHours(row) {
+    if (!row) return 0;
+    var start = row.querySelector('.session-start-input');
+    var end = row.querySelector('.session-end-input');
+    var output = row.querySelector('.session-hours-output');
+    var hours = calculateEditSessionHours(start && start.value, end && end.value);
+    if (output) output.textContent = hours.toFixed(2);
+    return hours;
+  }
+  function collectEditSessionRows(kind, strict) {
+    var list = document.getElementById(kind === 'f2f' ? 'editF2fSessionList' : 'editOnlineSessionList');
+    if (!list) return [];
+    var rows = Array.prototype.slice.call(list.querySelectorAll('.edit-session-row'));
+    var result = [];
+    rows.forEach(function(row, index){
+      row.classList.remove('invalid');
+      if (!sessionRowHasValues(row)) return;
+      var dateText = clean((row.querySelector('.session-date-text') || {}).value);
+      var dateIso = editDateToIso(dateText);
+      var start = editTimeTo24((row.querySelector('.session-start-input') || {}).value);
+      var end = editTimeTo24((row.querySelector('.session-end-input') || {}).value);
+      var studentsText = clean((row.querySelector('.session-students-input') || {}).value);
+      var students = Number(studentsText);
+      var hours = calculateEditSessionHours(start, end);
+      var valid = !!dateIso && !!start && !!end && studentsText !== '' && Number.isInteger(students) && students >= 0 && hours > 0;
+      if (!valid && strict) {
+        row.classList.add('invalid');
+        throw new Error((kind === 'f2f' ? 'Face-to-Face' : 'Online') + ' session ' + (index + 1) + ' is incomplete or invalid.');
+      }
+      if (!valid && !strict) return;
+      result.push({
+        date: dateIso,
+        start: start,
+        startDisplay: editTimeToDisplay(start),
+        end: end,
+        endDisplay: editTimeToDisplay(end),
+        studentCount: students,
+        numberOfStudents: students,
+        hours: Number(hours.toFixed(2)),
+        hoursLabel: hours.toFixed(2)
+      });
+    });
+    return result;
   }
   function sessionTotalHours(items) {
     return (items || []).reduce(function(sum, it){
@@ -656,12 +828,66 @@
     ].join('__');
   }
   function updateEditTotalPreview() {
-    var f2f = parseEditSessionText(getEditValue('editF2fSessions'));
-    var online = parseEditSessionText(getEditValue('editOnlineSessions'));
-    var total = sessionTotalHours(f2f) + sessionTotalHours(online);
+    var f2f = collectEditSessionRows('f2f', false);
+    var online = collectEditSessionRows('online', false);
+    var f2fTotal = sessionTotalHours(f2f), onlineTotal = sessionTotalHours(online);
+    var total = f2fTotal + onlineTotal;
     var box = document.getElementById('editTotalPreview');
-    if (box) box.textContent = 'Total hours: ' + total.toFixed(2);
+    if (box) box.textContent = 'Face-to-Face: ' + f2fTotal.toFixed(2) + ' hrs  •  Online: ' + onlineTotal.toFixed(2) + ' hrs  •  Total: ' + total.toFixed(2) + ' hrs';
     return { f2f:f2f, online:online, total:total };
+  }
+  function addEditSessionRow(kind) {
+    var list = document.getElementById(kind === 'f2f' ? 'editF2fSessionList' : 'editOnlineSessionList');
+    if (!list) return;
+    var empty = list.querySelector('.edit-session-empty');
+    if (empty) empty.remove();
+    var index = list.querySelectorAll('.edit-session-row').length;
+    list.insertAdjacentHTML('beforeend', sessionRowHtml(kind, { date:'', start:'', end:'', studentCount:'', hours:0 }, index));
+    refreshEditSessionVisibility();
+    updateEditTotalPreview();
+    var rows = list.querySelectorAll('.edit-session-row');
+    var last = rows.length ? rows[rows.length - 1] : null;
+    var dateInput = last && last.querySelector('.session-date-text');
+    if (dateInput) dateInput.focus();
+  }
+  function bindEditSessionList(kind) {
+    var list = document.getElementById(kind === 'f2f' ? 'editF2fSessionList' : 'editOnlineSessionList');
+    if (!list) return;
+    list.addEventListener('input', function(e){
+      var target = e.target;
+      var row = target.closest ? target.closest('.edit-session-row') : null;
+      if (target.classList.contains('session-date-text')) {
+        var before = target.value;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(before)) target.value = formatEditDateTyping(before);
+        var picker = row && row.querySelector('.session-date-picker');
+        var iso = editDateToIso(target.value);
+        if (picker) picker.value = iso || '';
+      }
+      if (row && (target.classList.contains('session-start-input') || target.classList.contains('session-end-input'))) updateSessionRowHours(row);
+      if (row) row.classList.remove('invalid');
+      updateEditTotalPreview();
+      refreshEditSessionVisibility();
+    });
+    list.addEventListener('change', function(e){
+      var target = e.target;
+      var row = target.closest ? target.closest('.edit-session-row') : null;
+      if (target.classList.contains('session-date-picker') && row) {
+        var textInput = row.querySelector('.session-date-text');
+        if (textInput) textInput.value = editDateToDisplay(target.value);
+      }
+      if (row) updateSessionRowHours(row);
+      updateEditTotalPreview();
+      refreshEditSessionVisibility();
+    });
+    list.addEventListener('click', function(e){
+      var remove = e.target.closest ? e.target.closest('.session-remove-btn') : null;
+      if (!remove) return;
+      var row = remove.closest('.edit-session-row');
+      if (row) row.remove();
+      if (!list.querySelector('.edit-session-row')) renderEditSessionRows(kind, []);
+      updateEditTotalPreview();
+      refreshEditSessionVisibility();
+    });
   }
   function openEditPanel(item) {
     if (!item) return;
@@ -681,8 +907,8 @@
     setEditValue('editStudyCentre', d.studyCentre || '');
     setEditValue('editMode', d.modeOfDelivery || '');
     setEditValue('editSemester', d.semester || '');
-    setEditValue('editF2fSessions', sessionItemsToText(parseSessionItems(d, 'f2f')));
-    setEditValue('editOnlineSessions', sessionItemsToText(parseSessionItems(d, 'on')));
+    renderEditSessionRows('f2f', parseSessionItems(d, 'f2f'));
+    renderEditSessionRows('online', parseSessionItems(d, 'on'));
     setEditValue('editRemarks', d.remarks || '');
     setEditValue('editBankName', d.bankName || '');
     setEditValue('editBankBranch', d.bankBranch || '');
@@ -696,6 +922,7 @@
       if (wrapper) wrapper.classList.toggle('hidden', !isManualClaimType());
     });
     document.getElementById('editStaffId').disabled = isManualClaimType();
+    refreshEditSessionVisibility();
     updateEditTotalPreview();
     editEmpty.classList.add('hidden');
     editForm.classList.remove('hidden');
@@ -707,7 +934,10 @@
   }
   async function saveEditedClaim() {
     if (!selected || !selected.id) throw new Error('No claim selected.');
-    var totals = updateEditTotalPreview();
+    var f2fRows = collectEditSessionRows('f2f', true);
+    var onlineRows = collectEditSessionRows('online', true);
+    var totals = { f2f:f2fRows, online:onlineRows, total:sessionTotalHours(f2fRows) + sessionTotalHours(onlineRows) };
+    updateEditTotalPreview();
     if (totals.total > 24) throw new Error('Total hours exceed 24. Please correct the sessions before saving.');
     var program = getEditValue('editProgram');
     var claimId = selected.data.claimId || selected.id;
@@ -1244,8 +1474,12 @@
     editSelectedBtn.addEventListener('click', function(){ if (selected) openEditPanel(selected); });
     document.getElementById('cancelEditBtn').addEventListener('click', closeEditPanel);
     document.getElementById('downloadEditedPdfBtn').addEventListener('click', function(){ if (selected) printClaims([selected]); });
-    document.getElementById('editF2fSessions').addEventListener('input', updateEditTotalPreview);
-    document.getElementById('editOnlineSessions').addEventListener('input', updateEditTotalPreview);
+    bindEditSessionList('f2f');
+    bindEditSessionList('online');
+    document.getElementById('addF2fSessionBtn').addEventListener('click', function(){ addEditSessionRow('f2f'); });
+    document.getElementById('addOnlineSessionBtn').addEventListener('click', function(){ addEditSessionRow('online'); });
+    document.getElementById('editMode').addEventListener('input', refreshEditSessionVisibility);
+    document.getElementById('editMode').addEventListener('change', refreshEditSessionVisibility);
     editForm.addEventListener('submit', async function(e){
       e.preventDefault();
       try { await saveEditedClaim(); }
