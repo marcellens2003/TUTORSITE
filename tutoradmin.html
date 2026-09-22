@@ -327,11 +327,11 @@
           <h2>Reset tutor password directly</h2>
           <div class="subtitle">
             This resets a tutor's Firebase Auth password from this admin page without opening Firebase Console.
-            It uses the secure backend Cloud Function <code>resetTutorPassword</code>. Deploy the function once, then this button will work here.
+            It uses the secure backend Cloud Function <code>adminResetTutorPassword</code>. Deploy the function once, then this button will work here.
           </div>
 
           <div class="notice warn" style="margin-bottom:14px;">
-            <strong>One-time setup needed:</strong> deploy the included <code>resetTutorPassword</code> Cloud Function and whitelist your admin email in it.
+            <strong>One-time setup needed:</strong> deploy the included <code>adminResetTutorPassword</code> Cloud Function once. Your signed-in account must exist in the Firestore <code>admins</code> collection.
             A browser-only page cannot reset another user's unknown Firebase Auth password safely; the backend function performs that privileged action.
           </div>
 
@@ -1021,7 +1021,7 @@
     disableButton(btn, true, 'Resetting…');
 
     try {
-      var callable = functions.httpsCallable('resetTutorPassword');
+      var callable = functions.httpsCallable('adminResetTutorPassword');
       var result = await callable({ staffId: sid, newPassword: newPw });
       var data = result && result.data ? result.data : {};
 
@@ -1045,9 +1045,9 @@
       var message = e && e.message ? e.message : String(e || 'Unknown error');
 
       if (code.indexOf('not-found') !== -1) {
-        message = 'The reset Cloud Function is not deployed, or the tutor Auth account does not exist. Deploy resetTutorPassword first, then create the tutor login if needed.';
+        message = 'The reset Cloud Function is not deployed, or the tutor Auth account does not exist. Deploy adminResetTutorPassword first, then create the tutor login if needed.';
       } else if (code.indexOf('permission-denied') !== -1) {
-        message = 'Your signed-in admin email is not allowed by the Cloud Function. Add your email to ADMIN_EMAILS in functions/index.js and redeploy.';
+        message = 'Your signed-in account is not authorised by the Cloud Function. Make sure this admin account has a document in the Firestore admins collection.';
       } else if (code.indexOf('unauthenticated') !== -1) {
         message = 'Sign in to the admin page first, then try again.';
       }
