@@ -201,6 +201,13 @@
   }
   .pill-row { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
   .pill { background:#eef2ff; color:#263c8a; border-radius:999px; padding:3px 8px; font-size:11px; font-weight:600; }
+
+  .course-builder { border: 1px solid #e9edf3; background:#fbfdff; border-radius: 12px; padding: 12px; margin-top: 8px; }
+  .course-builder .mini-title { font-size: 13px; font-weight: 800; color:#002147; margin: 2px 0 8px; }
+  .course-builder details { margin-top: 12px; }
+  .course-builder summary { cursor: pointer; font-weight: 700; color:#475467; font-size: 13px; }
+  .course-list-actions { white-space: nowrap; }
+  .course-list-empty { color:#98a2b3; font-style: italic; padding: 12px; }
 </style>
 </head>
 <body>
@@ -250,6 +257,21 @@
     <div class="grid">
       <div>
         <div class="card">
+          <h2>Block selection</h2>
+          <div class="subtitle">
+            Active block control has been removed. Tutors now see all assigned courses and choose the correct teaching block on the claim form.
+          </div>
+          <div class="helper-box ok">
+            Keep including the <strong>Block</strong> column during import for record keeping, but it will not hide courses from tutors.
+          </div>
+          <select id="activeBlockSelect" style="display:none;"></select>
+          <div id="activeBlockCurrent" style="display:none;"></div>
+          <button id="saveActiveBlockBtn" type="button" style="display:none;"></button>
+          <button id="refreshActiveBlockBtn" type="button" style="display:none;"></button>
+          <div id="activeBlockResult" style="display:none;"></div>
+        </div>
+
+        <div class="card">
           <h2>Add / update one tutor</h2>
           <div class="subtitle">
             Use this for new facilitators and for repairing a tutor's Firestore record. If the login account already exists,
@@ -276,10 +298,90 @@
           <textarea id="programs" placeholder="One per line, e.g.&#10;MED Mathematics Education&#10;MPhil Information Technology Education"></textarea>
           <div class="hint">Leave blank when editing if you want to keep existing programmes unchanged.</div>
 
-          <label for="courses">Courses</label>
-          <textarea id="courses" placeholder="One per line using: CODE | Title | Programme | Study centre&#10;Example:&#10;EMA803D | Curriculum Development in Mathematics Education | MED Mathematics Education | Accra"></textarea>
-          <div class="hint">
-            The report form expects each course to have a label, programme, and centre. This format keeps the report form dropdown working.
+          <label>Courses</label>
+          <div class="course-builder">
+            <div class="mini-title">Add one course assignment</div>
+            <div class="row">
+              <div>
+                <label for="courseCodeInput">Course code</label>
+                <input id="courseCodeInput" type="text" placeholder="e.g. BUS805D" autocapitalize="characters">
+              </div>
+              <div>
+                <label for="courseTitleInput">Course title</label>
+                <input id="courseTitleInput" type="text" placeholder="e.g. Accounting and Finance for Managers">
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <label for="courseProgrammeInput">Programme</label>
+                <input id="courseProgrammeInput" type="text" placeholder="e.g. MBA Accounting">
+              </div>
+              <div>
+                <label for="courseCentreInput">Study centre</label>
+                <input id="courseCentreInput" type="text" list="centreOptions" placeholder="e.g. Papafio - Accra">
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <label for="courseBlockSelect">Block</label>
+                <select id="courseBlockSelect">
+                  <option value="">Select block</option>
+                  <option value="Block 1">Block 1</option>
+                  <option value="Block 2">Block 2</option>
+                  <option value="Block 3">Block 3</option>
+                </select>
+              </div>
+              <div>
+                <label for="courseModeSelect">Mode of delivery</label>
+                <select id="courseModeSelect">
+                  <option value="">Select mode</option>
+                  <option value="Blended">Blended</option>
+                  <option value="Purely Online">Purely Online</option>
+                </select>
+              </div>
+            </div>
+            <div class="row" id="courseTravelRow">
+              <div>
+                <label for="courseTravelFromInput">Travelling from</label>
+                <input id="courseTravelFromInput" type="text" list="centreOptions" placeholder="e.g. Cape Coast">
+              </div>
+              <div>
+                <label for="courseTravelToInput">Travelling to</label>
+                <input id="courseTravelToInput" type="text" list="centreOptions" placeholder="e.g. Accra">
+              </div>
+            </div>
+            <datalist id="centreOptions">
+              <option value="Accra">
+              <option value="Papafio - Accra">
+              <option value="Cape Coast">
+              <option value="Kumasi">
+              <option value="St. Louis, Kumasi">
+              <option value="Tamale">
+              <option value="Takoradi">
+              <option value="Ho">
+              <option value="Koforidua">
+              <option value="Sunyani">
+              <option value="Tema">
+              <option value="Bolga">
+              <option value="Wa">
+              <option value="UCC">
+              <option value="Purely Online">
+            </datalist>
+            <div class="toolbar" style="margin-top:14px;margin-bottom:8px;">
+              <button id="addCourseBtn" type="button">Add course to tutor</button>
+              <button id="clearCourseEntryBtn" type="button" class="subtle">Clear course fields</button>
+            </div>
+            <div class="hint">
+              Use separate boxes instead of typing with <code>|</code>. For Purely Online, travel fields are ignored. For Blended, add Travelling From and Travelling To when known. Distance is calculated later and hidden from tutors.
+            </div>
+            <div id="courseBuilderList" class="table-wrap" style="margin-top:12px;display:none;max-height:260px;"></div>
+            <details>
+              <summary>Advanced: paste/edit course lines</summary>
+              <textarea id="courses" placeholder="Optional advanced format: CODE | Title | Programme | Study centre | Block | Mode | Travel From | Travel To"></textarea>
+              <div class="toolbar" style="margin-top:10px;margin-bottom:0;">
+                <button id="loadCourseLinesBtn" type="button" class="subtle">Load these lines into the course form</button>
+              </div>
+            </details>
           </div>
 
           <label class="inline-check">
@@ -296,6 +398,55 @@
           </div>
 
           <div id="saveResult" class="helper-box" style="display:none;"></div>
+        </div>
+
+
+
+        <div class="card">
+          <h2>Bulk add / update tutors from Excel</h2>
+          <div class="subtitle">
+            Copy rows from Excel and paste them here. The page will group multiple course rows under the same Staff ID automatically.
+          </div>
+
+          <div class="helper-box">
+            <strong>Recommended column order:</strong><br>
+            <code>Staff ID</code> | <code>Full Name</code> | <code>Course Code</code> | <code>Course Title</code> | <code>Programme</code> | <code>Study Centre</code> | <code>Block</code> | <code>Mode</code> | <code>Travel From</code> | <code>Travel To</code> | <code>Password</code>
+            <div class="hint">Block is required. Use Mode = Online for purely online rows. Use Mode = Blended for face-to-face/blended rows and add Travel From + Travel To. Password is optional.</div>
+          </div>
+
+          <label for="bulkPaste">Paste tutor/course rows from Excel</label>
+          <textarea id="bulkPaste" style="min-height:170px;" placeholder="Staff ID&#9;Full Name&#9;Course Code&#9;Course Title&#9;Programme&#9;Study Centre&#9;Block&#9;Mode&#9;Travel From&#9;Travel To&#9;Password&#10;PGT0350&#9;Isaac Gyaase Yeboah&#9;ENG803&#9;Semantics&#9;MED Curriculum & Teaching&#9;Kumasi&#9;Block 1&#9;Blended&#9;Accra&#9;Kumasi&#9;"></textarea>
+
+          <div class="row">
+            <div>
+              <label for="bulkDefaultPassword">Default password</label>
+              <input id="bulkDefaultPassword" type="text" value="123456" placeholder="e.g. 123456">
+              <div class="hint">Used when the pasted row has no password column/value.</div>
+            </div>
+            <div>
+              <label for="bulkCourseMode">Course update mode</label>
+              <select id="bulkCourseMode">
+                <option value="merge">Add new courses and keep existing ones</option>
+                <option value="replace" selected>Replace existing courses for imported tutors</option>
+              </select>
+              <div class="hint">Recommended for block updates: Replace existing courses so old course records without blocks are removed.</div>
+            </div>
+          </div>
+
+          <label class="inline-check">
+            <input id="bulkCreateLogin" type="checkbox">
+            <span>Create or verify tutor login accounts while importing.</span>
+          </label>
+          <div class="hint">Recommended: leave this unticked for large uploads. Firebase can temporarily block too many login checks. Existing tutor logins will still work; this import will only update their course/block records.</div>
+
+          <div class="toolbar" style="margin-top:16px;">
+            <button id="bulkPreviewBtn">Preview bulk import</button>
+            <button id="bulkImportBtn" disabled>Import all previewed tutors</button>
+            <button id="bulkClearBtn" class="subtle">Clear bulk box</button>
+          </div>
+
+          <div id="bulkResult" class="helper-box" style="display:none;"></div>
+          <div id="bulkPreview" class="table-wrap" style="display:none;max-height:360px;margin-top:12px;"></div>
         </div>
 
         <div class="card">
@@ -324,46 +475,9 @@
         </div>
 
         <div class="card">
-          <h2>Reset tutor password directly</h2>
+          <h2>Change password when current password is known</h2>
           <div class="subtitle">
-            This resets a tutor's Firebase Auth password from this admin page without opening Firebase Console.
-            It uses the secure backend Cloud Function <code>adminResetTutorPassword</code>. Deploy the function once, then this button will work here.
-          </div>
-
-          <div class="notice warn" style="margin-bottom:14px;">
-            <strong>One-time setup needed:</strong> deploy the included <code>adminResetTutorPassword</code> Cloud Function once. Your signed-in account must exist in the Firestore <code>admins</code> collection.
-            A browser-only page cannot reset another user's unknown Firebase Auth password safely; the backend function performs that privileged action.
-          </div>
-
-          <div class="row">
-            <div>
-              <label for="adminResetStaffId">Staff ID</label>
-              <input id="adminResetStaffId" type="text" placeholder="e.g. PGT0420" autocapitalize="characters" spellcheck="false">
-              <div class="hint" id="adminResetEmailPreview">Login email will appear here.</div>
-            </div>
-            <div>
-              <label for="adminNewPassword">New password</label>
-              <input id="adminNewPassword" type="text" placeholder="Min 6 characters">
-            </div>
-            <div>
-              <label for="adminConfirmPassword">Confirm password</label>
-              <input id="adminConfirmPassword" type="text" placeholder="Repeat password">
-            </div>
-          </div>
-
-          <div class="toolbar" style="margin-top:16px;">
-            <button id="adminResetPasswordBtn" class="danger">Reset password</button>
-            <button id="fillResetFromTutorBtn" class="subtle">Use Staff ID from Add/Update form</button>
-          </div>
-
-          <div id="adminResetResult" class="helper-box" style="display:none;"></div>
-        </div>
-
-        <details class="card">
-          <summary style="cursor:pointer;font-weight:700;color:#002147;">Optional: change password when current password is known</summary>
-          <div class="subtitle" style="margin-top:12px;">
-            This uses the normal client-side Firebase flow. It works only when you know the tutor's current password.
-            For forgotten passwords, use the reset section above.
+            Browser pages cannot reset an unknown Firebase Auth password for another user. This section works only when you know the current password.
           </div>
           <div class="row">
             <div>
@@ -383,7 +497,60 @@
             <button id="changeKnownPwBtn">Change known password</button>
           </div>
           <div id="knownResetResult" class="helper-box" style="display:none;"></div>
-        </details>
+        </div>
+
+        <div class="card">
+          <h2>Reset forgotten tutor password</h2>
+          <div class="subtitle">
+            Use this when the tutor does not know the current password. The reset is performed securely by the deployed Firebase Cloud Function and does not delete or recreate the tutor account.
+          </div>
+          <div class="row">
+            <div>
+              <label for="adminResetStaffId">Staff ID</label>
+              <input id="adminResetStaffId" type="text" placeholder="e.g. PGT0291" autocapitalize="characters" spellcheck="false">
+              <div class="hint" id="adminResetTutorPreview">Enter a Staff ID to identify the tutor.</div>
+            </div>
+            <div>
+              <label for="adminResetNewPassword">New password</label>
+              <input id="adminResetNewPassword" type="password" value="123456" autocomplete="new-password">
+              <div class="hint">Minimum 6 characters. The password is sent only to the callable Cloud Function.</div>
+            </div>
+            <div>
+              <label for="adminResetConfirmPassword">Confirm new password</label>
+              <input id="adminResetConfirmPassword" type="password" value="123456" autocomplete="new-password">
+            </div>
+          </div>
+          <div class="toolbar" style="margin-top:16px;">
+            <button id="adminResetPasswordBtn">Reset password</button>
+          </div>
+          <div id="adminResetResult" class="helper-box" style="display:none;"></div>
+          <div class="hint">
+            This changes only the Firebase Authentication password. It does not alter the tutor UID, Firestore record, courses, blocks, travel details, or submitted claims.
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Firebase Auth account helper</h2>
+          <div class="subtitle">
+            Use this only to inspect the synthetic login email in Firebase Authentication, for example when the reset function reports that an Auth account cannot be found.
+          </div>
+          <div class="row">
+            <div>
+              <label for="consoleStaffId">Staff ID</label>
+              <input id="consoleStaffId" type="text" placeholder="e.g. PGT0420" autocapitalize="characters">
+              <div class="hint" id="consoleEmailPreview">Enter a Staff ID to generate the login email.</div>
+            </div>
+          </div>
+          <div class="toolbar" style="margin-top:14px;">
+            <button id="copyEmailBtn" class="subtle">Copy login email</button>
+            <a id="openAuthConsole" class="link-btn" target="_blank" rel="noopener"
+               href="https://console.firebase.google.com/project/monitoringucc/authentication/users">Open Firebase Auth Users</a>
+          </div>
+          <div class="hint">
+            This helper does not change the account. Password resets should normally be done with the secure reset section above.
+          </div>
+        </div>
+      </div>
 
       <div>
         <div class="card">
@@ -449,9 +616,10 @@
   var auth, db, functions, secondaryApp, secondaryAuth;
   var tutors = [];
   var lastVerifiedLogin = null;
+  var courseBuilderRows = [];
 
   var TUTOR_DOMAIN = 'tutors.ucc.local';
-  var FUNCTIONS_REGION = 'us-central1';
+  var AUTH_CONSOLE_URL = 'https://console.firebase.google.com/project/monitoringucc/authentication/users';
 
   function setStatus(cls, html) {
     statusEl.className = 'status ' + cls;
@@ -520,27 +688,11 @@
       .filter(Boolean)
       .map(function (line) {
         var parts = line.split('|').map(function (p) { return p.trim(); });
-        var code = parts[0] || '';
-        var title = parts[1] || '';
-        var program = parts[2] || '';
-        var centre = parts[3] || '';
-
-        if (!title && code.indexOf(' - ') > -1) {
-          var split = code.split(' - ');
-          code = split.shift().trim();
-          title = split.join(' - ').trim();
-        }
-
-        return {
-          code: code,
-          title: title,
-          label: title ? (code + ' - ' + title) : code,
-          program: program,
-          centre: centre
-        };
+        return normalizeCourseForBulk(parts[0] || '', parts[1] || '', parts[2] || '', parts[3] || '', parts[4] || '', parts[5] || '', parts[6] || '', parts[7] || '');
       })
       .filter(function (c) { return c.code || c.label; });
   }
+
 
   function programsFromCourses(courses) {
     return uniqueNonEmpty(courses.map(function (c) { return c.program; }));
@@ -553,13 +705,135 @@
         c.code || '',
         c.title || '',
         c.program || '',
-        c.centre || ''
+        c.centre || '',
+        c.block || '',
+        c.mode || '',
+        c.travelFrom || '',
+        c.travelTo || ''
       ].join(' | ').replace(/\s+\|\s+\|\s*$/g, '').trim();
     }).join('\n');
   }
 
+
   function programsTextFromDoc(programs) {
     return Array.isArray(programs) ? programs.join('\n') : '';
+  }
+
+
+  function clearCourseEntryFields() {
+    var ids = ['courseCodeInput','courseTitleInput','courseProgrammeInput','courseCentreInput','courseTravelFromInput','courseTravelToInput'];
+    ids.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    var block = document.getElementById('courseBlockSelect');
+    var mode = document.getElementById('courseModeSelect');
+    if (block) block.value = '';
+    if (mode) mode.value = '';
+    updateCourseTravelVisibility();
+  }
+
+  function syncCourseTextareaFromBuilder(force) {
+    var textarea = document.getElementById('courses');
+    if (!textarea) return;
+    if (courseBuilderRows.length || force) textarea.value = courseTextFromDoc(courseBuilderRows);
+  }
+
+  function updateCourseTravelVisibility() {
+    var mode = document.getElementById('courseModeSelect');
+    var row = document.getElementById('courseTravelRow');
+    if (!mode || !row) return;
+    var isOnline = normalizeDeliveryModeForBulk(mode.value, '') === 'Purely Online';
+    row.style.opacity = isOnline ? '.45' : '1';
+    row.style.pointerEvents = isOnline ? 'none' : 'auto';
+    if (isOnline) {
+      document.getElementById('courseTravelFromInput').value = '';
+      document.getElementById('courseTravelToInput').value = '';
+    }
+  }
+
+  function renderCourseBuilderRows() {
+    var box = document.getElementById('courseBuilderList');
+    if (!box) return;
+    syncCourseTextareaFromBuilder(true);
+    if (!courseBuilderRows.length) {
+      box.style.display = 'block';
+      box.innerHTML = '<div class="course-list-empty">No course has been added yet.</div>';
+      return;
+    }
+    box.style.display = 'block';
+    box.innerHTML = '<table><thead><tr><th>Course</th><th>Programme</th><th>Centre / Block</th><th>Mode / Travel</th><th>Action</th></tr></thead><tbody>' +
+      courseBuilderRows.map(function (c, idx) {
+        var travel = (c.travelFrom || c.travelTo) ? escapeHTML((c.travelFrom || '') + (c.travelTo ? ' → ' + c.travelTo : '')) : '<span class="badge neutral">No travel</span>';
+        return '<tr>' +
+          '<td><strong>' + escapeHTML(c.code || '') + '</strong><br>' + escapeHTML(c.title || '') + '</td>' +
+          '<td>' + escapeHTML(c.program || '') + '</td>' +
+          '<td>' + escapeHTML(c.centre || '') + '<br><span class="pill">' + escapeHTML(c.block || 'No block') + '</span></td>' +
+          '<td>' + escapeHTML(c.mode || '') + '<br>' + travel + '</td>' +
+          '<td class="course-list-actions"><button type="button" class="small subtle editCourseRowBtn" data-index="' + idx + '">Edit</button> <button type="button" class="small danger removeCourseRowBtn" data-index="' + idx + '">Remove</button></td>' +
+        '</tr>';
+      }).join('') + '</tbody></table>';
+  }
+
+  function loadCoursesIntoBuilder(courses) {
+    courseBuilderRows = mergeCourseArrays([], Array.isArray(courses) ? courses : []);
+    renderCourseBuilderRows();
+  }
+
+  function readCourseEntryForm() {
+    var code = document.getElementById('courseCodeInput').value.trim().toUpperCase();
+    var title = document.getElementById('courseTitleInput').value.trim();
+    var program = document.getElementById('courseProgrammeInput').value.trim();
+    var centre = document.getElementById('courseCentreInput').value.trim();
+    var block = document.getElementById('courseBlockSelect').value;
+    var mode = document.getElementById('courseModeSelect').value;
+    var travelFrom = document.getElementById('courseTravelFromInput').value.trim();
+    var travelTo = document.getElementById('courseTravelToInput').value.trim();
+    return normalizeCourseForBulk(code, title, program, centre, block, mode, travelFrom, travelTo);
+  }
+
+  function addCourseFromForm() {
+    var course = readCourseEntryForm();
+    if (!(course.code || course.title)) {
+      setBox('saveResult', '❌ Enter at least a course code or course title before adding the course.', 'err');
+      return;
+    }
+    courseBuilderRows = mergeCourseArrays(courseBuilderRows, [course]);
+    renderCourseBuilderRows();
+    clearCourseEntryFields();
+    clearBox('saveResult');
+  }
+
+  function editCourseBuilderRow(index) {
+    index = Number(index);
+    if (!(index >= 0) || !courseBuilderRows[index]) return;
+    var c = courseBuilderRows[index];
+    document.getElementById('courseCodeInput').value = c.code || '';
+    document.getElementById('courseTitleInput').value = c.title || '';
+    document.getElementById('courseProgrammeInput').value = c.program || '';
+    document.getElementById('courseCentreInput').value = c.centre || '';
+    document.getElementById('courseBlockSelect').value = normalizeBlockForBulk(c.block || '');
+    document.getElementById('courseModeSelect').value = normalizeDeliveryModeForBulk(c.mode || '', c.centre || '');
+    document.getElementById('courseTravelFromInput').value = c.travelFrom || '';
+    document.getElementById('courseTravelToInput').value = c.travelTo || '';
+    courseBuilderRows.splice(index, 1);
+    renderCourseBuilderRows();
+    updateCourseTravelVisibility();
+  }
+
+  function removeCourseBuilderRow(index) {
+    index = Number(index);
+    if (!(index >= 0) || !courseBuilderRows[index]) return;
+    courseBuilderRows.splice(index, 1);
+    renderCourseBuilderRows();
+  }
+
+  function loadAdvancedCourseLinesIntoBuilder() {
+    var text = document.getElementById('courses').value || '';
+    var parsed = parseCourseLines(text);
+    courseBuilderRows = mergeCourseArrays([], parsed);
+    renderCourseBuilderRows();
+    setBox('saveResult', '✅ Loaded ' + parsed.length + ' course line(s) into the course form.', parsed.length ? 'ok' : 'warn');
   }
 
   function setBox(id, html, cls) {
@@ -652,6 +926,7 @@
   }
 
   function buildTutorFieldsFromForm(existingDoc) {
+    if (courseBuilderRows.length) syncCourseTextareaFromBuilder(true);
     var name = document.getElementById('tutorName').value.trim();
     var programText = document.getElementById('programs').value;
     var courseText = document.getElementById('courses').value;
@@ -722,14 +997,14 @@
   }
 
   function renderTutors() {
-    var q = (searchInput.value || '').toLowerCase().trim();
+    var q = (searchInput.value || '').toLowerCase().trim();var q = (searchInput.value || '').toLowerCase().trim();
     var rows = tutors.filter(function (t) {
       var hay = [
         t.staffId,
         t.name,
         t.loginEmail || staffIdToEmail(t.staffId),
         (t.programs || []).join(' '),
-        (t.courses || []).map(function (c) { return (c.label || '') + ' ' + (c.program || '') + ' ' + (c.centre || ''); }).join(' ')
+        (t.courses || []).map(function (c) { return (c.label || '') + ' ' + (c.program || '') + ' ' + (c.centre || '') + ' ' + (c.block || ''); }).join(' ')
       ].join(' ').toLowerCase();
       return !q || hay.indexOf(q) > -1;
     });
@@ -767,6 +1042,8 @@
     document.getElementById('tutorName').value = '';
     document.getElementById('programs').value = '';
     document.getElementById('courses').value = '';
+    loadCoursesIntoBuilder([]);
+    clearCourseEntryFields();
     document.getElementById('clearUidOnPasswordMismatch').checked = true;
     updateEmailPreview();
     clearBox('saveResult');
@@ -782,7 +1059,7 @@
     if (doc) {
       document.getElementById('tutorName').value = doc.name || '';
       document.getElementById('programs').value = programsTextFromDoc(doc.programs);
-      document.getElementById('courses').value = courseTextFromDoc(doc.courses);
+      loadCoursesIntoBuilder(doc.courses);
       setBox('saveResult',
         '<strong>Loaded ' + escapeHTML(sid) + '.</strong><br>' +
         'You can update the directory details. Enter a password only if you want to create or verify the login.',
@@ -791,6 +1068,7 @@
       document.getElementById('tutorName').value = '';
       document.getElementById('programs').value = '';
       document.getElementById('courses').value = '';
+      loadCoursesIntoBuilder([]);
       setBox('saveResult', '<strong>No Firestore record found for ' + escapeHTML(sid) + '.</strong><br>Fill the details and save to add this tutor.', '');
     }
 
@@ -994,69 +1272,93 @@
     }
   }
 
-  function updateAdminResetEmailPreview() {
-    var sid = normalizeStaffId(document.getElementById('adminResetStaffId').value);
-    document.getElementById('adminResetStaffId').value = sid;
+  var adminResetPreviewTimer = null;
+
+  function scheduleAdminResetPreview() {
+    var sidInput = document.getElementById('adminResetStaffId');
+    var preview = document.getElementById('adminResetTutorPreview');
+    var sid = normalizeStaffId(sidInput.value);
+    sidInput.value = sid;
+    if (!sid) {
+      preview.textContent = 'Enter a Staff ID to identify the tutor.';
+      return;
+    }
     var email = staffIdToEmail(sid);
-    document.getElementById('adminResetEmailPreview').innerHTML = email
-      ? 'Login email: <code>' + escapeHTML(email) + '</code>'
-      : 'Login email will appear here.';
+    preview.innerHTML = 'Login email: <code>' + escapeHTML(email) + '</code> · checking tutor record…';
+    if (adminResetPreviewTimer) clearTimeout(adminResetPreviewTimer);
+    adminResetPreviewTimer = setTimeout(async function () {
+      try {
+        var doc = await getTutorDoc(sid);
+        if (doc) {
+          preview.innerHTML = '<strong>' + escapeHTML(doc.name || sid) + '</strong><br>Login email: <code>' + escapeHTML(email) + '</code>';
+        } else {
+          preview.innerHTML = '<span class="badge warn">No Firestore tutor record found</span><br>Login email to reset: <code>' + escapeHTML(email) + '</code>';
+        }
+      } catch (e) {
+        preview.innerHTML = 'Login email: <code>' + escapeHTML(email) + '</code><br><span class="badge warn">Tutor record lookup failed</span>';
+      }
+    }, 250);
   }
 
-  async function resetTutorPasswordDirectly() {
+  async function adminResetTutorPassword() {
     var btn = document.getElementById('adminResetPasswordBtn');
     var sid = normalizeStaffId(document.getElementById('adminResetStaffId').value);
-    var newPw = document.getElementById('adminNewPassword').value;
-    var confirmPw = document.getElementById('adminConfirmPassword').value;
+    var newPw = document.getElementById('adminResetNewPassword').value;
+    var confirmPw = document.getElementById('adminResetConfirmPassword').value;
     var email = staffIdToEmail(sid);
 
     if (!sid) { setBox('adminResetResult', '❌ Enter a Staff ID.', 'err'); return; }
     if (!newPw || newPw.length < 6) { setBox('adminResetResult', '❌ New password must be at least 6 characters.', 'err'); return; }
-    if (newPw !== confirmPw) { setBox('adminResetResult', '❌ The confirmation password does not match.', 'err'); return; }
-    if (!functions) {
-      setBox('adminResetResult', '❌ Firebase Functions SDK did not load. Check your internet connection and make sure <code>firebase-functions-compat.js</code> is included.', 'err');
-      return;
-    }
+    if (newPw !== confirmPw) { setBox('adminResetResult', '❌ The two new-password entries do not match.', 'err'); return; }
+    if (!auth.currentUser) { setBox('adminResetResult', '❌ Sign in as an administrator first.', 'err'); return; }
+    if (!functions) { setBox('adminResetResult', '❌ Firebase Functions did not initialize. Refresh this page and try again.', 'err'); return; }
+
+    var tutor = null;
+    try { tutor = await getTutorDoc(sid); } catch (ignore) {}
+    var label = tutor && tutor.name ? tutor.name + ' (' + sid + ')' : sid;
+    if (!window.confirm('Reset the Firebase login password for ' + label + '?\n\nLogin email: ' + email)) return;
 
     disableButton(btn, true, 'Resetting…');
+    clearBox('adminResetResult');
 
     try {
       var callable = functions.httpsCallable('adminResetTutorPassword');
-      var result = await callable({ staffId: sid, newPassword: newPw });
-      var data = result && result.data ? result.data : {};
+      var response = await callable({ staffId: sid, newPassword: newPw });
+      var result = response && response.data ? response.data : {};
+      if (!result.success) throw new Error(result.message || 'The password reset function did not confirm success.');
 
-      await loadTutors();
-
-      document.getElementById('testStaffId').value = sid;
-      document.getElementById('testPassword').value = newPw;
-      document.getElementById('adminNewPassword').value = '';
-      document.getElementById('adminConfirmPassword').value = '';
-
-      setBox('adminResetResult',
-        '✅ Password reset for <code>' + escapeHTML(sid) + '</code>.<br>' +
-        'Login email: <code>' + escapeHTML(data.email || email) + '</code><br>' +
-        'The test-login box has been filled with the new password so you can verify immediately.',
+      setBox(
+        'adminResetResult',
+        '✅ Password reset successful for <strong>' + escapeHTML(tutor && tutor.name ? tutor.name : sid) + '</strong>.<br>' +
+        'Staff ID: <code>' + escapeHTML(sid) + '</code><br>' +
+        'Login email: <code>' + escapeHTML(result.loginEmail || email) + '</code><br>' +
+        'The tutor can now sign in with the new password.',
         'ok'
       );
-      log('Password reset for ' + sid + ' using Cloud Function.', 'ok');
-
+      document.getElementById('adminResetNewPassword').value = '';
+      document.getElementById('adminResetConfirmPassword').value = '';
+      log('Password reset completed for ' + sid + '.', 'ok');
     } catch (e) {
       var code = e && e.code ? String(e.code) : '';
-      var message = e && e.message ? e.message : String(e || 'Unknown error');
-
-      if (code.indexOf('not-found') !== -1) {
-        message = 'The reset Cloud Function is not deployed, or the tutor Auth account does not exist. Deploy adminResetTutorPassword first, then create the tutor login if needed.';
-      } else if (code.indexOf('permission-denied') !== -1) {
-        message = 'Your signed-in account is not authorised by the Cloud Function. Make sure this admin account has a document in the Firestore admins collection.';
-      } else if (code.indexOf('unauthenticated') !== -1) {
-        message = 'Sign in to the admin page first, then try again.';
-      }
-
-      setBox('adminResetResult', '❌ ' + escapeHTML(message), 'err');
-      log('Password reset failed for ' + sid + ': ' + message, 'err');
+      var msg = e && e.message ? e.message : String(e);
+      if (code === 'functions/not-found') msg = 'No Firebase Authentication account exists for this Staff ID.';
+      else if (code === 'functions/permission-denied') msg = 'Your signed-in account is not authorized in the admins collection.';
+      else if (code === 'functions/unauthenticated') msg = 'Your admin session has expired. Sign in again.';
+      else if (code === 'functions/unavailable') msg = 'The password reset service is temporarily unavailable. Try again.';
+      setBox('adminResetResult', '❌ ' + escapeHTML(msg), 'err');
+      log('Password reset failed for ' + sid + ': ' + msg, 'err');
     } finally {
       disableButton(btn, false, 'Reset password');
     }
+  }
+
+  function updateConsoleEmailPreview() {
+    var sid = normalizeStaffId(document.getElementById('consoleStaffId').value);
+    document.getElementById('consoleStaffId').value = sid;
+    var email = staffIdToEmail(sid);
+    document.getElementById('consoleEmailPreview').innerHTML = email
+      ? 'Login email: <code>' + escapeHTML(email) + '</code>'
+      : 'Enter a Staff ID to generate the login email.';
   }
 
   function copyText(text) {
@@ -1070,6 +1372,506 @@
     document.execCommand('copy');
     document.body.removeChild(ta);
     return Promise.resolve();
+  }
+
+
+
+  var bulkPreviewGroups = [];
+
+  function splitBulkLine(line) {
+    if (line.indexOf('\t') > -1) return line.split('\t');
+    if ((line.match(/,/g) || []).length >= 4) {
+      var out = [];
+      var cur = '';
+      var inQuotes = false;
+      for (var i = 0; i < line.length; i++) {
+        var ch = line.charAt(i);
+        if (ch === '"') {
+          if (inQuotes && line.charAt(i + 1) === '"') {
+            cur += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (ch === ',' && !inQuotes) {
+          out.push(cur);
+          cur = '';
+        } else {
+          cur += ch;
+        }
+      }
+      out.push(cur);
+      return out;
+    }
+    return line.split('|');
+  }
+
+  function cleanBulkCell(v) {
+    return String(v == null ? '' : v).replace(/^"|"$/g, '').trim();
+  }
+
+  function normalizeBlockForBulk(value) {
+    var raw = String(value || '').trim();
+    var lower = raw.toLowerCase();
+    if (!raw) return '';
+    if (/\b1\b|one/.test(lower)) return 'Block 1';
+    if (/\b2\b|two/.test(lower)) return 'Block 2';
+    if (/\b3\b|three/.test(lower)) return 'Block 3';
+    return raw;
+  }
+
+  var TRAVEL_ROUTES = [
+    { from: 'Abetifi', to: 'Kumasi', distanceIn: 130, distanceOut: 130, total: 260 },
+    { from: 'Accra', to: 'Koforidua', distanceIn: 80, distanceOut: 80, total: 160 },
+    { from: 'Accra', to: 'Kumasi', distanceIn: 250, distanceOut: 250, total: 500 },
+    { from: 'Cape Coast', to: 'Accra', distanceIn: 180, distanceOut: 180, total: 360 },
+    { from: 'Cape Coast', to: 'Tema', distanceIn: 205, distanceOut: 205, total: 410 },
+    { from: 'Cape Coast', to: 'Kumasi', distanceIn: 230, distanceOut: 230, total: 460 },
+    { from: 'Cape Coast', to: 'Sunyani', distanceIn: 353, distanceOut: 353, total: 706 },
+    { from: 'Cape Coast', to: 'Takoradi', distanceIn: 90, distanceOut: 90, total: 180 },
+    { from: 'Cape Coast', to: 'Koforidua', distanceIn: 220, distanceOut: 220, total: 440 },
+    { from: 'Cape Coast', to: 'Ho', distanceIn: 320, distanceOut: 320, total: 640 },
+    { from: 'Cape Coast', to: 'Winneba', distanceIn: 90, distanceOut: 90, total: 180 },
+    { from: 'Cape Coast', to: 'Bolga', distanceIn: 763, distanceOut: 763, total: 1526 },
+    { from: 'Cape Coast', to: 'Wa', distanceIn: 345, distanceOut: 345, total: 690 },
+    { from: 'Cape Coast', to: 'Tamale', distanceIn: 64, distanceOut: 64, total: 128 },
+    { from: 'Kasoa', to: 'Accra', distanceIn: 34.7, distanceOut: 34.7, total: 69.4 },
+    { from: 'Winneba', to: 'Sunyani', distanceIn: 450, distanceOut: 450, total: 900 },
+    { from: 'Winneba', to: 'Kumasi', distanceIn: 320, distanceOut: 320, total: 640 },
+    { from: 'Ejisu', to: 'Kumasi', distanceIn: 30, distanceOut: 30, total: 60 },
+    { from: 'Berekum', to: 'Sunyani', distanceIn: 45, distanceOut: 45, total: 90 },
+    { from: 'Kpandai', to: 'Tamale', distanceIn: 214, distanceOut: 214, total: 428 },
+    { from: 'Mampong', to: 'Kumasi', distanceIn: 63, distanceOut: 63, total: 126 },
+    { from: 'Kumasi', to: 'Sunyani', distanceIn: 135, distanceOut: 135, total: 270 },
+    { from: 'Kumasi', to: 'Tamale', distanceIn: 410, distanceOut: 410, total: 820 },
+    { from: 'Navrongo', to: 'Accra', distanceIn: 845, distanceOut: 830, total: 1660 },
+    { from: 'Navrongo', to: 'Kumasi', distanceIn: 580, distanceOut: 580, total: 1160 },
+    { from: 'Navrongo', to: 'Tamale', distanceIn: 192, distanceOut: 192, total: 384 },
+    { from: 'Techiman', to: 'Sunyani', distanceIn: 70, distanceOut: 70, total: 140 },
+    { from: 'Bolgatanga', to: 'Tamale', distanceIn: 161, distanceOut: 161, total: 322 },
+    { from: 'Tamale', to: 'Wa', distanceIn: 310, distanceOut: 310, total: 620 },
+    { from: 'Yendi', to: 'Tamale', distanceIn: 95, distanceOut: 95, total: 190 }
+  ];
+
+  function normalizeDeliveryModeForBulk(value, centre) {
+    var raw = String(value || '').trim();
+    var lower = raw.toLowerCase();
+    var centreLower = String(centre || '').toLowerCase();
+    if (!raw && /online|virtual/.test(centreLower)) return 'Purely Online';
+    if (!raw) return 'Blended';
+    if (/online|virtual|pure/.test(lower) && !/blend|face|f2f/.test(lower)) return 'Purely Online';
+    if (/blend|face|f2f|physical|centre|center/.test(lower)) return 'Blended';
+    return raw;
+  }
+
+  function findTravelRouteForBulk(from, to) {
+    var rawFrom = String(from || '').trim();
+    var rawTo = String(to || '').trim();
+    if (!rawFrom || !rawTo) return null;
+    if (rawFrom.toLowerCase() === rawTo.toLowerCase()) {
+      return { distanceIn: '', distanceOut: '', total: 125, samePlace: true };
+    }
+    var f = rawFrom.toLowerCase();
+    var t = rawTo.toLowerCase();
+    return TRAVEL_ROUTES.find(function (r) { return r.from.toLowerCase() === f && r.to.toLowerCase() === t; }) || null;
+  }
+
+
+  function normalHeader(v) {
+    return String(v || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  }
+
+  function detectBulkColumns(firstCells) {
+    var map = { staffId: 0, name: 1, code: 2, title: 3, program: 4, centre: 5, block: 6, mode: 7, travelFrom: 8, travelTo: 9, password: 10 };
+    var firstCell = cleanBulkCell(firstCells[0] || '');
+    var normalizedFirstStaffId = normalizeStaffId(firstCell);
+
+    // Important: do not mistake the first tutor row for a header just because it contains
+    // words like "Programme", "Block", "Mode", or "Purely Online" in later columns.
+    if (normalizedFirstStaffId || /^pgt\s*\d+/i.test(firstCell)) {
+      return { hasHeader: false, map: map };
+    }
+
+    var joined = firstCells.map(normalHeader).join(' | ');
+    var looksHeader = /staff|index|full name|course code|programme|program|centre|center|block|mode|travel|password/.test(joined);
+    if (!looksHeader) return { hasHeader: false, map: map };
+
+    map = {};
+    firstCells.forEach(function (cell, idx) {
+      var h = normalHeader(cell);
+      if (!h) return;
+      if ((/staff/.test(h) && /id/.test(h)) || h === 'id' || /index/.test(h)) map.staffId = idx;
+      else if (/full name/.test(h) || h === 'name' || /tutor name/.test(h) || /facilitator/.test(h)) map.name = idx;
+      else if (/course code/.test(h) || h === 'code') map.code = idx;
+      else if (/course title/.test(h) || /course name/.test(h) || h === 'title') map.title = idx;
+      else if (/programme/.test(h) || /program/.test(h)) map.program = idx;
+      else if (/study centre/.test(h) || /study center/.test(h) || h === 'centre' || h === 'center') map.centre = idx;
+      else if (/block/.test(h)) map.block = idx;
+      else if (/mode/.test(h) || /delivery/.test(h) || /teaching mode/.test(h)) map.mode = idx;
+      else if ((/travel/.test(h) || /travelling/.test(h)) && /from/.test(h)) map.travelFrom = idx;
+      else if ((/travel/.test(h) || /travelling/.test(h)) && /to/.test(h)) map.travelTo = idx;
+      else if (/password/.test(h)) map.password = idx;
+      else if (h === 'course' && map.code == null) map.code = idx;
+    });
+
+    if (map.staffId == null) map.staffId = 0;
+    if (map.name == null) map.name = 1;
+    if (map.code == null) map.code = 2;
+    if (map.title == null) map.title = 3;
+    if (map.program == null) map.program = 4;
+    if (map.centre == null) map.centre = 5;
+    if (map.block == null) map.block = 6;
+    if (map.mode == null) map.mode = 7;
+    if (map.travelFrom == null) map.travelFrom = 8;
+    if (map.travelTo == null) map.travelTo = 9;
+    if (map.password == null) map.password = 10;
+    return { hasHeader: true, map: map };
+  }
+
+
+  function normalizeCourseForBulk(code, title, program, centre, block, mode, travelFrom, travelTo) {
+    code = String(code || '').trim();
+    title = String(title || '').trim();
+    program = String(program || '').trim();
+    centre = String(centre || '').trim();
+    block = normalizeBlockForBulk(block);
+    mode = normalizeDeliveryModeForBulk(mode, centre);
+    travelFrom = String(travelFrom || '').trim();
+    travelTo = String(travelTo || '').trim();
+
+    if (!title && code.indexOf(' - ') > -1) {
+      var split = code.split(' - ');
+      code = split.shift().trim();
+      title = split.join(' - ').trim();
+    }
+
+    if (mode === 'Purely Online') {
+      travelFrom = '';
+      travelTo = '';
+    }
+
+    var route = findTravelRouteForBulk(travelFrom, travelTo);
+    return {
+      code: code,
+      title: title,
+      label: title ? (code + ' - ' + title) : code,
+      program: program,
+      centre: centre,
+      block: block,
+      mode: mode,
+      travelFrom: travelFrom,
+      travelTo: travelTo,
+      travelDistanceIn: route ? String(route.distanceIn) : '',
+      travelDistanceOut: route ? String(route.distanceOut) : '',
+      travelTotalDistance: route ? String(route.total) : ''
+    };
+  }
+
+
+  function courseKey(c) {
+    return [c.code || '', c.title || '', c.label || '', c.program || '', c.centre || '', c.block || '']
+      .join('|').toLowerCase().replace(/\s+/g, ' ').trim();
+  }
+
+  function mergeCourseArrays(existing, imported) {
+    var seen = {};
+    var out = [];
+    function add(c) {
+      if (!c || !(c.code || c.label)) return;
+      var key = courseKey(c);
+      if (!seen[key]) {
+        seen[key] = true;
+        out.push({
+          code: c.code || '',
+          title: c.title || '',
+          label: c.label || (c.title ? ((c.code || '') + ' - ' + c.title) : (c.code || '')),
+          program: c.program || '',
+          centre: c.centre || '',
+          block: normalizeBlockForBulk(c.block || ''),
+          mode: normalizeDeliveryModeForBulk(c.mode || c.deliveryMode || c.modeOfDelivery || '', c.centre || ''),
+          travelFrom: c.travelFrom || '',
+          travelTo: c.travelTo || '',
+          travelDistanceIn: c.travelDistanceIn || c.distanceIn || '',
+          travelDistanceOut: c.travelDistanceOut || c.distanceOut || '',
+          travelTotalDistance: c.travelTotalDistance || c.totalDistanceTravelled || c.totalDistance || ''
+        });
+      }
+    }
+    (Array.isArray(existing) ? existing : []).forEach(add);
+    (Array.isArray(imported) ? imported : []).forEach(add);
+    return out;
+  }
+
+
+  function parseBulkTutors() {
+    var text = document.getElementById('bulkPaste').value || '';
+    var lines = text.replace(/\r/g, '').split('\n').filter(function (line) { return line.trim(); });
+    var result = { groups: [], errors: [], warnings: [], rows: 0, courseRows: 0 };
+    if (!lines.length) {
+      result.errors.push('Paste rows from Excel first.');
+      return result;
+    }
+
+    var first = splitBulkLine(lines[0]).map(cleanBulkCell);
+    var detected = detectBulkColumns(first);
+    var start = detected.hasHeader ? 1 : 0;
+    var map = detected.map;
+    var groups = {};
+    var order = [];
+    var lastStaffId = '';
+    var lastName = '';
+
+    for (var i = start; i < lines.length; i++) {
+      var cells = splitBulkLine(lines[i]).map(cleanBulkCell);
+      var sid = normalizeStaffId(cells[map.staffId] || '') || lastStaffId;
+      var name = cleanBulkCell(cells[map.name] || '') || lastName;
+      var code = cleanBulkCell(cells[map.code] || '');
+      var title = cleanBulkCell(cells[map.title] || '');
+      var program = cleanBulkCell(cells[map.program] || '');
+      var centre = cleanBulkCell(cells[map.centre] || '');
+      var block = map.block == null ? '' : normalizeBlockForBulk(cleanBulkCell(cells[map.block] || ''));
+      var mode = map.mode == null ? '' : cleanBulkCell(cells[map.mode] || '');
+      var travelFrom = map.travelFrom == null ? '' : cleanBulkCell(cells[map.travelFrom] || '');
+      var travelTo = map.travelTo == null ? '' : cleanBulkCell(cells[map.travelTo] || '');
+      var password = map.password == null ? '' : cleanBulkCell(cells[map.password] || '');
+
+      if (!sid) {
+        result.warnings.push('Row ' + (i + 1) + ' skipped: missing Staff ID.');
+        continue;
+      }
+      if (!name) {
+        result.warnings.push('Row ' + (i + 1) + ' skipped: missing name for ' + sid + '.');
+        continue;
+      }
+
+      lastStaffId = sid;
+      lastName = name;
+
+      if (!groups[sid]) {
+        groups[sid] = { staffId: sid, name: name, password: password, courses: [], programs: [] };
+        order.push(sid);
+      } else {
+        if (name && groups[sid].name !== name) groups[sid].name = name;
+        if (password) groups[sid].password = password;
+      }
+
+      if (program) groups[sid].programs.push(program);
+
+      if (code || title) {
+        var course = normalizeCourseForBulk(code, title, program, centre, block, mode, travelFrom, travelTo);
+        groups[sid].courses.push(course);
+        result.courseRows++;
+        if (!course.code) result.warnings.push('Row ' + (i + 1) + ' has a course title but no course code.');
+        if (!course.program) result.warnings.push('Row ' + (i + 1) + ' has no programme for ' + sid + '.');
+        if (!course.centre) result.warnings.push('Row ' + (i + 1) + ' has no study centre for ' + sid + '.');
+        if (!course.block) result.warnings.push('Row ' + (i + 1) + ' has no block for ' + sid + '. This course will not appear on the tutor form until a block is added.');
+        if (course.mode !== 'Purely Online' && (!course.travelFrom || !course.travelTo)) result.warnings.push('Row ' + (i + 1) + ' is blended/face-to-face but has no Travel From/Travel To for ' + sid + '.');
+        if (course.travelFrom && course.travelTo && !course.travelTotalDistance) result.warnings.push('Row ' + (i + 1) + ' has a travel route not found in the mileage list: ' + course.travelFrom + ' to ' + course.travelTo + '.');
+      }
+      result.rows++;
+    }
+
+    result.groups = order.map(function (sid) {
+      var g = groups[sid];
+      g.programs = uniqueNonEmpty(g.programs.concat(programsFromCourses(g.courses)));
+      g.courses = mergeCourseArrays([], g.courses);
+      return g;
+    });
+
+    if (!result.groups.length) result.errors.push('No valid tutor rows found.');
+    return result;
+  }
+
+  function renderBulkPreview() {
+    var parsed = parseBulkTutors();
+    bulkPreviewGroups = parsed.groups;
+    var bulkPreview = document.getElementById('bulkPreview');
+    var bulkImportBtn = document.getElementById('bulkImportBtn');
+
+    var summary = '<strong>Preview:</strong> ' + parsed.groups.length + ' unique tutors, ' + parsed.courseRows + ' course rows.';
+    if (parsed.errors.length) summary += '<br><span style="color:#b42318;">' + escapeHTML(parsed.errors.join(' ')) + '</span>';
+    if (parsed.warnings.length) summary += '<br><span style="color:#856404;">Warnings: ' + escapeHTML(parsed.warnings.slice(0, 12).join(' | ')) + (parsed.warnings.length > 12 ? ' | +' + (parsed.warnings.length - 12) + ' more' : '') + '</span>';
+    setBox('bulkResult', summary, parsed.errors.length ? 'err' : (parsed.warnings.length ? 'warn' : 'ok'));
+
+    if (!parsed.groups.length) {
+      bulkPreview.style.display = 'none';
+      bulkImportBtn.disabled = true;
+      return;
+    }
+
+    bulkPreview.innerHTML = '<table><thead><tr><th>Staff ID</th><th>Name</th><th>Courses</th><th>Programmes</th></tr></thead><tbody>' +
+      parsed.groups.map(function (g) {
+        return '<tr>' +
+          '<td><code>' + escapeHTML(g.staffId) + '</code><br><span style="font-size:11px;color:#667085;">' + escapeHTML(staffIdToEmail(g.staffId)) + '</span></td>' +
+          '<td>' + escapeHTML(g.name) + '</td>' +
+          '<td>' + (g.courses.length ? g.courses.map(function (c) { return escapeHTML((c.code || '') + (c.title ? ' - ' + c.title : '') + (c.centre ? ' @ ' + c.centre : '') + (c.block ? ' [' + c.block + ']' : ' [No block]') + (c.mode ? ' {' + c.mode + '}' : '') + (c.travelFrom && c.travelTo ? ' route: ' + c.travelFrom + ' → ' + c.travelTo : '')); }).join('<br>') : '<span class="badge warn">No courses</span>') + '</td>' +
+          '<td>' + (g.programs.length ? g.programs.map(function (p) { return '<span class="pill">' + escapeHTML(p) + '</span>'; }).join(' ') : '<span class="badge warn">None</span>') + '</td>' +
+        '</tr>';
+      }).join('') + '</tbody></table>';
+    bulkPreview.style.display = 'block';
+    bulkImportBtn.disabled = !!parsed.errors.length;
+  }
+
+  async function importBulkTutors() {
+    var btn = document.getElementById('bulkImportBtn');
+    if (!bulkPreviewGroups.length) renderBulkPreview();
+    if (!bulkPreviewGroups.length) return;
+
+    var defaultPw = document.getElementById('bulkDefaultPassword').value || '';
+    var createLogins = document.getElementById('bulkCreateLogin').checked;
+    var mode = document.getElementById('bulkCourseMode').value;
+    if (createLogins && defaultPw.length < 6) {
+      setBox('bulkResult', '❌ Default password must be at least 6 characters.', 'err');
+      return;
+    }
+
+    disableButton(btn, true, 'Importing…');
+    var created = 0;
+    var verified = 0;
+    var firestoreSaved = 0;
+    var warnings = 0;
+    var failed = 0;
+    var messages = [];
+    var authRateLimited = false;
+
+    for (var i = 0; i < bulkPreviewGroups.length; i++) {
+      var g = bulkPreviewGroups[i];
+      var sid = g.staffId;
+      var uidToStore = null;
+      var authNote = '';
+      try {
+        var password = g.password || defaultPw;
+        if (createLogins && !authRateLimited) {
+          try {
+            var authResult = await provisionOrVerifyLogin(sid, password);
+            if (authResult.status === 'created') { created++; authNote = 'login created'; }
+            else if (authResult.status === 'verified_existing') { verified++; authNote = 'existing login verified'; }
+            else if (authResult.status === 'exists_wrong_password') { warnings++; authNote = 'login exists but password was not verified'; }
+            uidToStore = authResult.uid || null;
+          } catch (authErr) {
+            warnings++;
+            var authErrText = (authErr && (authErr.code || authErr.message)) ? ((authErr.code || '') + ' ' + (authErr.message || '')).trim() : String(authErr);
+            authNote = 'login step failed: ' + authErrText;
+            if (authErrText.indexOf('too-many-requests') > -1) {
+              authRateLimited = true;
+              authNote = 'login checks paused: Firebase rate limit reached; Firestore course update continued';
+              log('Firebase has temporarily blocked login checks. The import will continue updating Firestore only for the remaining tutors.', 'warn');
+            }
+          }
+        } else if (createLogins && authRateLimited) {
+          authNote = 'login skipped after Firebase rate limit; Firestore updated';
+        } else {
+          authNote = 'login not touched';
+        }
+
+        var existing = await getTutorDoc(sid);
+        var finalCourses = g.courses;
+        var finalPrograms = g.programs;
+        if (mode === 'merge' && existing) {
+          finalCourses = mergeCourseArrays(existing.courses, g.courses);
+          finalPrograms = uniqueNonEmpty((existing.programs || []).concat(g.programs).concat(programsFromCourses(finalCourses)));
+        }
+
+        await upsertTutorDoc(sid, {
+          name: g.name,
+          programs: finalPrograms,
+          courses: finalCourses
+        }, uidToStore, false);
+        firestoreSaved++;
+        log('Bulk saved ' + sid + ' (' + authNote + ').', authNote.indexOf('failed') > -1 || authNote.indexOf('not verified') > -1 ? 'warn' : 'ok');
+      } catch (e) {
+        failed++;
+        messages.push(sid + ': ' + (e.message || e));
+        log('Bulk import failed for ' + sid + ': ' + (e.message || e), 'err');
+      }
+    }
+
+    await loadTutors();
+    var html = '<strong>Bulk import complete.</strong><br>' +
+      'Firestore records saved: <strong>' + firestoreSaved + '</strong><br>' +
+      'Logins created: <strong>' + created + '</strong><br>' +
+      'Existing logins verified: <strong>' + verified + '</strong><br>' +
+      'Warnings: <strong>' + warnings + '</strong><br>' +
+      'Failed: <strong>' + failed + '</strong>';
+    if (authRateLimited) {
+      html += '<br><br><strong>Note:</strong> Firebase rate-limited login checks, so the page continued as course/block update only. This is okay for existing tutors whose login accounts already exist.';
+    }
+    if (messages.length) html += '<br><br>' + escapeHTML(messages.slice(0, 10).join('\n'));
+    setBox('bulkResult', html, failed ? 'err' : (warnings ? 'warn' : 'ok'));
+    disableButton(btn, false, 'Import all previewed tutors');
+  }
+
+  function clearBulkImport() {
+    document.getElementById('bulkPaste').value = '';
+    document.getElementById('bulkPreview').style.display = 'none';
+    document.getElementById('bulkPreview').innerHTML = '';
+    document.getElementById('bulkImportBtn').disabled = true;
+    bulkPreviewGroups = [];
+    clearBox('bulkResult');
+  }
+
+  function normalizeActiveBlock(value) {
+    var raw = String(value || '').trim().toLowerCase();
+    if (!raw) return '';
+    if (/\b1\b|one/.test(raw)) return 'Block 1';
+    if (/\b2\b|two/.test(raw)) return 'Block 2';
+    if (/\b3\b|three/.test(raw)) return 'Block 3';
+    if (raw === 'block 1' || raw === 'block one') return 'Block 1';
+    if (raw === 'block 2' || raw === 'block two') return 'Block 2';
+    if (raw === 'block 3' || raw === 'block three') return 'Block 3';
+    return String(value || '').trim();
+  }
+
+  async function loadActiveBlockSetting() {
+    var currentBox = document.getElementById('activeBlockCurrent');
+    var select = document.getElementById('activeBlockSelect');
+    if (!db || !currentBox) return;
+    currentBox.innerHTML = 'Loading…';
+    try {
+      return '';
+      var doc = await db.collection('settings').doc('activeBlock').get();
+      var data = doc.exists ? (doc.data() || {}) : {};
+      var block = normalizeActiveBlock(data.activeBlock || data.block || '');
+      if (select) select.value = block;
+      if (block) {
+        currentBox.innerHTML = '<strong>' + escapeHTML(block) + '</strong><br><span class="hint">Tutors will only see courses assigned to ' + escapeHTML(block) + '.</span>';
+      } else {
+        currentBox.innerHTML = '<span class="badge warn">Not set</span><br><span class="hint">Tutors will not be able to select courses until you save an active block.</span>';
+      }
+      return block;
+    } catch (e) {
+      currentBox.innerHTML = '<span class="badge err">Could not load</span><br><span class="hint">' + escapeHTML(e.message || e) + '</span>';
+      log('Could not load active block: ' + (e.message || e), 'err');
+      return '';
+    }
+  }
+
+  async function saveActiveBlockSetting() {
+    var btn = document.getElementById('saveActiveBlockBtn');
+    var select = document.getElementById('activeBlockSelect');
+    var block = normalizeActiveBlock(select ? select.value : '');
+    if (!block) {
+      setBox('activeBlockResult', '❌ Select Block 1, Block 2, or Block 3 first.', 'err');
+      return;
+    }
+    disableButton(btn, true, 'Saving…');
+    try {
+      await db.collection('settings').doc('activeBlock').set({
+        activeBlock: block,
+        block: block,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedByUid: auth.currentUser ? auth.currentUser.uid : '',
+        updatedByEmail: auth.currentUser ? auth.currentUser.email : ''
+      }, { merge: true });
+      setBox('activeBlockResult', '✅ Active block saved as <strong>' + escapeHTML(block) + '</strong>. Tutors will see only courses assigned to this block.', 'ok');
+      log('Active block set to ' + block, 'ok');
+      await loadActiveBlockSetting();
+    } catch (e) {
+      setBox('activeBlockResult', '❌ Could not save active block: ' + escapeHTML(e.message || e), 'err');
+      log('Could not save active block: ' + (e.message || e), 'err');
+    } finally {
+      disableButton(btn, false, 'Save active block');
+    }
   }
 
   function setupEvents() {
@@ -1097,9 +1899,26 @@
       auth.signOut();
     });
 
+    document.getElementById('saveActiveBlockBtn').addEventListener('click', saveActiveBlockSetting);
+    document.getElementById('refreshActiveBlockBtn').addEventListener('click', loadActiveBlockSetting);
     document.getElementById('staffId').addEventListener('input', updateEmailPreview);
     document.getElementById('saveTutorBtn').addEventListener('click', saveTutor);
     document.getElementById('clearFormBtn').addEventListener('click', clearTutorForm);
+    document.getElementById('addCourseBtn').addEventListener('click', addCourseFromForm);
+    document.getElementById('clearCourseEntryBtn').addEventListener('click', clearCourseEntryFields);
+    document.getElementById('courseModeSelect').addEventListener('change', updateCourseTravelVisibility);
+    document.getElementById('loadCourseLinesBtn').addEventListener('click', loadAdvancedCourseLinesIntoBuilder);
+    document.getElementById('courseBuilderList').addEventListener('click', function (e) {
+      var edit = e.target.closest('.editCourseRowBtn');
+      var remove = e.target.closest('.removeCourseRowBtn');
+      if (edit) editCourseBuilderRow(edit.getAttribute('data-index'));
+      if (remove) removeCourseBuilderRow(remove.getAttribute('data-index'));
+    });
+    renderCourseBuilderRows();
+    updateCourseTravelVisibility();
+    document.getElementById('bulkPreviewBtn').addEventListener('click', renderBulkPreview);
+    document.getElementById('bulkImportBtn').addEventListener('click', importBulkTutors);
+    document.getElementById('bulkClearBtn').addEventListener('click', clearBulkImport);
     document.getElementById('refreshBtn').addEventListener('click', loadTutors);
     searchInput.addEventListener('input', renderTutors);
 
@@ -1120,18 +1939,26 @@
     document.getElementById('testLoginBtn').addEventListener('click', testLogin);
     document.getElementById('syncUidBtn').addEventListener('click', syncVerifiedUid);
     document.getElementById('removeUidBtn').addEventListener('click', removeStoredUid);
-
-    var knownPwBtn = document.getElementById('changeKnownPwBtn');
-    if (knownPwBtn) knownPwBtn.addEventListener('click', changeKnownPassword);
-
-    document.getElementById('adminResetStaffId').addEventListener('input', updateAdminResetEmailPreview);
-    document.getElementById('adminResetPasswordBtn').addEventListener('click', resetTutorPasswordDirectly);
-    document.getElementById('fillResetFromTutorBtn').addEventListener('click', function () {
-      var sid = normalizeStaffId(document.getElementById('staffId').value);
-      document.getElementById('adminResetStaffId').value = sid;
-      updateAdminResetEmailPreview();
-      document.getElementById('adminNewPassword').focus();
+    document.getElementById('changeKnownPwBtn').addEventListener('click', changeKnownPassword);
+    document.getElementById('adminResetStaffId').addEventListener('input', scheduleAdminResetPreview);
+    document.getElementById('adminResetPasswordBtn').addEventListener('click', adminResetTutorPassword);
+    document.getElementById('adminResetConfirmPassword').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') document.getElementById('adminResetPasswordBtn').click();
     });
+
+    document.getElementById('consoleStaffId').addEventListener('input', updateConsoleEmailPreview);
+    document.getElementById('copyEmailBtn').addEventListener('click', async function () {
+      var sid = normalizeStaffId(document.getElementById('consoleStaffId').value);
+      var email = staffIdToEmail(sid);
+      if (!email) { log('Enter a Staff ID first.', 'err'); return; }
+      try {
+        await copyText(email);
+        log('Copied ' + email, 'ok');
+      } catch (e) {
+        log('Could not copy email. Manually copy: ' + email, 'err');
+      }
+    });
+    document.getElementById('openAuthConsole').href = AUTH_CONSOLE_URL;
   }
 
   function initFirebase() {
@@ -1144,9 +1971,7 @@
       firebase.initializeApp(firebaseConfig);
       auth = firebase.auth();
       db = firebase.firestore();
-      if (firebase.functions) {
-        functions = firebase.app().functions(FUNCTIONS_REGION);
-      }
+      functions = firebase.functions();
 
       secondaryApp = firebase.initializeApp(firebaseConfig, 'tutorAuthWorker');
       secondaryAuth = secondaryApp.auth();
@@ -1164,15 +1989,14 @@
           tutors = [];
           tutorsBody.innerHTML = '<tr><td colspan="3" class="empty">Sign in to load tutor records.</td></tr>';
           countLabel.textContent = '—';
+
         }
       });
 
     } catch (e) {
       setStatus('fail', '<strong>Firebase init failed:</strong> ' + escapeHTML(e.message || e));
     }
-  }
-
-  initFirebase();
+  }initFirebase();
 })();
 </script>
 </body>
