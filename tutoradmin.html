@@ -529,6 +529,22 @@
           </div>
         </div>
 
+
+        <div class="card">
+          <h2>Repair PG login directories</h2>
+          <div class="subtitle">
+            Use this if a postgraduate tutor can authenticate but the login page says the Staff ID is not in the facilitator or monitor directories.
+            This safely rebuilds the missing <code>claims_account_directory</code> mappings for existing postgraduate tutor accounts.
+          </div>
+          <div class="helper-box warn" style="display:block;margin-top:12px;">
+            This does <strong>not</strong> change passwords, tutor courses, blocks, travel details, claims, or Auth UIDs.
+          </div>
+          <div class="toolbar" style="margin-top:16px;">
+            <button id="repairPgDirectoriesBtn">Repair PG login directories</button>
+          </div>
+          <div id="repairPgDirectoriesResult" class="helper-box" style="display:none;"></div>
+        </div>
+
         <div class="card">
           <h2>Firebase Auth account helper</h2>
           <div class="subtitle">
@@ -997,7 +1013,7 @@
   }
 
   function renderTutors() {
-    var q = (searchInput.value || '').toLowerCase().trim();var q = (searchInput.value || '').toLowerCase().trim();
+    var q = (searchInput.value || '').toLowerCase().trim();
     var rows = tutors.filter(function (t) {
       var hay = [
         t.staffId,
@@ -1874,6 +1890,78 @@
     }
   }
 
+
+  async function repairPgLoginDirectories() {
+    var btn = document.getElementById('repairPgDirectoriesBtn');
+
+    if (!auth.currentUser) {
+      setBox('repairPgDirectoriesResult', '❌ Sign in as an administrator first.', 'err');
+      return;
+    }
+
+    if (!functions) {
+      setBox('repairPgDirectoriesResult', '❌ Firebase Functions did not initialize. Refresh this page and try again.', 'err');
+      return;
+    }
+
+    if (!window.confirm(
+      'Repair the postgraduate login directory mappings for all existing tutor accounts?\n\n' +
+      'This does not change passwords, courses, claims, blocks, travel details, or Auth UIDs.'
+    )) return;
+
+    disableButton(btn, true, 'Repairing…');
+    clearBox('repairPgDirectoriesResult');
+
+    try {
+      var callable = functions.httpsCallable('repairPgLoginDirectories');
+      var response = await callable({});
+      var result = response && response.data ? response.data : {};
+
+      var html =
+        '<strong>✅ PG login directory repair completed.</strong><br>' +
+        'Postgraduate Auth accounts checked: <strong>' + escapeHTML(result.pgAuthUsers || 0) + '</strong><br>' +
+        'Directory mappings repaired/confirmed: <strong>' + escapeHTML(result.mapped || 0) + '</strong><br>' +
+        'Tutor records linked to Auth UIDs: <strong>' + escapeHTML(result.tutorLinksUpdated || 0) + '</strong><br>' +
+        'Unmatched accounts: <strong>' + escapeHTML(result.unmatched || 0) + '</strong><br>' +
+        'Conflicts skipped: <strong>' + escapeHTML(result.conflicts || 0) + '</strong>';
+
+      if (result.unmatchedExamples && result.unmatchedExamples.length) {
+        html += '<br><br><strong>Unmatched examples:</strong><br><code>' +
+          escapeHTML(result.unmatchedExamples.join(', ')) + '</code>';
+      }
+
+      if (result.conflictExamples && result.conflictExamples.length) {
+        html += '<br><br><strong>Conflict examples:</strong><br><code>' +
+          escapeHTML(result.conflictExamples.join(', ')) + '</code>';
+      }
+
+      setBox('repairPgDirectoriesResult', html, (result.conflicts || result.unmatched) ? 'warn' : 'ok');
+      log('PG login directory repair completed. Mapped: ' + (result.mapped || 0) +
+          ', unmatched: ' + (result.unmatched || 0) +
+          ', conflicts: ' + (result.conflicts || 0) + '.', 'ok');
+
+      await loadTutors();
+
+    } catch (e) {
+      var code = e && e.code ? String(e.code) : '';
+      var msg = e && e.message ? e.message : String(e || 'Unknown error');
+
+      if (code.indexOf('not-found') !== -1) {
+        msg = 'The repairPgLoginDirectories Cloud Function is not deployed yet. Run the included setup batch file once, then try again.';
+      } else if (code.indexOf('permission-denied') !== -1) {
+        msg = 'Your signed-in account is not authorised as an administrator.';
+      } else if (code.indexOf('unauthenticated') !== -1) {
+        msg = 'Sign in to the admin page first, then try again.';
+      }
+
+      setBox('repairPgDirectoriesResult', '❌ ' + escapeHTML(msg), 'err');
+      log('PG login directory repair failed: ' + msg, 'err');
+
+    } finally {
+      disableButton(btn, false, 'Repair PG login directories');
+    }
+  }
+
   function setupEvents() {
     loginBtn.addEventListener('click', async function () {
       var email = document.getElementById('adminEmail').value.trim();
@@ -1942,6 +2030,7 @@
     document.getElementById('changeKnownPwBtn').addEventListener('click', changeKnownPassword);
     document.getElementById('adminResetStaffId').addEventListener('input', scheduleAdminResetPreview);
     document.getElementById('adminResetPasswordBtn').addEventListener('click', adminResetTutorPassword);
+    document.getElementById('repairPgDirectoriesBtn').addEventListener('click', repairPgLoginDirectories);
     document.getElementById('adminResetConfirmPassword').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') document.getElementById('adminResetPasswordBtn').click();
     });
@@ -1996,7 +2085,8 @@
     } catch (e) {
       setStatus('fail', '<strong>Firebase init failed:</strong> ' + escapeHTML(e.message || e));
     }
-  }initFirebase();
+  }
+initFirebase();
 })();
 </script>
 </body>
